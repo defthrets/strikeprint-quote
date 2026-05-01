@@ -140,7 +140,7 @@ const SIGN_CATALOGUE = {
     description: 'Full custom digital print on ACM (aluminium composite) panel.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 750,  h: 1220, spec: '750 × 1220 mm',   sqm: 0.92 },
-      { id: 'md', label: 'Medium', w: 1220, h: 2440, spec: '1220 × 2440 mm',  sqm: 2.98 },  // standard sheet
+      { id: 'md', label: 'Medium', w: 1220, h: 2440, spec: '1220 × 2440 mm',  sqm: 2.98, flatPrice: 258 },  // standard sheet — flat-priced (line ≈ $480 inc install)
       { id: 'lg', label: 'Large',  w: 1500, h: 3000, spec: '1500 × 3000 mm',  sqm: 4.50 },
       { id: 'xl', label: 'XL',     w: 2000, h: 4000, spec: '2000 × 4000 mm',  sqm: 8.00 }
     ]
