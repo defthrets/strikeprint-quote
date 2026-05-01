@@ -2380,39 +2380,24 @@ function ContactForm({ result, originalPhoto, fmt }) {
         </div>
         <p className="text-sm leading-relaxed mb-5" style={{ color: '#cbd5e1' }}>{statusMsg}</p>
 
-        {(result.composite || originalPhoto) && (
+        {result.composite && (
           <div className="pt-4" style={{ borderTop: `1px solid ${BRAND.boltAmber}30` }}>
             <div className="text-[10px] uppercase tracking-[0.2em] mb-3"
               style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
               Want a copy for your records?
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              {result.composite && (
-                <button onClick={() => downloadDataUrl(result.composite, `${stem}_mockup.jpg`)}
-                  className="lift inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs uppercase tracking-widest"
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    background: 'rgba(8,21,46,0.6)',
-                    border: `1px solid ${BRAND.navyLineStrong}`,
-                    color: BRAND.textPri
-                  }}>
-                  <Download className="w-3.5 h-3.5" strokeWidth={2} />
-                  Download Mockup
-                </button>
-              )}
-              {originalPhoto && (
-                <button onClick={() => downloadDataUrl(originalPhoto, `${stem}_photo.jpg`)}
-                  className="lift inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs uppercase tracking-widest"
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    background: 'rgba(8,21,46,0.6)',
-                    border: `1px solid ${BRAND.navyLineStrong}`,
-                    color: BRAND.textPri
-                  }}>
-                  <Download className="w-3.5 h-3.5" strokeWidth={2} />
-                  Download Photo
-                </button>
-              )}
+            <div className="flex justify-center">
+              <button onClick={() => downloadDataUrl(result.composite, `${stem}_mockup.jpg`)}
+                className="lift inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs uppercase tracking-widest"
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  background: 'rgba(8,21,46,0.6)',
+                  border: `1px solid ${BRAND.navyLineStrong}`,
+                  color: BRAND.textPri
+                }}>
+                <Download className="w-3.5 h-3.5" strokeWidth={2} />
+                Download Mockup
+              </button>
             </div>
           </div>
         )}
