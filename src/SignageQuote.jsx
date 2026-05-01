@@ -2297,13 +2297,10 @@ function ContactForm({ result, originalPhoto, fmt }) {
 
   // Open the user's mail client as a last-resort fallback (used when the
   // server-side endpoint is unreachable — local dev, missing env var, etc).
-  // mailto: can't carry attachments, so we DO auto-download both photos
-  // here so the user can attach them to the draft manually.
+  // mailto: can't carry attachments. The success screen exposes manual
+  // 'Download Mockup' / 'Download Photo' buttons so the user can grab the
+  // files and attach them to the draft themselves — we never auto-download.
   const openMailtoFallback = () => {
-    const stem = fileStem();
-    if (result.composite) downloadDataUrl(result.composite, `${stem}_mockup.jpg`);
-    if (originalPhoto)    setTimeout(() => downloadDataUrl(originalPhoto, `${stem}_original.jpg`), 250);
-
     const subject = encodeURIComponent(`Quote request from ${form.name}`);
     const body = encodeURIComponent(
       `Name: ${form.name}\n` +
@@ -2311,11 +2308,11 @@ function ContactForm({ result, originalPhoto, fmt }) {
       `Email: ${form.email || '(not provided)'}\n\n` +
       `Customer notes:\n${form.message || '(none)'}\n\n` +
       `--- QUOTE ---\n${buildBreakdownText()}\n\n` +
-      `(Original photo + mockup saved to customer's downloads — please ask them to attach both when replying.)`
+      `(Customer will attach the mockup + original photo manually.)`
     );
     window.location.href = `mailto:${RECIPIENT_EMAIL}?subject=${subject}&body=${body}`;
     setStatus('sent');
-    setStatusMsg('Email draft opening in your mail app — photos saved to your downloads, please attach them before sending.');
+    setStatusMsg('Email draft opening in your mail app — use the download buttons below if you want to attach the mockup or photo.');
   };
 
   const onSubmit = async (e) => {
