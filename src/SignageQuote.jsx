@@ -1486,7 +1486,7 @@ function CompositionStage({
       <div className="anim-fadeup">
         <SectionHeader num="02" title="Compose Your Mockup" />
         <p className="text-sm mt-4 leading-relaxed" style={{ color: BRAND.textMuted }}>
-          Click a sign from the panel to add it. Drag to position, drag the corner to resize. Click any placed sign to edit its text or swap colours.
+          Click a sign from the panel to add it. Drag to position, drag the corner to resize, drag the top handle to rotate.
         </p>
         <p className="text-xs mt-3 leading-relaxed px-3 py-2"
           style={{
