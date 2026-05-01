@@ -2,7 +2,7 @@
 
 Online quote and mock-up estimator. Customers upload a photo of their building, vehicle, or interior, drag signage templates onto it, tick off site conditions, and get an itemised quote with mockup.
 
-No AI, no API keys, no backend. Pure client-side React + SVG composition.
+Static client-side React + SVG composition, plus one tiny Vercel serverless function that dispatches the finished quote (mockup + original photo + breakdown) by email via Resend.
 
 ## Local development
 
@@ -30,6 +30,27 @@ The static site lands in `dist/` — drop it on any static host (Netlify, Vercel
 2. Go to https://vercel.com/new, select the repo
 3. Vercel auto-detects Vite. Click Deploy
 4. Live URL appears in ~30 seconds. Every push to `main` redeploys.
+
+#### Email dispatch (Resend)
+
+The `/api/send-quote` serverless function sends finished quotes to Strike
+Print via [Resend](https://resend.com) (free tier: 3000/month). Setup:
+
+1. Sign up at https://resend.com → grab an API key (`re_...`)
+2. In Vercel: Project → Settings → Environment Variables, add:
+   - `RESEND_API_KEY` = `re_xxxxxxxxxxxxx`
+   - (optional) `QUOTE_RECIPIENT` — defaults to `mick@strikeprint.com.au`
+   - (optional) `QUOTE_FROM` — defaults to `Strike Print Quotes <onboarding@resend.dev>`
+3. Redeploy (any push, or hit "Redeploy" in the Vercel UI)
+
+The default sender `onboarding@resend.dev` is Resend's sandbox address — it
+will only deliver to the email address that owns the Resend account. So sign
+up at Resend with `mick@strikeprint.com.au` and emails arrive there out of
+the box. To send from a custom domain, verify `strikeprint.com.au` at
+https://resend.com/domains and set `QUOTE_FROM` to a verified address.
+
+Until `RESEND_API_KEY` is set, the form gracefully falls back to opening a
+`mailto:` draft in the user's mail client.
 
 ### Netlify
 
