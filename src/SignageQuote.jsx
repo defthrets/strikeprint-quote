@@ -136,7 +136,7 @@ const SIGN_CATALOGUE = {
 
   // ACM Panel — standard composite panel sheet sizes
   acm_panel: {
-    name: 'ACM Panel Sign', perSqm: 181, installBase: 159, installPerSqm: 40, minTotal: 272,
+    name: 'ACM Panel Sign', perSqm: 145, installBase: 127, installPerSqm: 32, minTotal: 218,
     description: 'Full custom digital print on ACM (aluminium composite) panel.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 750,  h: 1220, spec: '750 × 1220 mm',   sqm: 0.92 },
