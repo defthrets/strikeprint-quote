@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Loader2, AlertTriangle, Check, Camera, X, ChevronRight, Trash2, Type, Square, Lightbulb, Flag, Triangle, Car, MapPin, Navigation, EyeOff, Image as ImageIcon, Layers, Maximize2, Plus, Wrench, Send, Download, Printer, RotateCcw, RotateCw, Pencil } from 'lucide-react';
+import { Loader2, AlertTriangle, Check, Camera, X, ChevronRight, Trash2, Type, Square, Lightbulb, Flag, Triangle, Car, MapPin, Navigation, EyeOff, Image as ImageIcon, Layers, Maximize2, Plus, Wrench, Send, Download, Printer, RotateCcw, RotateCw, Pencil, Link2 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
 //   STRIKE PRINT · QUOTE ESTIMATOR v0.8
@@ -93,6 +93,7 @@ const SIGN_CATALOGUE = {
   // Vinyl Lettering — sized by letter height (typical 6-letter word)
   vinyl_lettering: {
     name: 'Vinyl Lettering', perSqm: 77, installBase: 146, installPerSqm: 32, minTotal: 178,
+    description: 'Cut self-adhesive vinyl letters applied directly to glass, walls or panels. Best for clean text-only branding.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 600,  h: 100, spec: '100 mm letters',  sqm: 0.06 },
       { id: 'md', label: 'Medium', w: 1200, h: 200, spec: '200 mm letters',  sqm: 0.24 },
@@ -104,6 +105,7 @@ const SIGN_CATALOGUE = {
   // Window Graphics — common storefront window sizes
   window_graphics: {
     name: 'Window Graphics', perSqm: 63, installBase: 91, installPerSqm: 22, minTotal: 145,
+    description: 'Full-colour digital print on optically clear vinyl, applied to glass. Visible from outside while keeping good light through.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 600,  h: 900,  spec: '600 × 900 mm',    sqm: 0.54 },
       { id: 'md', label: 'Medium', w: 900,  h: 1500, spec: '900 × 1500 mm',   sqm: 1.35 },
@@ -115,6 +117,7 @@ const SIGN_CATALOGUE = {
   // Window Frosting — frosted vinyl for privacy + branding (offices, boardrooms, shopfronts)
   window_frosting: {
     name: 'Window Frosting', perSqm: 66, installBase: 98, installPerSqm: 24, minTotal: 154,
+    description: 'Frosted-effect cut vinyl on glass — adds privacy and a premium look to offices, boardrooms or shopfront panels. Logos and text can be cut into the frost.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 600,  h: 900,  spec: '600 × 900 mm (door / single panel)',  sqm: 0.54 },
       { id: 'md', label: 'Medium', w: 900,  h: 1500, spec: '900 × 1500 mm (boardroom)',           sqm: 1.35 },
@@ -126,6 +129,7 @@ const SIGN_CATALOGUE = {
   // PVC Banner — standard banner sizes
   banner_pvc: {
     name: 'PVC Banner', perSqm: 61, installBase: 97, installPerSqm: 20, minTotal: 146,
+    description: 'Heavy-duty 440 gsm PVC banner with welded hems and brass eyelets. Mounted with cable ties or rope to fences, scaffolding or façades.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 600,  h: 1500, spec: '600 × 1500 mm',   sqm: 0.90 },
       { id: 'md', label: 'Medium', w: 900,  h: 2400, spec: '900 × 2400 mm',   sqm: 2.16 },
@@ -149,6 +153,7 @@ const SIGN_CATALOGUE = {
   // Wall Graphic / Mural — large-format wall coverage
   wall_mural: {
     name: 'Wall Graphic', perSqm: 178, installBase: 227, installPerSqm: 57, minTotal: 340,
+    description: 'Large-format printed vinyl applied directly to interior or exterior walls. Used for feature walls, branding murals or photographic backdrops.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 1500, h: 2000, spec: '1.5 × 2 m',       sqm: 3.00 },
       { id: 'md', label: 'Medium', w: 2500, h: 3500, spec: '2.5 × 3.5 m',     sqm: 8.75 },
@@ -162,6 +167,7 @@ const SIGN_CATALOGUE = {
   // 3D Acrylic Letters — sized by letter height
   acrylic_3d_letters: {
     name: '3D Acrylic Letters', perSqm: 1021, installBase: 397, installPerSqm: 102, minTotal: 1247,
+    description: 'Laser-cut 3D acrylic letters with stud-mounted standoffs from the wall. Modern, premium look — popular for office reception and retail interiors.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 600,  h: 100, spec: '100 mm letters',   sqm: 0.06 },
       { id: 'md', label: 'Medium', w: 1200, h: 200, spec: '200 mm letters',   sqm: 0.24 },
@@ -173,6 +179,7 @@ const SIGN_CATALOGUE = {
   // Channel Letters — sized by letter height
   channel_letters: {
     name: 'Channel Letters', perSqm: 1944, installBase: 770, installPerSqm: 178, minTotal: 2430,
+    description: 'Fabricated metal/acrylic letters with internal LED lighting (front-lit or halo-lit). The standard for major retail and commercial shopfront signage.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 1400, h: 200, spec: '200 mm letters',   sqm: 0.28 },
       { id: 'md', label: 'Medium', w: 2100, h: 300, spec: '300 mm letters',   sqm: 0.63 },
@@ -186,6 +193,7 @@ const SIGN_CATALOGUE = {
   // Lightbox — standard cabinet sizes
   lightbox: {
     name: 'Illuminated Lightbox', perSqm: 624, installBase: 340, installPerSqm: 79, minTotal: 850,
+    description: 'Internally illuminated cabinet sign with translucent face and LED backlighting. Visible day or night — ideal for shopfronts and after-hours business.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 600,  h: 900,  spec: '600 × 900 mm',    sqm: 0.54 },
       { id: 'md', label: 'Medium', w: 900,  h: 1800, spec: '900 × 1800 mm',   sqm: 1.62 },
@@ -199,6 +207,7 @@ const SIGN_CATALOGUE = {
   // Pylon Sign — cabinet (face) size, pole adds to install cost
   pylon_sign: {
     name: 'Pylon / Pole Sign', perSqm: 1620, installBase: 1458, installPerSqm: 284, minTotal: 3402,
+    description: 'Free-standing roadside sign on a steel pole with illuminated cabinet face. The big visibility play — service stations, shopping centres and roadside premises.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 600,  h: 1200, spec: '600 × 1200 mm cabinet · 3 m pole',   sqm: 0.72 },
       { id: 'md', label: 'Medium', w: 900,  h: 1800, spec: '900 × 1800 mm cabinet · 4 m pole',   sqm: 1.62 },
@@ -211,6 +220,7 @@ const SIGN_CATALOGUE = {
   // Used for parking lots, building entries, hospital/business directories.
   wayfinding_sign: {
     name: 'Wayfinding Sign', perSqm: 648, installBase: 486, installPerSqm: 122, minTotal: 688,
+    description: 'Compact directional sign on a pole — for car park entries, building directories, hospital and campus navigation.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 300, h: 1500, spec: '300 mm wide · 1.5 m tall',   sqm: 0.45 },
       { id: 'md', label: 'Medium', w: 400, h: 2000, spec: '400 mm wide · 2 m tall',     sqm: 0.80 },
@@ -224,6 +234,7 @@ const SIGN_CATALOGUE = {
   // Vehicle Decals — door / panel typical sizes
   vehicle_decals: {
     name: 'Vehicle Decals', perSqm: 89, installBase: 178, installPerSqm: 32, minTotal: 227,
+    description: 'Print or cut vinyl applied to vehicle panels. Quoted for the area shown — full wraps and complex contours assessed on site.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 400,  h: 600,  spec: '400 × 600 mm (door)',    sqm: 0.24 },
       { id: 'md', label: 'Medium', w: 800,  h: 1200, spec: '800 × 1200 mm (panel)',  sqm: 0.96 },
@@ -237,6 +248,7 @@ const SIGN_CATALOGUE = {
   // Feather Flag — standard heights
   feather_flag: {
     name: 'Feather Flag', perSqm: 0, installBase: 49, installPerSqm: 0, minTotal: 202,
+    description: 'Outdoor pole flag with stretch-fabric print. Includes pole, base and carry bag — quick to set up for events, sales and roadside attention.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 700, h: 2400, spec: '2.4 m tall', sqm: 0.84, flatPrice: 194 },
       { id: 'md', label: 'Medium', w: 700, h: 3000, spec: '3 m tall',   sqm: 1.05, flatPrice: 235 },
@@ -248,6 +260,7 @@ const SIGN_CATALOGUE = {
   // A-Frame — standard A-series sizes (common Australian sign sizes)
   a_frame: {
     name: 'A-Frame Footpath Sign', perSqm: 0, installBase: 32, installPerSqm: 0, minTotal: 162,
+    description: 'Folding double-sided footpath sign for shopfronts, cafés and pop-ups. Lightweight, weatherproof, ready to deploy each morning.',
     sizes: [
       { id: 'sm', label: 'A2',  w: 450, h: 600,  spec: '450 × 600 mm (A2)',  sqm: 0.27, flatPrice: 146 },
       { id: 'md', label: 'A1',  w: 600, h: 900,  spec: '600 × 900 mm (A1)',  sqm: 0.54, flatPrice: 178 },
@@ -886,6 +899,49 @@ const TEMPLATE_LIBRARY = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
+//   QUOTE STATE PERSISTENCE — URL hash + localStorage
+// ═══════════════════════════════════════════════════════════════
+//
+// The quote's lightweight state (placements, conditions, artwork) is encoded
+// into the URL hash so the user can bookmark / share / refresh and pick up
+// where they left off. The site photo is too large for a URL — it's saved
+// to localStorage on the same device for personal continuity, but doesn't
+// follow a shared link to another device. (A recipient who opens a shared
+// link without the photo lands on the photo-upload stage, then the saved
+// placements rehydrate once they upload an image of their own.)
+//
+const QUOTE_HASH_PREFIX = '#q=';
+const PHOTO_STORAGE_KEY = 'strikeprint:photo';
+
+const encodeQuoteState = ({ placements, conditions, artwork }) => {
+  try {
+    const data = {
+      v: 1,
+      p: placements,
+      c: Array.from(conditions || []),
+      a: artwork
+    };
+    // UTF-8-safe base64 (sign text may include non-ASCII characters)
+    return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  } catch { return ''; }
+};
+
+const decodeQuoteState = (encoded) => {
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+    if (!data || data.v !== 1) return null;
+    // Filter out placements referring to templates that no longer exist
+    // (graceful migration if the catalogue ever changes IDs).
+    const knownIds = new Set(TEMPLATE_LIBRARY.map(t => t.id));
+    return {
+      placements: (data.p || []).filter(p => p && knownIds.has(p.templateId)),
+      conditions: new Set(data.c || []),
+      artwork:    typeof data.a === 'string' ? data.a : DEFAULT_ARTWORK
+    };
+  } catch { return null; }
+};
+
+// ═══════════════════════════════════════════════════════════════
 //   MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
 export default function SignageQuoteBuilder() {
@@ -910,6 +966,69 @@ export default function SignageQuoteBuilder() {
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const photoInputRef = useRef(null);
+
+  // Brief feedback toggle for the "Copy quote link" button.
+  const [shareCopied, setShareCopied] = useState(false);
+
+  // ─── Restore on mount: photo from localStorage, quote state from URL hash ───
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PHOTO_STORAGE_KEY);
+      if (saved && saved.startsWith('data:')) setPhotoDataUrl(saved);
+    } catch {}
+
+    const hash = (typeof window !== 'undefined' && window.location.hash) || '';
+    if (hash.startsWith(QUOTE_HASH_PREFIX)) {
+      const decoded = decodeQuoteState(hash.slice(QUOTE_HASH_PREFIX.length));
+      if (decoded) {
+        if (decoded.placements.length) setPlacements(decoded.placements);
+        if (decoded.conditions.size)   setConditions(decoded.conditions);
+        if (decoded.artwork)           setArtwork(decoded.artwork);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─── Persist photo to localStorage (per-device convenience) ───
+  useEffect(() => {
+    if (!photoDataUrl) {
+      try { localStorage.removeItem(PHOTO_STORAGE_KEY); } catch {}
+      return;
+    }
+    try {
+      localStorage.setItem(PHOTO_STORAGE_KEY, photoDataUrl);
+    } catch {
+      // Quota exceeded — store a downscaled copy so refresh-restore still works
+      downscaleDataUrl(photoDataUrl, 1200, 0.7).then(small => {
+        try { localStorage.setItem(PHOTO_STORAGE_KEY, small); } catch {}
+      }).catch(() => {});
+    }
+  }, [photoDataUrl]);
+
+  // ─── Sync placements/conditions/artwork to URL hash (no history pollution) ───
+  // Only WRITE the hash when state has real content. Never auto-clear it —
+  // doing so would race the restore-on-mount effect (which fires earlier in
+  // the same effect cycle but its setState calls haven't flushed yet) and
+  // would wipe the very hash we're trying to restore from.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hasContent = placements.length > 0 || conditions.size > 0 || artwork !== DEFAULT_ARTWORK;
+    if (!hasContent) return;
+    const encoded = encodeQuoteState({ placements, conditions, artwork });
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${QUOTE_HASH_PREFIX}${encoded}`);
+  }, [placements, conditions, artwork]);
+
+  // ─── Copy current URL to clipboard so the user can share / save the quote ───
+  const onShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 1800);
+    } catch {
+      // navigator.clipboard may be unavailable on insecure origins or older
+      // browsers — silent fail; the URL is still in the address bar.
+    }
+  };
 
   // ─── load fonts + animation styles ───
   useEffect(() => {
@@ -1300,7 +1419,12 @@ export default function SignageQuoteBuilder() {
     setPhotoDataUrl(null); setPhotoMime('image/jpeg');
     setPlacements([]); setSelectedId(null);
     setConditions(new Set());
+    setArtwork(DEFAULT_ARTWORK);
     setResult(null); setError(null);
+    // Clear the saved-quote hash so the next visit starts fresh.
+    if (typeof window !== 'undefined' && window.location.hash.startsWith(QUOTE_HASH_PREFIX)) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
   };
 
   return (
@@ -1396,7 +1520,7 @@ export default function SignageQuoteBuilder() {
                 border: `2px dashed ${dragOver ? BRAND.boltAmber : BRAND.navyLineStrong}`,
                 backdropFilter: 'blur(8px)'
               }}>
-              <input ref={photoInputRef} type="file" accept="image/*"
+              <input ref={photoInputRef} type="file" accept="image/*" capture="environment"
                 onChange={(e) => handlePhotoFile(e.target.files[0])}
                 style={{
                   position: 'absolute', width: 1, height: 1,
@@ -1439,6 +1563,8 @@ export default function SignageQuoteBuilder() {
             artwork={artwork}
             setArtwork={setArtwork}
             onGenerate={onGenerate}
+            onShare={onShare}
+            shareCopied={shareCopied}
             onResetPhoto={() => { setPhotoDataUrl(null); setPlacements([]); setSelectedId(null); }}
             generating={generating}
             error={error}
@@ -1453,6 +1579,8 @@ export default function SignageQuoteBuilder() {
             conditions={conditions}
             onBack={() => setResult(null)}
             onNew={fullReset}
+            onShare={onShare}
+            shareCopied={shareCopied}
             fmt={fmt}
           />
         )}
@@ -1477,7 +1605,7 @@ function CompositionStage({
   photoDataUrl, placements, selectedId, setSelectedId,
   updatePlacement, removePlacement, reorderPlacement, addPlacement,
   brand, conditions, toggleCondition, artwork, setArtwork,
-  onGenerate, onResetPhoto, generating, error
+  onGenerate, onShare, shareCopied, onResetPhoto, generating, error
 }) {
   const selected = placements.find(p => p.id === selectedId);
 
@@ -1685,6 +1813,21 @@ function CompositionStage({
         </span>
         {!generating && <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
       </button>
+
+      {/* Save / share — copies URL to clipboard. URL hash carries the quote state. */}
+      {onShare && (
+        <button onClick={onShare}
+          className="lift w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-[11px] uppercase tracking-[0.18em]"
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            background: 'rgba(8,21,46,0.6)',
+            border: `1px solid ${BRAND.navyLineStrong}`,
+            color: shareCopied ? BRAND.boltAmber : BRAND.textMuted
+          }}>
+          {shareCopied ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : <Link2 className="w-3.5 h-3.5" strokeWidth={2} />}
+          {shareCopied ? 'Link copied to clipboard' : 'Copy quote link · save for later or share'}
+        </button>
+      )}
 
       {error && <ErrorBox msg={error} />}
     </div>
@@ -2063,7 +2206,7 @@ function ColourSwatchInput({ label, value, onChange }) {
 // ═══════════════════════════════════════════════════════════════
 //   QUOTE RESULT
 // ═══════════════════════════════════════════════════════════════
-function QuoteResult({ result, originalPhoto, conditions, onBack, onNew, fmt }) {
+function QuoteResult({ result, originalPhoto, conditions, onBack, onNew, onShare, shareCopied, fmt }) {
   return (
     <div className="anim-fadeup">
       <SectionHeader num="03" title="Mockup &amp; Quote" big />
@@ -2189,10 +2332,11 @@ function QuoteResult({ result, originalPhoto, conditions, onBack, onNew, fmt }) 
         <div className="lg:col-span-2 space-y-2">
           <Label num="E" text="Actions" />
           {/* Compact icon toolbar */}
-          <div className="grid grid-cols-4 gap-1.5"
+          <div className="grid grid-cols-5 gap-1.5"
             style={{ background: 'rgba(15,32,70,0.4)', border: `1px solid ${BRAND.navyLine}`, padding: '6px', backdropFilter: 'blur(8px)' }}>
             <ActionIconButton icon={ChevronRight} flip onClick={onBack} label="Back" />
             <ActionIconButton icon={Download} onClick={() => downloadDataUrl(result.composite, 'mockup.jpg')} disabled={!result.composite} label="Save" />
+            <ActionIconButton icon={shareCopied ? Check : Link2} onClick={onShare} label={shareCopied ? 'Copied' : 'Share'} />
             <ActionIconButton icon={Printer} onClick={() => window.print()} label="Print" />
             <ActionIconButton icon={RotateCcw} onClick={onNew} label="New" />
           </div>
