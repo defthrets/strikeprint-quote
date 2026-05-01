@@ -130,7 +130,7 @@ const SIGN_CATALOGUE = {
       { id: 'sm', label: 'Small',  w: 600,  h: 1500, spec: '600 × 1500 mm',   sqm: 0.90 },
       { id: 'md', label: 'Medium', w: 900,  h: 2400, spec: '900 × 2400 mm',   sqm: 2.16 },
       { id: 'lg', label: 'Large',  w: 1200, h: 3000, spec: '1200 × 3000 mm',  sqm: 3.60 },
-      { id: 'xl', label: 'XL',     w: 1800, h: 4500, spec: '1800 × 4500 mm',  sqm: 8.10 }
+      { id: 'xl', label: 'XL',     w: 1600, h: 6000, spec: '1600 × 6000 mm',  sqm: 9.60 }
     ]
   },
 
@@ -1053,11 +1053,34 @@ export default function SignageQuoteBuilder() {
   // ─── placement operations ───
   const addPlacement = (template, atX = 0.5, atY = 0.5) => {
     const id = `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const w = 0.30; // 30% of canvas width by default
+    const aspect = template.aspect || 1;
+
+    // Default width as fraction of canvas width. For tall-aspect signs (feather
+    // flag, pylon) on a landscape photo, 0.30 spawns a placement taller than
+    // the canvas itself — on phones the user then can't drag the resize handle
+    // back into view. Read the actual canvas size and clamp w so the spawn is
+    // at most 80% of canvas height.
+    const canvas = document.querySelector('[data-mockup-canvas]');
+    const rect = canvas?.getBoundingClientRect();
+    let w = 0.30;
+    if (rect && rect.width > 0 && rect.height > 0) {
+      const maxWForHeight = (rect.height * 0.8) / (rect.width * aspect);
+      w = Math.min(w, maxWForHeight);
+    } else {
+      // Fallback heuristic when canvas isn't yet rendered: assume 16:9 landscape
+      w = Math.min(w, 0.85 / (aspect * 1.78));
+    }
+    w = Math.max(0.08, w); // floor — never spawn smaller than 8% canvas width
+
+    // Compute placement height as fraction of canvas height for accurate y-clamp
+    const hFrac = rect
+      ? (w * rect.width * aspect) / rect.height
+      : Math.min(0.9, w * aspect);
+
     const newP = {
       id, templateId: template.id,
       x: Math.max(0, Math.min(1 - w, atX - w/2)),
-      y: Math.max(0, Math.min(1 - 0.1, atY - 0.05)),
+      y: Math.max(0, Math.min(1 - hFrac, atY - hFrac/2)),
       w,
       rotation: template.defaultRotation || 0,
       text: template.defaultText,
@@ -1775,7 +1798,7 @@ function PhotoCanvas({ src, placements, selectedId, setSelectedId, updatePlaceme
   }, []); // attach once
 
   return (
-    <div ref={wrapRef} className="relative anim-fadeup"
+    <div ref={wrapRef} data-mockup-canvas className="relative anim-fadeup"
       onClick={(e) => { if (e.target === wrapRef.current) setSelectedId(null); }}
       style={{ background: 'rgba(15,32,70,0.6)', border: `1px solid ${BRAND.navyLineStrong}`, touchAction: 'none' }}>
       <img src={src} alt="site" className="w-full block"
@@ -2050,8 +2073,15 @@ function QuoteResult({ result, originalPhoto, conditions, onBack, onNew, fmt }) 
           fontFamily: "'JetBrains Mono', monospace", background: BRAND.boltGrad, color: BRAND.navy
         }}>MOCKUP</div>
         {result.composite ? (
-          <img src={result.composite} alt="mockup" className="w-full"
-            style={{ border: `1px solid ${BRAND.boltAmber}`, aspectRatio: '16/9', objectFit: 'cover' }} />
+          // Show the WHOLE mockup (object-contain), capped at 70vh so it doesn't dominate
+          // the page on tall portrait photos. Letterboxes onto navy background if needed.
+          <img src={result.composite} alt="mockup" className="block w-full mx-auto"
+            style={{
+              border: `1px solid ${BRAND.boltAmber}`,
+              maxHeight: '70vh',
+              objectFit: 'contain',
+              background: BRAND.navyDeep
+            }} />
         ) : (
           <div className="flex items-center justify-center" style={{ aspectRatio: '16/9', background: BRAND.navyCard }}>
             <span className="text-xs" style={{ color: BRAND.textMuted }}>(composite failed)</span>
@@ -2257,9 +2287,23 @@ function ContactForm({ result, originalPhoto, fmt }) {
     return lines.join('\n');
   };
 
+  // Build a stable "[name]_[timestamp]" stem used as the filename prefix
+  // for any user-initiated downloads on the success screen.
+  const fileStem = () => {
+    const stamp = new Date().toISOString().slice(0,19).replace(/[T:]/g, '-');
+    const safeName = (form.name || 'customer').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+    return `strikeprint_${safeName}_${stamp}`;
+  };
+
   // Open the user's mail client as a last-resort fallback (used when the
   // server-side endpoint is unreachable — local dev, missing env var, etc).
+  // mailto: can't carry attachments, so we DO auto-download both photos
+  // here so the user can attach them to the draft manually.
   const openMailtoFallback = () => {
+    const stem = fileStem();
+    if (result.composite) downloadDataUrl(result.composite, `${stem}_mockup.jpg`);
+    if (originalPhoto)    setTimeout(() => downloadDataUrl(originalPhoto, `${stem}_original.jpg`), 250);
+
     const subject = encodeURIComponent(`Quote request from ${form.name}`);
     const body = encodeURIComponent(
       `Name: ${form.name}\n` +
@@ -2271,24 +2315,13 @@ function ContactForm({ result, originalPhoto, fmt }) {
     );
     window.location.href = `mailto:${RECIPIENT_EMAIL}?subject=${subject}&body=${body}`;
     setStatus('sent');
-    setStatusMsg('Photos saved · email draft opening in your mail app');
+    setStatusMsg('Email draft opening in your mail app — photos saved to your downloads, please attach them before sending.');
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     const v = validate();
     if (v) { setStatus('error'); setStatusMsg(v); return; }
-
-    // Always save the mockup + original locally first — works even if email send fails
-    const stamp = new Date().toISOString().slice(0,19).replace(/[T:]/g, '-');
-    const safeName = (form.name || 'customer').replace(/[^a-z0-9]+/gi, '_').toLowerCase();
-    if (result.composite) {
-      downloadDataUrl(result.composite, `strikeprint_${safeName}_mockup_${stamp}.jpg`);
-    }
-    if (originalPhoto) {
-      // Tiny delay so the browser doesn't block the second download
-      setTimeout(() => downloadDataUrl(originalPhoto, `strikeprint_${safeName}_original_${stamp}.jpg`), 250);
-    }
 
     setStatus('sending'); setStatusMsg('');
     try {
@@ -2326,15 +2359,16 @@ function ContactForm({ result, originalPhoto, fmt }) {
       }
 
       setStatus('sent');
-      setStatusMsg("Quote sent to Strike Print with your original photo and mockup attached. We'll be in touch soon. Copies also saved to your device.");
+      setStatusMsg("Your quote and mockup are on their way to Strike Print. We'll be in touch soon.");
     } catch (err) {
       console.error(err);
       setStatus('error');
-      setStatusMsg('Email send failed: ' + (err.message || 'unknown error') + '. Mockup was still saved to your device.');
+      setStatusMsg('Email send failed: ' + (err.message || 'unknown error'));
     }
   };
 
   if (status === 'sent') {
+    const stem = fileStem();
     return (
       <div className="p-6 anim-scalein text-center"
         style={{ background: `${BRAND.boltAmber}10`, border: `1px solid ${BRAND.boltAmber}`, backdropFilter: 'blur(8px)' }}>
@@ -2347,7 +2381,44 @@ function ContactForm({ result, originalPhoto, fmt }) {
         <div style={{ fontFamily: 'Anton, sans-serif', letterSpacing: '0.05em' }} className="text-2xl mb-2">
           REQUEST SENT
         </div>
-        <p className="text-sm leading-relaxed" style={{ color: '#cbd5e1' }}>{statusMsg}</p>
+        <p className="text-sm leading-relaxed mb-5" style={{ color: '#cbd5e1' }}>{statusMsg}</p>
+
+        {(result.composite || originalPhoto) && (
+          <div className="pt-4" style={{ borderTop: `1px solid ${BRAND.boltAmber}30` }}>
+            <div className="text-[10px] uppercase tracking-[0.2em] mb-3"
+              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+              Want a copy for your records?
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              {result.composite && (
+                <button onClick={() => downloadDataUrl(result.composite, `${stem}_mockup.jpg`)}
+                  className="lift inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs uppercase tracking-widest"
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    background: 'rgba(8,21,46,0.6)',
+                    border: `1px solid ${BRAND.navyLineStrong}`,
+                    color: BRAND.textPri
+                  }}>
+                  <Download className="w-3.5 h-3.5" strokeWidth={2} />
+                  Download Mockup
+                </button>
+              )}
+              {originalPhoto && (
+                <button onClick={() => downloadDataUrl(originalPhoto, `${stem}_photo.jpg`)}
+                  className="lift inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs uppercase tracking-widest"
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    background: 'rgba(8,21,46,0.6)',
+                    border: `1px solid ${BRAND.navyLineStrong}`,
+                    color: BRAND.textPri
+                  }}>
+                  <Download className="w-3.5 h-3.5" strokeWidth={2} />
+                  Download Photo
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -2376,7 +2447,7 @@ function ContactForm({ result, originalPhoto, fmt }) {
       </div>
 
       <div className="text-[11px]" style={{ color: BRAND.textDim }}>
-        Required: name + at least one of phone/email. Your mockup image will be saved to your device and sent with the request.
+        Required: name + at least one of phone/email. Your mockup and photo are sent to Strike Print as attachments.
       </div>
 
       {status === 'error' && (
@@ -2397,7 +2468,7 @@ function ContactForm({ result, originalPhoto, fmt }) {
         }}>
         <span className="flex items-center gap-3">
           {status === 'sending' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
-          <span className="text-base sm:text-xl">{status === 'sending' ? 'SENDING…' : 'SAVE & SEND TO STRIKE PRINT'}</span>
+          <span className="text-base sm:text-xl">{status === 'sending' ? 'SENDING…' : 'SEND TO STRIKE PRINT'}</span>
         </span>
         {status !== 'sending' && <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
       </button>
