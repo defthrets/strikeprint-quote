@@ -1623,7 +1623,7 @@ function CompositionStage({
             border: `1px solid ${BRAND.boltAmber}40`,
             fontFamily: "'JetBrains Mono', monospace"
           }}>
-          <strong>Note:</strong> this is a general indicator for layout and ideas only — a more complete mockup will be produced after you make contact.
+          <strong>Note:</strong> this is a general indicator for layout and ideas only — a more complete mockup will be produced after quote completed.
         </p>
       </div>
 
@@ -2235,7 +2235,7 @@ function QuoteResult({ result, originalPhoto, conditions, onBack, onNew, onShare
           fontFamily: "'JetBrains Mono', monospace",
           color: BRAND.textDim
         }}>
-          Note: this is a general indicator for layout and ideas only — a more complete mockup will be produced after site inspection.
+          Note: this is a general indicator for layout and ideas only — a more complete mockup will be produced after quote completed.
         </p>
       </div>
 
