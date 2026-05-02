@@ -469,7 +469,7 @@ function About() {
     <section id="about" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <div className="grid lg:grid-cols-5 gap-8 lg:gap-12 items-start">
         <div className="lg:col-span-2">
-          <SectionHeader num="03" title="About" />
+          <SectionHeader num="02" title="About" />
         </div>
         <div className="lg:col-span-3 space-y-5 anim-fadeup">
           <p className="text-lg sm:text-xl leading-relaxed" style={{ color: BRAND.textPri }}>
@@ -521,7 +521,7 @@ function Contact() {
 
   return (
     <section id="contact" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-      <SectionHeader num="04" title="Get In Touch" />
+      <SectionHeader num="03" title="Get In Touch" />
       <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
         Quote tool not your speed? Call, email, or drop in to the Arndell Park
         workshop — we're happy to chat through anything.
@@ -747,12 +747,13 @@ function Showcase() {
   // assistive tech from announcing every photo twice.
   return (
     <div className="anim-fadein mt-12 sm:mt-16 mb-10 sm:mb-12 -mx-4 sm:-mx-6 select-none">
-      <div className="px-4 sm:px-6 mb-3 sm:mb-4 flex items-center gap-3">
-        <span className="h-px w-10" style={{ background: BRAND.boltGrad }} />
+      <div className="px-4 sm:px-6 mb-3 sm:mb-4 flex items-center justify-center gap-3">
+        <span className="h-px w-12 sm:w-16" style={{ background: BRAND.boltGrad }} />
         <span className="text-[10px] uppercase tracking-[0.3em] font-bold"
           style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
           Recent work
         </span>
+        <span className="h-px w-12 sm:w-16" style={{ background: BRAND.boltGrad }} />
       </div>
 
       <div className="showcase-mask overflow-hidden">
