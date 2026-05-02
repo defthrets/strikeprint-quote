@@ -172,7 +172,6 @@ export default function Home() {
       <Header />
       <Hero />
       <Services />
-      <About />
       <Contact />
       <Footer />
     </div>
@@ -201,6 +200,10 @@ function Header() {
           <Link to="/gallery" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
             Gallery
+          </Link>
+          <Link to="/about" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
+            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
+            About
           </Link>
           <a href="#contact" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
@@ -236,14 +239,15 @@ function Hero() {
       }} />
 
       {/* Top: eyebrow + headline + sub-tagline */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-10 sm:pt-24 lg:pt-32">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-10 sm:pt-24 lg:pt-32 text-center">
         {/* Eyebrow */}
-        <div className="flex items-center gap-3 mb-5 anim-fadein">
+        <div className="flex items-center justify-center gap-3 mb-5 anim-fadein flex-wrap">
           <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
           <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.3em] font-bold"
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
             Sydney · Arndell Park · Established 20 years · Design · Print · Install
           </span>
+          <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
         </div>
 
         {/* Headline */}
@@ -264,7 +268,7 @@ function Hero() {
         </h1>
 
         {/* Sub-tagline */}
-        <p className="anim-fadeup stagger-1 max-w-2xl text-base sm:text-lg lg:text-xl leading-relaxed"
+        <p className="anim-fadeup stagger-1 max-w-2xl mx-auto text-base sm:text-lg lg:text-xl leading-relaxed"
           style={{ color: BRAND.textMuted }}>
           Custom signs, banners, decals, vehicle wraps and pylons. Designed,
           manufactured and installed in Western Sydney — built to get noticed and
@@ -279,7 +283,7 @@ function Hero() {
       {/* Bottom: CTAs */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-10 sm:pb-24 lg:pb-32">
         {/* CTAs */}
-        <div className="anim-fadeup stagger-2 flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <div className="anim-fadeup stagger-2 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
           <Link to="/quote"
             className="glossy-btn group inline-flex items-center justify-between gap-3 px-6 py-5"
             style={{
@@ -317,7 +321,7 @@ function Services() {
   return (
     <section id="services" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <SectionHeader num="01" title="What We Make" />
-      <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
+      <p className="mt-4 max-w-2xl mx-auto text-center text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
         We use premium materials on every job — <strong style={{ color: BRAND.textPri }}>Avery</strong>,{' '}
         <strong style={{ color: BRAND.textPri }}>3M</strong> and{' '}
         <strong style={{ color: BRAND.textPri }}>Arlon</strong> cast vinyl films, ACM, acrylic and aluminium,
@@ -462,53 +466,6 @@ function ServiceCarousel() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//   ABOUT
-// ═══════════════════════════════════════════════════════════════
-function About() {
-  return (
-    <section id="about" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-      <div className="grid lg:grid-cols-5 gap-8 lg:gap-12 items-start">
-        <div className="lg:col-span-2">
-          <SectionHeader num="02" title="About" />
-        </div>
-        <div className="lg:col-span-3 space-y-5 anim-fadeup">
-          <p className="text-lg sm:text-xl leading-relaxed" style={{ color: BRAND.textPri }}>
-            Strike Print is an Arndell Park signage installer serving Sydney and beyond.
-            We design, manufacture and install custom signs that get businesses noticed
-            and keep them looking sharp for years.
-          </p>
-          <p className="text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-            From a single shopfront fascia to a fleet vehicle rollout, every job runs
-            the same way: clean specs, premium materials, careful install. We work with
-            local trades, retail, hospitality, fitness, healthcare and corporate
-            clients across Western Sydney.
-          </p>
-          <div className="grid sm:grid-cols-2 gap-3 pt-4">
-            {[
-              { k: 'Materials', v: 'ACM, acrylic, vinyl, fabric, LEDs — only what we trust on a real install.' },
-              { k: 'Install',   v: 'Licensed and insured. Heritage zones, council permits, lift hire — handled.' },
-              { k: 'Design',    v: 'Bring your own artwork or let us lay it out — bring it from idea to wall.' },
-              { k: 'Aftercare', v: 'Sign needs work? We come back. We stand behind every install.' }
-            ].map(p => (
-              <div key={p.k} className="px-4 py-3"
-                style={{ background: BRAND.navyRaise, border: `1px solid ${BRAND.navyLine}`, borderTop: `2px solid ${BRAND.boltAmber}` }}>
-                <div className="text-[10px] uppercase tracking-[0.22em] mb-1.5"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-                  {p.k}
-                </div>
-                <div className="text-sm leading-relaxed" style={{ color: BRAND.textMuted }}>
-                  {p.v}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
 //   CONTACT
 // ═══════════════════════════════════════════════════════════════
 function Contact() {
@@ -522,7 +479,7 @@ function Contact() {
   return (
     <section id="contact" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <SectionHeader num="03" title="Get In Touch" />
-      <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
+      <p className="mt-4 max-w-2xl mx-auto text-center text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
         Quote tool not your speed? Call, email, or drop in to the Arndell Park
         workshop — we're happy to chat through anything.
       </p>
@@ -798,9 +755,9 @@ function ShowcaseCard({ photo, index, ariaHidden }) {
 // ═══════════════════════════════════════════════════════════════
 //   SHARED — section header (matches the quote tool's style)
 // ═══════════════════════════════════════════════════════════════
-function SectionHeader({ num, title }) {
+function SectionHeader({ num, title, centered = true }) {
   return (
-    <div className="anim-slidel flex items-baseline gap-3 sm:gap-4">
+    <div className={`anim-slidel flex items-baseline gap-3 sm:gap-4 ${centered ? 'justify-center' : ''}`}>
       <span style={{
         fontFamily: 'Anton, sans-serif',
         fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
