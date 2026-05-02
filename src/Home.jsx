@@ -203,7 +203,7 @@ function Header() {
               STRIKE PRINT
             </div>
             <div className="text-[10px] uppercase tracking-[0.25em] mt-0.5" style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-              Sydney signage installers
+              Premium signage installed
             </div>
           </div>
         </Link>
