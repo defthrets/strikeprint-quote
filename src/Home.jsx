@@ -697,12 +697,12 @@ function Footer() {
 //   Edge-fade mask hides the seam at left/right viewport boundaries.
 //   Hover pauses the scroll and lifts the focused card.
 // ═══════════════════════════════════════════════════════════════
-// 50 photos: 10 from the original strikeprint.com.au gallery plus 40 install
-// photos pulled from Michael's archive. Each is hand-categorised and the order
-// is shuffled so adjacent cards in the marquee aren't from the same job/site.
+// 46 photos after Mick's relabel/delete pass on the original 50.
+// Categories are intentionally specific (e.g. 'Bar graphics' vs the older
+// 'Wall mural'); the Gallery generates filter chips from these labels.
 export const SHOWCASE_PHOTOS = [
-  { src: '/portfolio/hero.webp',         label: 'Storefront signage' },
-  { src: '/portfolio/install-01.webp',   label: 'Panels & acrylics' },
+  { src: '/portfolio/hero.webp',         label: 'Inhouse production' },
+  { src: '/portfolio/install-01.webp',   label: 'Panels and promotional' },
   { src: '/portfolio/install-08.webp',   label: 'Wall mural' },
   { src: '/portfolio/install-19.webp',   label: 'Storefront signage' },
   { src: '/portfolio/install-04.webp',   label: 'Wall graphics' },
@@ -710,25 +710,24 @@ export const SHOWCASE_PHOTOS = [
   { src: '/portfolio/install-32.webp',   label: 'Vehicle wrap' },
   { src: '/portfolio/install-09.webp',   label: 'Privacy film' },
   { src: '/portfolio/install-13.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-06.webp',   label: 'Lightbox' },
+  { src: '/portfolio/install-06.webp',   label: 'Custom privacy frosting' },
   { src: '/portfolio/privacy-1.webp',    label: 'Privacy film' },
-  { src: '/portfolio/install-23.webp',   label: 'Wall mural' },
+  { src: '/portfolio/install-23.webp',   label: 'Bar graphics' },
   { src: '/portfolio/install-17.webp',   label: 'Storefront signage' },
   { src: '/portfolio/install-39.webp',   label: 'Vending wrap' },
   { src: '/portfolio/install-12.webp',   label: 'Privacy film' },
   { src: '/portfolio/panel-1.webp',      label: 'Panels & acrylics' },
   { src: '/portfolio/install-28.webp',   label: 'Panels & acrylics' },
   { src: '/portfolio/install-15.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-26.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-37.webp',   label: 'Vehicle wrap' },
+  { src: '/portfolio/install-26.webp',   label: 'Banners' },
+  { src: '/portfolio/install-37.webp',   label: 'Tradie signage' },
   { src: '/portfolio/wall-2.webp',       label: 'Wall graphics' },
-  { src: '/portfolio/install-27.webp',   label: 'Wall mural' },
-  { src: '/portfolio/install-21.webp',   label: 'Privacy film' },
+  { src: '/portfolio/install-27.webp',   label: 'Hanging fabric banners' },
+  { src: '/portfolio/install-21.webp',   label: 'Window vinyl graphics' },
   { src: '/portfolio/install-02.webp',   label: 'Panels & acrylics' },
-  { src: '/portfolio/install-10.webp',   label: 'Storefront signage' },
   { src: '/portfolio/vending-1.webp',    label: 'Vending wrap' },
   { src: '/portfolio/install-05.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-24.webp',   label: 'Wall mural' },
+  { src: '/portfolio/install-24.webp',   label: 'Bar graphics' },
   { src: '/portfolio/install-40.webp',   label: 'Panels & acrylics' },
   { src: '/portfolio/install-22.webp',   label: 'Privacy film' },
   { src: '/portfolio/install-34.webp',   label: 'Storefront signage' },
@@ -737,16 +736,13 @@ export const SHOWCASE_PHOTOS = [
   { src: '/portfolio/install-03.webp',   label: 'Vending wrap' },
   { src: '/portfolio/install-14.webp',   label: 'Wall graphics' },
   { src: '/portfolio/install-07.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-25.webp',   label: 'Wall mural' },
   { src: '/portfolio/panel-2.webp',      label: 'Panels & acrylics' },
   { src: '/portfolio/install-18.webp',   label: 'Panels & acrylics' },
   { src: '/portfolio/install-31.webp',   label: 'Privacy film' },
   { src: '/portfolio/install-38.webp',   label: 'Vehicle wrap' },
-  { src: '/portfolio/vending-2.webp',    label: 'Vending wrap' },
   { src: '/portfolio/install-16.webp',   label: 'Wall graphics' },
   { src: '/portfolio/install-20.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-30.webp',   label: 'Panels & acrylics' },
-  { src: '/portfolio/install-35.webp',   label: 'Privacy film' },
+  { src: '/portfolio/install-35.webp',   label: 'Custom vinyl' },
   { src: '/portfolio/privacy-3.webp',    label: 'Privacy film' },
   { src: '/portfolio/install-33.webp',   label: 'Wall graphics' },
   { src: '/portfolio/install-36.webp',   label: 'Storefront signage' },
