@@ -110,6 +110,50 @@ export default function Home() {
       }
       .glossy-btn:hover::before { animation: glossySweep 0.9s ease-out forwards; }
 
+      /* Showcase marquee — continuous horizontal scroll, hover-pause + lift */
+      @keyframes marqueeScroll {
+        0%   { transform: translate3d(0, 0, 0); }
+        100% { transform: translate3d(-50%, 0, 0); }
+      }
+      .showcase-track { animation: marqueeScroll 60s linear infinite; will-change: transform; }
+      .showcase-track:hover { animation-play-state: paused; }
+      .showcase-mask {
+        -webkit-mask-image: linear-gradient(to right, transparent 0, black 4%, black 96%, transparent 100%);
+                mask-image: linear-gradient(to right, transparent 0, black 4%, black 96%, transparent 100%);
+      }
+      .showcase-card {
+        transition: transform 0.45s cubic-bezier(.2,.7,.3,1),
+                    border-color 0.45s ease,
+                    box-shadow 0.45s ease;
+      }
+      .showcase-card:hover {
+        transform: translateY(-6px);
+        border-color: ${BRAND.boltAmber};
+        box-shadow: 0 18px 50px rgba(0,0,0,0.45), 0 0 0 1px ${BRAND.boltAmber};
+        z-index: 1;
+      }
+      .showcase-img {
+        transition: transform 1.2s cubic-bezier(.2,.7,.3,1), filter 0.6s ease;
+        filter: saturate(0.92) brightness(0.92);
+      }
+      .showcase-card:hover .showcase-img {
+        transform: scale(1.06);
+        filter: saturate(1.05) brightness(1);
+      }
+      .showcase-label {
+        transform: translateY(35%);
+        opacity: 0.8;
+        transition: transform 0.45s cubic-bezier(.2,.7,.3,1), opacity 0.45s ease;
+      }
+      .showcase-card:hover .showcase-label {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .showcase-track { animation: none; }
+        .showcase-img, .showcase-label, .showcase-card { transition: none; }
+      }
+
       html { scroll-behavior: smooth; }
     `;
     document.head.appendChild(style);
@@ -267,26 +311,10 @@ function Hero() {
           </a>
         </div>
 
-        {/* Stat strip */}
-        <div className="anim-fadeup stagger-3 grid grid-cols-3 gap-4 sm:gap-6 max-w-2xl pt-8"
-          style={{ borderTop: `1px solid ${BRAND.navyLine}` }}>
-          {[
-            { k: '13', l: 'Sign types' },
-            { k: ' AU', l: 'Owned & operated' },
-            { k: '24h', l: 'Quote turnaround' }
-          ].map(s => (
-            <div key={s.l}>
-              <div style={{ fontFamily: 'Anton, sans-serif', fontSize: 'clamp(1.5rem, 4vw, 2.25rem)', color: BRAND.boltAmber }}>
-                {s.k}
-              </div>
-              <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.18em] mt-0.5"
-                style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-                {s.l}
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
+
+      {/* Showcase strip — full-bleed marquee of past work, replaces the stat row */}
+      <Showcase />
     </section>
   );
 }
@@ -572,6 +600,77 @@ function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+//   SHOWCASE — auto-scrolling portfolio marquee.
+//   Edge-fade mask hides the seam at left/right viewport boundaries.
+//   Hover pauses the scroll and lifts the focused card.
+// ═══════════════════════════════════════════════════════════════
+const SHOWCASE_PHOTOS = [
+  { src: '/portfolio/hero.webp',      label: 'Storefront signage' },
+  { src: '/portfolio/wall-1.webp',    label: 'Wall graphics' },
+  { src: '/portfolio/privacy-1.webp', label: 'Privacy film' },
+  { src: '/portfolio/vending-1.webp', label: 'Vending wrap' },
+  { src: '/portfolio/panel-1.webp',   label: 'Panels & acrylics' },
+  { src: '/portfolio/wall-2.webp',    label: 'Wall graphics' },
+  { src: '/portfolio/privacy-2.webp', label: 'Privacy film' },
+  { src: '/portfolio/vending-2.webp', label: 'Vending wrap' },
+  { src: '/portfolio/panel-2.webp',   label: 'Panels & acrylics' },
+  { src: '/portfolio/privacy-3.webp', label: 'Privacy film' }
+];
+
+function Showcase() {
+  // Render the photo set twice back-to-back so translateX(-50%) loops
+  // seamlessly without a visible jump. The aria-hidden duplicate keeps
+  // assistive tech from announcing every photo twice.
+  return (
+    <div className="anim-fadein mt-12 sm:mt-16 -mx-4 sm:-mx-6 select-none">
+      <div className="px-4 sm:px-6 mb-3 sm:mb-4 flex items-center gap-3">
+        <span className="h-px w-10" style={{ background: BRAND.boltGrad }} />
+        <span className="text-[10px] uppercase tracking-[0.3em] font-bold"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+          Recent work
+        </span>
+      </div>
+
+      <div className="showcase-mask overflow-hidden">
+        <div className="showcase-track flex gap-3 sm:gap-4" style={{ width: 'max-content' }}>
+          {SHOWCASE_PHOTOS.map((p, i) => <ShowcaseCard key={`a-${i}`} photo={p} index={i} />)}
+          {SHOWCASE_PHOTOS.map((p, i) => <ShowcaseCard key={`b-${i}`} photo={p} index={i} ariaHidden />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShowcaseCard({ photo, index, ariaHidden }) {
+  return (
+    <div className="showcase-card flex-shrink-0 relative overflow-hidden"
+      {...(ariaHidden ? { 'aria-hidden': true } : {})}
+      style={{
+        width: 'clamp(220px, 28vw, 340px)',
+        aspectRatio: '4 / 3',
+        background: BRAND.navyDeep,
+        border: `1px solid ${BRAND.navyLineStrong}`
+      }}>
+      <img src={photo.src} alt={ariaHidden ? '' : photo.label}
+        loading={index < 3 ? 'eager' : 'lazy'}
+        decoding="async"
+        className="showcase-img absolute inset-0 w-full h-full"
+        style={{ objectFit: 'cover' }} />
+      <div className="showcase-label absolute inset-x-0 bottom-0 px-4 py-3 flex items-center gap-2"
+        style={{
+          background: 'linear-gradient(to top, rgba(8,21,46,0.95), rgba(8,21,46,0.65) 60%, transparent)'
+        }}>
+        <span className="h-px w-4" style={{ background: BRAND.boltAmber }} />
+        <span className="text-[10px] uppercase tracking-[0.22em] font-bold"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textPri }}>
+          {photo.label}
+        </span>
+      </div>
+    </div>
   );
 }
 
