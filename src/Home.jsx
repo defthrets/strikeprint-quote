@@ -58,7 +58,7 @@ const SERVICES = [
   {
     icon: Navigation,
     title: 'Pylons & Wayfinding',
-    blurb: 'Free-standing roadside pylons and compact directional signs. Premium visibility for service stations, centres and campus navigation.'
+    blurb: 'Free-standing roadside pylons and compact directional signs. Premium road-facing signage for centres, car parks and campus navigation.'
   }
 ];
 
@@ -192,14 +192,6 @@ function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <Link to="/" className="flex items-center gap-3">
           <img src={LOGO_URL} alt="Strike Print" className="h-16 sm:h-24 w-auto" />
-          <div className="hidden sm:block">
-            <div className="leading-tight font-bold" style={{ fontFamily: 'Anton, sans-serif', letterSpacing: '0.04em', fontSize: '20px' }}>
-              STRIKE PRINT
-            </div>
-            <div className="text-[10px] uppercase tracking-[0.25em] mt-0.5" style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-              Premium signage installed
-            </div>
-          </div>
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
           <a href="#services" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
