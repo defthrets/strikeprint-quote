@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Zap, Phone, Mail, Wrench, X, ChevronRight } from 'lucide-react';
 
@@ -51,9 +52,12 @@ export default function GetQuoteButton({ className = '' }) {
         Get a Quote
       </button>
 
-      {open && (
+      {/* Portal to body so the modal escapes the sticky header's
+          backdrop-filter, which creates a containing block for fixed
+          positioning and would otherwise trap the modal inside the header. */}
+      {open && ReactDOM.createPortal(
         <div onClick={() => setOpen(false)}
-          className="fixed inset-0 z-50 anim-fadein overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6"
+          className="fixed inset-0 z-[100] anim-fadein overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6"
           style={{ background: 'rgba(8, 21, 46, 0.92)', backdropFilter: 'blur(8px)' }}>
           <div onClick={(e) => e.stopPropagation()}
             className="anim-scalein relative w-full max-w-md my-auto"
@@ -99,7 +103,8 @@ export default function GetQuoteButton({ className = '' }) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { Loader2, AlertTriangle, Check, Camera, X, ChevronRight, Trash2, Type, Square, Lightbulb, Flag, Triangle, Car, MapPin, Navigation, EyeOff, Image as ImageIcon, Layers, Maximize2, Plus, Wrench, Send, Download, Printer, RotateCcw, RotateCw, Pencil, Link2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LOGO_URL } from './logo.js';
@@ -2792,9 +2793,11 @@ function HowItWorksModal({ onClose }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  return (
+  // Portal to body so the modal escapes any backdrop-filter ancestors
+  // that would otherwise act as a containing block for fixed positioning.
+  return ReactDOM.createPortal(
     <div onClick={onClose}
-      className="fixed inset-0 z-50 anim-fadein overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-[100] anim-fadein overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6"
       style={{ background: 'rgba(8, 21, 46, 0.92)', backdropFilter: 'blur(8px)' }}>
       <div onClick={(e) => e.stopPropagation()}
         className="relative anim-scalein w-full max-w-2xl my-auto"
@@ -2879,7 +2882,8 @@ function HowItWorksModal({ onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

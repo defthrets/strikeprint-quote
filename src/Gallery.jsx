@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, X, ArrowLeft } from 'lucide-react';
 import { LOGO_URL } from './logo.js';
@@ -194,10 +195,12 @@ function GalleryCard({ item, idx, onOpen }) {
 }
 
 function Lightbox({ item, idx, total, onClose, onPrev, onNext }) {
-  // Tap-on-backdrop closes; clicks on the image / controls don't propagate
-  return (
+  // Portal to body — the sticky header has backdrop-filter which creates a
+  // containing block for fixed positioning, so without the portal the
+  // 'fixed inset-0' overlay would be trapped inside the header bounds.
+  return ReactDOM.createPortal(
     <div onClick={onClose}
-      className="anim-fadein fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
+      className="anim-fadein fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6"
       style={{ background: 'rgba(8,21,46,0.92)', backdropFilter: 'blur(8px)' }}>
       {/* Close (top-right of viewport) */}
       <button onClick={(e) => { e.stopPropagation(); onClose(); }}
@@ -260,6 +263,7 @@ function Lightbox({ item, idx, total, onClose, onPrev, onNext }) {
           </span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
