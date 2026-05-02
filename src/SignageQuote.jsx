@@ -973,6 +973,21 @@ export default function SignageQuoteBuilder() {
   // Brief feedback toggle for the "Copy quote link" button.
   const [shareCopied, setShareCopied] = useState(false);
 
+  // 'How it works' intro modal — shown once per device on the first visit
+  // to Stage 1. Dismissal persists in localStorage. Available later via the
+  // 'How it works' link beside the section header so returning users can
+  // bring it back manually.
+  const [showHowTo, setShowHowTo] = useState(false);
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem('strikeprint:howToSeen')) setShowHowTo(true);
+    } catch {}
+  }, []);
+  const dismissHowTo = () => {
+    setShowHowTo(false);
+    try { localStorage.setItem('strikeprint:howToSeen', '1'); } catch {}
+  };
+
   // ─── Restore on mount: photo from localStorage, quote state from URL hash ───
   useEffect(() => {
     try {
@@ -1509,7 +1524,14 @@ export default function SignageQuoteBuilder() {
         {/* STAGE 1: PHOTO UPLOAD */}
         {!photoDataUrl && (
           <div className="max-w-3xl mx-auto anim-fadeup">
-            <SectionHeader num="01" title="Upload Site Photo" />
+            <div className="flex items-baseline justify-between gap-4 flex-wrap">
+              <SectionHeader num="01" title="Upload Site Photo" />
+              <button onClick={() => setShowHowTo(true)}
+                className="text-[10px] sm:text-[11px] uppercase tracking-[0.22em] hover:text-amber-400 transition-colors"
+                style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+                · how it works
+              </button>
+            </div>
             <p className="text-sm mt-4 mb-6 leading-relaxed" style={{ color: BRAND.textMuted }}>
               Upload a clear photo of the storefront, building, vehicle, or interior where the signage will go. You'll add signs onto it next.
             </p>
@@ -1639,6 +1661,9 @@ export default function SignageQuoteBuilder() {
           <span className="truncate">DRAG · DROP · POSITION</span>
         </footer>
       </div>
+
+      {/* HOW IT WORKS modal — first-visit walkthrough on Stage 1 */}
+      {showHowTo && <HowItWorksModal onClose={dismissHowTo} />}
     </div>
   );
 }
@@ -2781,6 +2806,117 @@ function BadgeLabel({ children }) {
       border: `1px solid ${BRAND.navyLineStrong}`,
       color: BRAND.textMuted
     }}>{children}</div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+//   HOW IT WORKS — first-visit walkthrough modal on Stage 1.
+//   Shown until the user dismisses it; dismissal sticks via
+//   localStorage('strikeprint:howToSeen'). Re-openable via the
+//   '· how it works' link beside the Stage 1 section header.
+// ═══════════════════════════════════════════════════════════════
+const HOW_IT_WORKS_STEPS = [
+  { n: '01', title: 'Snap a photo',     blurb: "Take or upload a photo of your storefront, building, vehicle or interior — wherever the sign is going." },
+  { n: '02', title: 'Design your sign', blurb: "Drag any sign type onto your photo. Position it, resize it, rotate it. See it before you commit." },
+  { n: '03', title: 'Get a quote',      blurb: "Generate an itemised estimate. Send it through and we'll come back to finalise pricing and timing." }
+];
+
+function HowItWorksModal({ onClose }) {
+  // Allow Esc to close
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div onClick={onClose}
+      className="fixed inset-0 z-50 anim-fadein flex items-center justify-center p-4 sm:p-6"
+      style={{ background: 'rgba(8, 21, 46, 0.92)', backdropFilter: 'blur(8px)' }}>
+      <div onClick={(e) => e.stopPropagation()}
+        className="relative anim-scalein w-full max-w-2xl"
+        style={{
+          background: 'rgba(15, 32, 70, 0.92)',
+          border: `1px solid ${BRAND.boltAmber}40`,
+          borderTop: `3px solid ${BRAND.boltAmber}`,
+          backdropFilter: 'blur(12px)'
+        }}>
+        {/* Close X */}
+        <button onClick={onClose} title="Close (Esc)"
+          className="absolute top-3 right-3 flex items-center justify-center w-9 h-9 transition-colors hover:bg-white/5"
+          style={{ color: BRAND.textMuted, border: `1px solid ${BRAND.navyLineStrong}` }}>
+          <X className="w-4 h-4" strokeWidth={2.5} />
+        </button>
+
+        <div className="p-6 sm:p-8">
+          {/* Eyebrow */}
+          <div className="flex items-center gap-3 mb-2">
+            <span className="h-px w-10" style={{ background: BRAND.boltGrad }} />
+            <span className="text-[10px] uppercase tracking-[0.3em] font-bold"
+              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+              Before you start
+            </span>
+          </div>
+
+          <h2 className="mb-1" style={{ fontFamily: 'Anton, sans-serif', letterSpacing: '0.02em', fontSize: 'clamp(1.75rem, 5vw, 2.75rem)', lineHeight: 1.05 }}>
+            How It Works
+          </h2>
+          <p className="text-sm sm:text-base leading-relaxed mb-6" style={{ color: BRAND.textMuted }}>
+            Skip the back-and-forth. Compose your sign on a real photo of the site
+            and get an instant estimate in under a minute.
+          </p>
+
+          {/* Steps */}
+          <div className="space-y-3 mb-6">
+            {HOW_IT_WORKS_STEPS.map((s) => (
+              <div key={s.n} className="flex items-start gap-4 p-4"
+                style={{
+                  background: 'rgba(8, 21, 46, 0.55)',
+                  border: `1px solid ${BRAND.navyLine}`,
+                  borderLeft: `3px solid ${BRAND.boltAmber}`
+                }}>
+                <span className="flex-shrink-0" style={{
+                  fontFamily: 'Anton, sans-serif',
+                  fontSize: '2.25rem',
+                  color: BRAND.boltAmber,
+                  letterSpacing: '0.02em',
+                  lineHeight: 1
+                }}>{s.n}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="mb-1" style={{
+                    fontFamily: 'Bebas Neue, sans-serif',
+                    fontSize: 'clamp(1.15rem, 3vw, 1.4rem)',
+                    letterSpacing: '0.03em',
+                    lineHeight: 1.1
+                  }}>
+                    {s.title}
+                  </div>
+                  <p className="text-sm leading-relaxed" style={{ color: BRAND.textMuted }}>
+                    {s.blurb}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Confirm */}
+          <button onClick={onClose}
+            className="glossy-btn group w-full inline-flex items-center justify-between gap-3 px-5 py-4"
+            style={{
+              background: BRAND.boltGrad,
+              color: BRAND.navy,
+              fontFamily: 'Anton, sans-serif',
+              letterSpacing: '0.1em'
+            }}>
+            <span className="flex items-center gap-2">
+              <Camera className="w-5 h-5" strokeWidth={2.5} />
+              <span className="text-base sm:text-lg">Got it — let's start</span>
+            </span>
+            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
