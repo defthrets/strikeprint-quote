@@ -153,22 +153,14 @@ export default function Gallery() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Section header */}
-        <div className="anim-fadeup flex items-baseline gap-3 sm:gap-4">
-          <span style={{
-            fontFamily: 'Anton, sans-serif',
-            fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
-            color: BRAND.boltAmber,
-            lineHeight: 1
-          }}>WORK</span>
-          <h1 style={{
-            fontFamily: 'Anton, sans-serif',
-            fontSize: 'clamp(1.75rem, 6vw, 3rem)',
-            letterSpacing: '0.02em',
-            lineHeight: 1
-          }}>
-            What We've Made
-          </h1>
-        </div>
+        <h1 className="anim-fadeup" style={{
+          fontFamily: 'Anton, sans-serif',
+          fontSize: 'clamp(2rem, 7vw, 3.25rem)',
+          letterSpacing: '0.02em',
+          lineHeight: 1
+        }}>
+          What <span style={{ color: BRAND.boltAmber }}>We've</span> Made
+        </h1>
         <p className="anim-fadeup mt-3 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
           Real installs from across Sydney. Tap any image to see it larger — use the
           arrows or your keyboard to flick through.
