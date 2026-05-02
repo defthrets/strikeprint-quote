@@ -1426,6 +1426,12 @@ export default function SignageQuoteBuilder() {
       const quote = calculateQuote();
       setResult({ composite, quote });
       setSelectedId(null);
+      // Stage 3 takes the place of Stage 2 in the same scroll position, so the
+      // user lands halfway down the new view (over the breakdown) instead of at
+      // the mockup. Jump to the top so they see the rendered mockup first.
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } catch (err) {
       console.error(err);
       setError('Failed to compose mockup: ' + err.message);
