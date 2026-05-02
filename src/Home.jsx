@@ -110,44 +110,28 @@ export default function Home() {
       .hero-orb-c { animation: orbFloatC 18s ease-in-out infinite; animation-delay: -7s; }
       .hero-grid  { animation: gridShimmer 6s ease-in-out infinite; }
 
-      /* Electric STRIKING SIGNAGE — neon glow halo on a duplicate behind-layer
-         (text-shadow on background-clip:text doesn't render, so we paint a
-         solid-amber backing copy and animate ITS text-shadow). */
-      @keyframes electricGlow {
-        0%, 100% {
-          text-shadow:
-            0 0 12px rgba(245,154,16,0.85),
-            0 0 28px rgba(240,96,31,0.55),
-            0 0 56px rgba(250,217,5,0.30);
+      /* STRIKING SIGNAGE glitch — clean for ~95% of an 8s cycle, then a
+         short burst of horizontal jitter + RGB-split text-shadow. steps(1)
+         keeps each frame snap-rendered (no smooth tween) for a digital feel. */
+      @keyframes textGlitch {
+        0%, 92%, 100% {
+          transform: translate(0, 0);
+          text-shadow: none;
         }
-        50% {
-          text-shadow:
-            0 0 22px rgba(245,154,16,1),
-            0 0 50px rgba(240,96,31,0.85),
-            0 0 95px rgba(250,217,5,0.50),
-            0 0 140px rgba(240,96,31,0.30);
-        }
+        92.6% { transform: translate(-2px, 0); text-shadow: 2px 0 rgba(0, 200, 255, 0.55), -2px 0 rgba(240, 96, 31, 0.55); }
+        93.2% { transform: translate(2px, 1px); text-shadow: -2px 0 rgba(0, 200, 255, 0.55), 2px 0 rgba(240, 96, 31, 0.55); }
+        93.8% { transform: translate(-1px, -1px); text-shadow: 1px 0 rgba(245, 154, 16, 0.7); }
+        94.4% { transform: translate(0, 0); text-shadow: none; }
+        95.0% { transform: translate(3px, 0); text-shadow: -3px 0 rgba(0, 200, 255, 0.7), 3px 0 rgba(240, 96, 31, 0.7); }
+        95.6% { transform: translate(-1px, 0); text-shadow: 1px 0 rgba(245, 154, 16, 0.5); }
+        96.2% { transform: translate(0, 0); text-shadow: none; }
       }
-      /* Brief opacity dips so the headline reads like a neon tube settling.
-         Spaced apart so it never feels like a seizure-grade strobe. */
-      @keyframes electricFlicker {
-        0%, 100%      { opacity: 1; }
-        18%, 18.5%    { opacity: 0.6; }
-        18.2%         { opacity: 0.88; }
-        47%, 47.4%    { opacity: 0.75; }
-        72%, 72.3%    { opacity: 0.65; }
-        72.15%        { opacity: 0.92; }
-      }
-      .electric-glow {
-        animation: electricGlow 2.4s ease-in-out infinite;
-        will-change: text-shadow;
-      }
-      .electric-flicker {
-        animation: electricFlicker 7s linear infinite;
-        will-change: opacity;
+      .glitch-text {
+        animation: textGlitch 8s steps(1) infinite;
+        will-change: transform, text-shadow;
       }
       @media (prefers-reduced-motion: reduce) {
-        .hero-orb-a, .hero-orb-b, .hero-orb-c, .hero-grid, .electric-glow, .electric-flicker { animation: none; }
+        .hero-orb-a, .hero-orb-b, .hero-orb-c, .hero-grid, .glitch-text { animation: none; }
       }
       .anim-fadeup { animation: fadeInUp 0.7s ease-out both; }
       .anim-fadein { animation: fadeIn 1.2s ease-out both; }
@@ -355,27 +339,13 @@ function Hero() {
           }}>
           STAND OUT WITH
           <br />
-          <span className="electric-flicker" style={{
-            position: 'relative',
+          <span className="glitch-text" style={{
+            background: BRAND.boltGrad,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
             display: 'inline-block'
-          }}>
-            {/* Behind: solid-amber duplicate with animated text-shadow glow */}
-            <span aria-hidden className="electric-glow" style={{
-              position: 'absolute',
-              inset: 0,
-              color: BRAND.boltAmber,
-              pointerEvents: 'none',
-              userSelect: 'none'
-            }}>STRIKING SIGNAGE</span>
-            {/* On top: the gradient text the user actually reads */}
-            <span style={{
-              position: 'relative',
-              background: BRAND.boltGrad,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>STRIKING SIGNAGE</span>
-          </span>
+          }}>STRIKING SIGNAGE</span>
         </h1>
 
         {/* Sub-tagline */}
