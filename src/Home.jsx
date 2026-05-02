@@ -352,36 +352,8 @@ function Hero() {
           full-bleed across the section so the marquee runs edge-to-edge. */}
       <Showcase />
 
-      {/* Bottom: CTAs */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-10 sm:pb-24 lg:pb-32">
-        {/* CTAs */}
-        <div className="anim-fadeup stagger-2 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-          <Link to="/quote"
-            className="glossy-btn group inline-flex items-center justify-between gap-3 px-6 py-5"
-            style={{
-              background: BRAND.boltGrad,
-              color: BRAND.navy,
-              fontFamily: 'Anton, sans-serif',
-              letterSpacing: '0.1em'
-            }}>
-            <span className="flex items-center gap-3">
-              <Wrench className="w-5 h-5" strokeWidth={2.5} />
-              <span className="text-base sm:text-xl">Get an Instant Quote</span>
-            </span>
-            <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-          <Link to="/gallery"
-            className="lift inline-flex items-center justify-center gap-2 px-6 py-5 text-sm sm:text-base uppercase tracking-[0.15em]"
-            style={{
-              fontFamily: 'Anton, sans-serif',
-              background: 'transparent',
-              border: `1px solid ${BRAND.navyLineStrong}`,
-              color: BRAND.textPri
-            }}>
-            See What We Do
-          </Link>
-        </div>
-      </div>
+      {/* Bottom spacer — keeps the marquee from sitting flush against the next section */}
+      <div className="pb-10 sm:pb-24 lg:pb-32" />
     </section>
   );
 }
@@ -400,22 +372,59 @@ function Services() {
         finished with UV-stable inks rated for years of Australian sun. Every sign we hang is built to last.
       </p>
 
+      <div className="mt-6 flex justify-center">
+        <Link to="/gallery"
+          className="lift inline-flex items-center justify-center gap-2 px-6 py-3 text-sm uppercase tracking-[0.18em]"
+          style={{
+            fontFamily: 'Anton, sans-serif',
+            background: 'transparent',
+            border: `1px solid ${BRAND.navyLineStrong}`,
+            color: BRAND.textPri
+          }}>
+          See What We Do
+        </Link>
+      </div>
+
       <ServiceCarousel />
 
 
-      <div className="mt-10 flex justify-center">
-        <Link to="/quote"
-          className="glossy-btn group inline-flex items-center gap-3 px-6 py-4"
-          style={{
-            background: BRAND.boltGrad,
-            color: BRAND.navy,
-            fontFamily: 'Anton, sans-serif',
-            letterSpacing: '0.1em'
-          }}>
-          <Wrench className="w-5 h-5" strokeWidth={2.5} />
-          <span className="text-base sm:text-lg">Quote Any Of These In 60 Seconds</span>
-          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-        </Link>
+      {/* Big CTA card under the services carousel */}
+      <div className="mt-10 sm:mt-12 relative overflow-hidden p-6 sm:p-10"
+        style={{
+          background: BRAND.navyDeep,
+          border: `1px solid ${BRAND.boltAmber}40`,
+          borderLeft: `4px solid ${BRAND.boltAmber}`
+        }}>
+        <div className="absolute inset-0 anim-pulse pointer-events-none" aria-hidden style={{
+          background: `radial-gradient(ellipse 500px 200px at 80% 50%, rgba(245,154,16,0.15), transparent 70%)`
+        }} />
+        <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
+          <div className="flex-1">
+            <div className="text-[10px] uppercase tracking-[0.25em] mb-2"
+              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+              Skip the back-and-forth
+            </div>
+            <div style={{ fontFamily: 'Anton, sans-serif', fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', letterSpacing: '0.02em', lineHeight: 1.05 }}>
+              Get a real quote. Right now.
+            </div>
+            <p className="mt-3 text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
+              Upload a photo, drag the signs you want, send it through. We'll come back
+              with final pricing and a site-survey timeline.
+            </p>
+          </div>
+          <Link to="/quote"
+            className="glossy-btn group inline-flex items-center gap-3 px-5 sm:px-6 py-4 sm:py-5 flex-shrink-0"
+            style={{
+              background: BRAND.boltGrad,
+              color: BRAND.navy,
+              fontFamily: 'Anton, sans-serif',
+              letterSpacing: '0.1em'
+            }}>
+            <Send className="w-5 h-5" strokeWidth={2.5} />
+            <span className="text-base sm:text-xl">Start Quote</span>
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -585,45 +594,6 @@ function Contact() {
 
       {/* Google Maps embed — Arndell Park workshop */}
       <ShopMap />
-
-      {/* Big CTA at the bottom of contact */}
-      <div className="mt-10 sm:mt-12 relative overflow-hidden p-6 sm:p-10"
-        style={{
-          background: BRAND.navyDeep,
-          border: `1px solid ${BRAND.boltAmber}40`,
-          borderLeft: `4px solid ${BRAND.boltAmber}`
-        }}>
-        <div className="absolute inset-0 anim-pulse pointer-events-none" aria-hidden style={{
-          background: `radial-gradient(ellipse 500px 200px at 80% 50%, rgba(245,154,16,0.15), transparent 70%)`
-        }} />
-        <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
-          <div className="flex-1">
-            <div className="text-[10px] uppercase tracking-[0.25em] mb-2"
-              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-              Skip the back-and-forth
-            </div>
-            <div style={{ fontFamily: 'Anton, sans-serif', fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', letterSpacing: '0.02em', lineHeight: 1.05 }}>
-              Get a real quote. Right now.
-            </div>
-            <p className="mt-3 text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-              Upload a photo, drag the signs you want, send it through. We'll come back
-              with final pricing and a site-survey timeline.
-            </p>
-          </div>
-          <Link to="/quote"
-            className="glossy-btn group inline-flex items-center gap-3 px-5 sm:px-6 py-4 sm:py-5 flex-shrink-0"
-            style={{
-              background: BRAND.boltGrad,
-              color: BRAND.navy,
-              fontFamily: 'Anton, sans-serif',
-              letterSpacing: '0.1em'
-            }}>
-            <Send className="w-5 h-5" strokeWidth={2.5} />
-            <span className="text-base sm:text-xl">Start Quote</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
-      </div>
     </section>
   );
 }

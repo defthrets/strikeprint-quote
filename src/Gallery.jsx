@@ -25,20 +25,9 @@ const BRAND = {
 // { kind: 'video', src, poster, label }. The render branches on `kind`.
 const GALLERY_ITEMS = SHOWCASE_PHOTOS.map(p => ({ kind: 'image', ...p }));
 
-// All distinct labels become filter chips.
-const CATEGORIES = ['All', ...Array.from(new Set(GALLERY_ITEMS.map(i => i.label)))];
-
 export default function Gallery() {
-  const [activeFilter, setActiveFilter] = useState('All');
   const [lightboxIdx, setLightboxIdx] = useState(null);
-
-  // Filtered list — drives both the grid and lightbox navigation
-  const items = activeFilter === 'All'
-    ? GALLERY_ITEMS
-    : GALLERY_ITEMS.filter(i => i.label === activeFilter);
-
-  // Reset lightbox when filter changes (the indices no longer line up)
-  useEffect(() => { setLightboxIdx(null); }, [activeFilter]);
+  const items = GALLERY_ITEMS;
 
   // Keyboard nav for the lightbox
   useEffect(() => {
@@ -144,42 +133,21 @@ export default function Gallery() {
         }}>
           What <span style={{ color: BRAND.boltAmber }}>We've</span> Made
         </h1>
-        <p className="anim-fadeup mt-3 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
+        <p className="anim-fadeup mt-3 max-w-2xl mx-auto text-center text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
           Real installs from across Sydney. Tap any image to see it larger — use the
           arrows or your keyboard to flick through.
         </p>
 
-        {/* Filter chips */}
-        <div className="anim-fadeup mt-6 sm:mt-8 flex flex-wrap gap-2">
-          {CATEGORIES.map(cat => {
-            const isActive = cat === activeFilter;
-            return (
-              <button key={cat} onClick={() => setActiveFilter(cat)}
-                className="lift px-3 sm:px-4 py-2 text-[10px] sm:text-[11px] uppercase tracking-[0.2em]"
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  background: isActive ? BRAND.boltGrad : 'rgba(8,21,46,0.6)',
-                  color: isActive ? BRAND.navy : BRAND.textPri,
-                  border: `1px solid ${isActive ? 'transparent' : BRAND.navyLineStrong}`,
-                  fontWeight: isActive ? 700 : 500
-                }}>
-                {cat}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Grid */}
-        <div className="mt-6 sm:mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+        <div className="mt-8 sm:mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
           {items.map((it, idx) => (
-            <GalleryCard key={`${activeFilter}-${idx}`} item={it} idx={idx} onOpen={openLightbox} />
+            <GalleryCard key={idx} item={it} idx={idx} onOpen={openLightbox} />
           ))}
         </div>
 
-        {/* Hint that more is coming */}
         <p className="mt-8 text-center text-[11px] uppercase tracking-[0.25em]"
           style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
-          More photos and videos added regularly · {items.length} {activeFilter === 'All' ? 'shown' : `tagged "${activeFilter}"`}
+          More photos and videos added regularly · {items.length} shown
         </p>
       </main>
 
