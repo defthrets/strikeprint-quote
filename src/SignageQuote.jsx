@@ -2817,7 +2817,7 @@ function BadgeLabel({ children }) {
 // ═══════════════════════════════════════════════════════════════
 const HOW_IT_WORKS_STEPS = [
   { n: '01', title: 'Snap a photo',     blurb: "Take or upload a photo of your storefront, building, vehicle or interior — wherever the sign is going." },
-  { n: '02', title: 'Design your sign', blurb: "Drag any sign type onto your photo. Position it, resize it, rotate it. See it before you commit." },
+  { n: '02', title: 'Place your sign',  blurb: "Drag any sign type onto your photo. Position it, resize it, rotate it. See it before you commit." },
   { n: '03', title: 'Get a quote',      blurb: "Generate an itemised estimate. Send it through and we'll come back to finalise pricing and timing." }
 ];
 
