@@ -201,7 +201,12 @@ function Lightbox({ item, idx, total, onClose, onPrev, onNext }) {
   return ReactDOM.createPortal(
     <div onClick={onClose}
       className="anim-fadein fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6"
-      style={{ background: 'rgba(8,21,46,0.92)', backdropFilter: 'blur(8px)' }}>
+      style={{
+        background: 'rgba(8,21,46,0.92)',
+        backdropFilter: 'blur(8px)',
+        color: BRAND.textPri,
+        fontFamily: "'Outfit', sans-serif"
+      }}>
       {/* Close (top-right of viewport) */}
       <button onClick={(e) => { e.stopPropagation(); onClose(); }}
         title="Close (Esc)"

@@ -58,7 +58,12 @@ export default function GetQuoteButton({ className = '' }) {
       {open && ReactDOM.createPortal(
         <div onClick={() => setOpen(false)}
           className="fixed inset-0 z-[100] anim-fadein overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6"
-          style={{ background: 'rgba(8, 21, 46, 0.92)', backdropFilter: 'blur(8px)' }}>
+          style={{
+            background: 'rgba(8, 21, 46, 0.92)',
+            backdropFilter: 'blur(8px)',
+            color: BRAND.textPri,
+            fontFamily: "'Outfit', sans-serif"
+          }}>
           <div onClick={(e) => e.stopPropagation()}
             className="anim-scalein relative w-full max-w-md my-auto"
             style={{

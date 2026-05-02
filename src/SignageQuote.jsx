@@ -2798,7 +2798,12 @@ function HowItWorksModal({ onClose }) {
   return ReactDOM.createPortal(
     <div onClick={onClose}
       className="fixed inset-0 z-[100] anim-fadein overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6"
-      style={{ background: 'rgba(8, 21, 46, 0.92)', backdropFilter: 'blur(8px)' }}>
+      style={{
+        background: 'rgba(8, 21, 46, 0.92)',
+        backdropFilter: 'blur(8px)',
+        color: BRAND.textPri,
+        fontFamily: "'Outfit', sans-serif"
+      }}>
       <div onClick={(e) => e.stopPropagation()}
         className="relative anim-scalein w-full max-w-2xl my-auto"
         style={{
