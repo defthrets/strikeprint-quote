@@ -5,6 +5,7 @@ import {
   Square, Car, Flag, Lightbulb, EyeOff, Navigation
 } from 'lucide-react';
 import { LOGO_URL } from './logo.js';
+import GetQuoteButton from './GetQuoteButton.jsx';
 
 // Brand palette mirrors the quote tool — navy ground with bolt-orange and amber accents.
 const BRAND = {
@@ -258,17 +259,7 @@ function Header() {
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
             Contact
           </a>
-          <Link to="/quote"
-            className="glossy-btn ml-1 inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-[11px] sm:text-xs uppercase tracking-[0.18em] font-bold"
-            style={{
-              background: BRAND.boltGrad,
-              color: BRAND.navy,
-              fontFamily: 'Anton, sans-serif',
-              letterSpacing: '0.1em'
-            }}>
-            <Zap className="w-3.5 h-3.5" strokeWidth={2.5} />
-            Get a Quote
-          </Link>
+          <GetQuoteButton className="ml-1 glossy-btn" />
         </nav>
       </div>
     </header>
