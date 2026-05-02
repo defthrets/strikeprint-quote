@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, X, ArrowLeft } from 'lucide-react';
 import { LOGO_URL } from './logo.js';
 import { SHOWCASE_PHOTOS } from './Home.jsx';
 import GetQuoteButton from './GetQuoteButton.jsx';
+import MobileNavMenu from './MobileNavMenu.jsx';
 
 // Same brand palette as Home — kept inline so Gallery doesn't pull anything
 // extra from Home's component tree, just the photo data.
@@ -120,6 +121,7 @@ export default function Gallery() {
               Home
             </Link>
             <GetQuoteButton className="ml-1" />
+            <MobileNavMenu />
           </nav>
         </div>
       </header>

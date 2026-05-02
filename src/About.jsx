@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Send, ArrowRight, Video } from 'lucide-react';
 import { LOGO_URL } from './logo.js';
 import GetQuoteButton from './GetQuoteButton.jsx';
+import MobileNavMenu from './MobileNavMenu.jsx';
 
 const BRAND = {
   navy:            '#012659',
@@ -81,6 +82,7 @@ export default function About() {
               Home
             </Link>
             <GetQuoteButton className="ml-1" />
+            <MobileNavMenu />
           </nav>
         </div>
       </header>
