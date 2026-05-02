@@ -250,7 +250,7 @@ function Hero() {
           <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
           <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.3em] font-bold"
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-            Sydney · Arndell Park · Est. signage installer
+            Sydney · Arndell Park · Established 20 years · Design · Print · Install
           </span>
         </div>
 
