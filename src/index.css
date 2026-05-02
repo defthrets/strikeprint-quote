@@ -14,6 +14,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Soften all square edges site-wide. Universal radius — bare text spans
+   without a visible surface won't render the radius (nothing to round),
+   so this only shows on elements that actually have a background, border,
+   or media boundary. Inline styles (e.g. the bolt-orb radial gradients)
+   override via specificity, and elements that set border-radius:50% for
+   circular icons / orbs keep their explicit value.
+   html/body excluded so the page background doesn't get clipped. */
+*:not(html):not(body):not(#root) {
+  border-radius: 6px;
+}
+
 @media print {
   header button, footer { display: none !important; }
 }

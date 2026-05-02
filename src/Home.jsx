@@ -5,7 +5,8 @@ import {
   Square, Car, Flag, Lightbulb, EyeOff, Navigation
 } from 'lucide-react';
 import { LOGO_URL } from './logo.js';
-import GetQuoteButton from './GetQuoteButton.jsx';
+import GetQuoteButton, { GetQuoteModal } from './GetQuoteButton.jsx';
+import MobileNavMenu from './MobileNavMenu.jsx';
 
 // Brand palette mirrors the quote tool — navy ground with bolt-orange and amber accents.
 const BRAND = {
@@ -260,6 +261,7 @@ function Header() {
             Contact
           </a>
           <GetQuoteButton className="ml-1 glossy-btn" />
+          <MobileNavMenu />
         </nav>
       </div>
     </header>
@@ -336,7 +338,8 @@ function Hero() {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
             display: 'inline-block'
-          }}>STRIKING SIGNAGE</span>
+          }}>STRIKING</span>{' '}
+          <span style={{ color: BRAND.textPri, display: 'inline-block' }}>SIGNAGE</span>
         </h1>
 
         {/* Sub-tagline */}
@@ -362,6 +365,7 @@ function Hero() {
 //   SERVICES
 // ═══════════════════════════════════════════════════════════════
 function Services() {
+  const [quoteOpen, setQuoteOpen] = useState(false);
   return (
     <section id="services" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <SectionHeader title="What We Make" />
@@ -412,20 +416,22 @@ function Services() {
               with final pricing and a site-survey timeline.
             </p>
           </div>
-          <Link to="/quote"
-            className="glossy-btn group inline-flex items-center gap-3 px-5 sm:px-6 py-4 sm:py-5 flex-shrink-0"
+          <button onClick={() => setQuoteOpen(true)}
+            className="glossy-btn group inline-flex items-center gap-3 px-5 sm:px-6 py-4 sm:py-5 flex-shrink-0 cursor-pointer"
             style={{
               background: BRAND.boltGrad,
               color: BRAND.navy,
               fontFamily: 'Anton, sans-serif',
-              letterSpacing: '0.1em'
+              letterSpacing: '0.1em',
+              border: 'none'
             }}>
             <Send className="w-5 h-5" strokeWidth={2.5} />
             <span className="text-base sm:text-xl">Start Quote</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
+          </button>
         </div>
       </div>
+      {quoteOpen && <GetQuoteModal onClose={() => setQuoteOpen(false)} />}
     </section>
   );
 }

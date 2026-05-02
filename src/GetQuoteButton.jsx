@@ -24,19 +24,6 @@ const EMAIL = 'info@strikeprint.com.au';
 
 export default function GetQuoteButton({ className = '' }) {
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
   return (
     <>
       <button onClick={() => setOpen(true)}
@@ -51,67 +38,82 @@ export default function GetQuoteButton({ className = '' }) {
         <Zap className="w-3.5 h-3.5" strokeWidth={2.5} />
         Get a Quote
       </button>
-
-      {/* Portal to body so the modal escapes the sticky header's
-          backdrop-filter, which creates a containing block for fixed
-          positioning and would otherwise trap the modal inside the header. */}
-      {open && ReactDOM.createPortal(
-        <div onClick={() => setOpen(false)}
-          className="fixed inset-0 z-[100] anim-fadein overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6"
-          style={{
-            background: 'rgba(8, 21, 46, 0.92)',
-            backdropFilter: 'blur(8px)',
-            color: BRAND.textPri,
-            fontFamily: "'Outfit', sans-serif"
-          }}>
-          <div onClick={(e) => e.stopPropagation()}
-            className="anim-scalein relative w-full max-w-md my-auto"
-            style={{
-              background: 'rgba(15, 32, 70, 0.92)',
-              border: `1px solid ${BRAND.boltAmber}40`,
-              borderTop: `3px solid ${BRAND.boltAmber}`,
-              backdropFilter: 'blur(12px)'
-            }}>
-            <button onClick={() => setOpen(false)} title="Close (Esc)"
-              className="absolute top-3 right-3 flex items-center justify-center w-9 h-9 transition-colors hover:bg-white/5"
-              style={{ color: BRAND.textMuted, border: `1px solid ${BRAND.navyLineStrong}` }}>
-              <X className="w-4 h-4" strokeWidth={2.5} />
-            </button>
-
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="h-px w-10" style={{ background: BRAND.boltGrad }} />
-                <span className="text-[10px] uppercase tracking-[0.3em] font-bold"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-                  Get in touch
-                </span>
-              </div>
-              <h2 className="mb-1" style={{
-                fontFamily: 'Anton, sans-serif',
-                letterSpacing: '0.02em',
-                fontSize: 'clamp(1.5rem, 5vw, 2.25rem)',
-                lineHeight: 1.05
-              }}>
-                How would you like to start?
-              </h2>
-              <p className="text-sm leading-relaxed mb-6" style={{ color: BRAND.textMuted }}>
-                Pick whatever's easiest — we'll come back to you fast.
-              </p>
-
-              <div className="space-y-3">
-                <Option href={`tel:${PHONE_TEL}`} icon={Phone} label="Call us"
-                  sub={PHONE_DISPLAY} />
-                <Option href={`mailto:${EMAIL}`} icon={Mail} label="Email us"
-                  sub={EMAIL} />
-                <Option to="/quote" onClickClose={() => setOpen(false)} icon={Wrench}
-                  label="Instant quote tool" sub="Compose your sign on a real photo · ~60s" />
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {open && <GetQuoteModal onClose={() => setOpen(false)} />}
     </>
+  );
+}
+
+// Standalone modal — exposed so other CTAs (e.g. the bottom 'Get a real
+// quote' card) can open the same Call/Email/Quote-tool options dialog
+// without depending on the GetQuoteButton chrome.
+export function GetQuoteModal({ onClose }) {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  // Portal to body so the modal escapes the sticky header's
+  // backdrop-filter (which creates a containing block for fixed positioning
+  // and would otherwise trap the modal inside the header).
+  return ReactDOM.createPortal(
+    <div onClick={onClose}
+      className="fixed inset-0 z-[100] anim-fadein overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6"
+      style={{
+        background: 'rgba(8, 21, 46, 0.92)',
+        backdropFilter: 'blur(8px)',
+        color: BRAND.textPri,
+        fontFamily: "'Outfit', sans-serif"
+      }}>
+      <div onClick={(e) => e.stopPropagation()}
+        className="anim-scalein relative w-full max-w-md my-auto"
+        style={{
+          background: 'rgba(15, 32, 70, 0.92)',
+          border: `1px solid ${BRAND.boltAmber}40`,
+          borderTop: `3px solid ${BRAND.boltAmber}`,
+          backdropFilter: 'blur(12px)'
+        }}>
+        <button onClick={onClose} title="Close (Esc)"
+          className="absolute top-3 right-3 flex items-center justify-center w-9 h-9 transition-colors hover:bg-white/5"
+          style={{ color: BRAND.textMuted, border: `1px solid ${BRAND.navyLineStrong}` }}>
+          <X className="w-4 h-4" strokeWidth={2.5} />
+        </button>
+
+        <div className="p-6 sm:p-8">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="h-px w-10" style={{ background: BRAND.boltGrad }} />
+            <span className="text-[10px] uppercase tracking-[0.3em] font-bold"
+              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+              Get in touch
+            </span>
+          </div>
+          <h2 className="mb-1" style={{
+            fontFamily: 'Anton, sans-serif',
+            letterSpacing: '0.02em',
+            fontSize: 'clamp(1.5rem, 5vw, 2.25rem)',
+            lineHeight: 1.05
+          }}>
+            How would you like to start?
+          </h2>
+          <p className="text-sm leading-relaxed mb-6" style={{ color: BRAND.textMuted }}>
+            Pick whatever's easiest — we'll come back to you fast.
+          </p>
+
+          <div className="space-y-3">
+            <Option href={`tel:${PHONE_TEL}`} icon={Phone} label="Call us" sub={PHONE_DISPLAY} />
+            <Option href={`mailto:${EMAIL}`} icon={Mail} label="Email us" sub={EMAIL} />
+            <Option to="/quote" onClickClose={onClose} icon={Wrench}
+              label="Instant quote tool" sub="Compose your sign on a real photo · ~60s" />
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }
 
