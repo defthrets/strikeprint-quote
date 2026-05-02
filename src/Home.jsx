@@ -116,7 +116,7 @@ export default function Home() {
         0%   { transform: translate3d(0, 0, 0); }
         100% { transform: translate3d(-50%, 0, 0); }
       }
-      .showcase-track { animation: marqueeScroll 60s linear infinite; will-change: transform; }
+      .showcase-track { animation: marqueeScroll 180s linear infinite; will-change: transform; }
       .showcase-track:hover { animation-play-state: paused; }
       .showcase-mask {
         -webkit-mask-image: linear-gradient(to right, transparent 0, black 4%, black 96%, transparent 100%);
@@ -749,6 +749,9 @@ function Footer() {
 //   Edge-fade mask hides the seam at left/right viewport boundaries.
 //   Hover pauses the scroll and lifts the focused card.
 // ═══════════════════════════════════════════════════════════════
+// Original 10 photos from strikeprint.com.au gallery (categorised) plus the
+// 40 install photos pulled from Michael's local sign archive (generic label,
+// since they're not pre-categorised).
 const SHOWCASE_PHOTOS = [
   { src: '/portfolio/hero.webp',      label: 'Storefront signage' },
   { src: '/portfolio/wall-1.webp',    label: 'Wall graphics' },
@@ -759,7 +762,11 @@ const SHOWCASE_PHOTOS = [
   { src: '/portfolio/privacy-2.webp', label: 'Privacy film' },
   { src: '/portfolio/vending-2.webp', label: 'Vending wrap' },
   { src: '/portfolio/panel-2.webp',   label: 'Panels & acrylics' },
-  { src: '/portfolio/privacy-3.webp', label: 'Privacy film' }
+  { src: '/portfolio/privacy-3.webp', label: 'Privacy film' },
+  ...Array.from({ length: 40 }, (_, i) => ({
+    src:   `/portfolio/install-${String(i + 1).padStart(2, '0')}.webp`,
+    label: 'Strike Print install'
+  }))
 ];
 
 function Showcase() {
