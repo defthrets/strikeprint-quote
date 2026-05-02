@@ -195,13 +195,13 @@ function Header() {
         borderBottom: `1px solid ${BRAND.navyLine}`
       }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-        <Link to="/" className="flex items-center gap-2.5">
-          <img src={LOGO_URL} alt="Strike Print" className="h-9 w-auto" />
+        <Link to="/" className="flex items-center gap-3">
+          <img src={LOGO_URL} alt="Strike Print" className="h-12 sm:h-16 w-auto" />
           <div className="hidden sm:block">
-            <div className="text-[15px] leading-tight font-bold tracking-wide" style={{ fontFamily: 'Anton, sans-serif', letterSpacing: '0.04em' }}>
+            <div className="leading-tight font-bold" style={{ fontFamily: 'Anton, sans-serif', letterSpacing: '0.04em', fontSize: '20px' }}>
               STRIKE PRINT
             </div>
-            <div className="text-[9px] uppercase tracking-[0.25em]" style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+            <div className="text-[10px] uppercase tracking-[0.25em] mt-0.5" style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
               Sydney signage installers
             </div>
           </div>
@@ -248,7 +248,8 @@ function Hero() {
         filter: 'blur(40px)'
       }} />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 lg:py-32">
+      {/* Top: eyebrow + headline + sub-tagline */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 lg:pt-32">
         {/* Eyebrow */}
         <div className="flex items-center gap-3 mb-5 anim-fadein">
           <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
@@ -276,15 +277,22 @@ function Hero() {
         </h1>
 
         {/* Sub-tagline */}
-        <p className="anim-fadeup stagger-1 max-w-2xl text-base sm:text-lg lg:text-xl leading-relaxed mb-10"
+        <p className="anim-fadeup stagger-1 max-w-2xl text-base sm:text-lg lg:text-xl leading-relaxed"
           style={{ color: BRAND.textMuted }}>
           Custom signs, banners, decals, vehicle wraps and pylons. Designed,
           manufactured and installed in Western Sydney — built to get noticed and
           built to last.
         </p>
+      </div>
 
+      {/* Recent work showcase — sits between the sub-tagline and the CTAs,
+          full-bleed across the section so the marquee runs edge-to-edge. */}
+      <Showcase />
+
+      {/* Bottom: CTAs */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-16 sm:pb-24 lg:pb-32">
         {/* CTAs */}
-        <div className="anim-fadeup stagger-2 flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16">
+        <div className="anim-fadeup stagger-2 flex flex-col sm:flex-row gap-3 sm:gap-4">
           <Link to="/quote"
             className="glossy-btn group inline-flex items-center justify-between gap-3 px-6 py-5"
             style={{
@@ -310,11 +318,7 @@ function Hero() {
             See What We Do
           </a>
         </div>
-
       </div>
-
-      {/* Showcase strip — full-bleed marquee of past work, replaces the stat row */}
-      <Showcase />
     </section>
   );
 }
@@ -539,6 +543,9 @@ function Contact() {
         })}
       </div>
 
+      {/* Google Maps embed — Arndell Park workshop */}
+      <ShopMap />
+
       {/* Big CTA at the bottom of contact */}
       <div className="mt-10 sm:mt-12 relative overflow-hidden p-6 sm:p-10"
         style={{
@@ -578,6 +585,69 @@ function Contact() {
         </div>
       </div>
     </section>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+//   SHOP MAP — Google Maps iframe of the Arndell Park workshop.
+//   Uses the public ?q=&output=embed URL — no API key, no quota.
+// ═══════════════════════════════════════════════════════════════
+const SHOP_ADDRESS = '26/70 Holbeche Rd, Arndell Park NSW 2148';
+const SHOP_MAPS_LINK = 'https://www.google.com/maps/search/?api=1&query=' +
+  encodeURIComponent(SHOP_ADDRESS);
+const SHOP_MAPS_EMBED = 'https://maps.google.com/maps?q=' +
+  encodeURIComponent(SHOP_ADDRESS) + '&z=15&output=embed';
+
+function ShopMap() {
+  return (
+    <div className="anim-fadeup mt-6 sm:mt-8 relative overflow-hidden"
+      style={{
+        background: BRAND.navyDeep,
+        border: `1px solid ${BRAND.navyLineStrong}`,
+        borderTop: `2px solid ${BRAND.boltAmber}`
+      }}>
+      {/* The map itself. Slight grayscale + contrast bump so Google's
+          default palette blends with the navy theme rather than fighting it. */}
+      <iframe
+        src={SHOP_MAPS_EMBED}
+        title={`Strike Print workshop — ${SHOP_ADDRESS}`}
+        loading="lazy"
+        allowFullScreen
+        referrerPolicy="no-referrer-when-downgrade"
+        style={{
+          display: 'block',
+          width: '100%',
+          height: 'clamp(280px, 45vw, 440px)',
+          border: 0,
+          filter: 'grayscale(0.35) contrast(1.05)'
+        }}
+      />
+
+      {/* Footer bar inside the frame: address + open-in-Maps shortcut */}
+      <div className="absolute bottom-0 inset-x-0 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+        style={{
+          background: 'linear-gradient(to top, rgba(8,21,46,0.96), rgba(8,21,46,0.7) 70%, transparent)',
+          pointerEvents: 'none'
+        }}>
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4" style={{ color: BRAND.boltAmber }} strokeWidth={2.5} />
+          <span className="text-[11px] sm:text-xs tracking-wide" style={{ color: BRAND.textPri, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
+            {SHOP_ADDRESS}
+          </span>
+        </div>
+        <a href={SHOP_MAPS_LINK} target="_blank" rel="noopener noreferrer"
+          className="lift inline-flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] font-bold self-start sm:self-auto"
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            background: BRAND.boltGrad,
+            color: BRAND.navy,
+            pointerEvents: 'auto'
+          }}>
+          <ArrowRight className="w-3 h-3" strokeWidth={3} />
+          Get Directions
+        </a>
+      </div>
+    </div>
   );
 }
 
