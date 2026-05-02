@@ -7,6 +7,9 @@ import './index.css';
 // The quote tool is large (~240KB JS). Lazy-load it so visitors who only
 // see the homepage don't pay for the editor bundle until they navigate.
 const SignageQuote = lazy(() => import('./SignageQuote.jsx'));
+// Gallery imports SHOWCASE_PHOTOS from Home — small enough to bundle
+// directly with the main chunk, no separate lazy import.
+const Gallery = lazy(() => import('./Gallery.jsx'));
 
 // Brief loading state while the quote chunk fetches. Matches the dark navy
 // background so it doesn't flash white during the route transition.
@@ -43,6 +46,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/gallery" element={
+          <Suspense fallback={<QuoteLoading />}>
+            <Gallery />
+          </Suspense>
+        } />
         <Route path="/quote" element={
           <Suspense fallback={<QuoteLoading />}>
             <SignageQuote />

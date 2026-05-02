@@ -62,11 +62,6 @@ const SERVICES = [
   }
 ];
 
-const PROCESS_STEPS = [
-  { n: '01', title: 'Snap a photo',     blurb: 'Take or upload a photo of your storefront, building, vehicle or interior.' },
-  { n: '02', title: 'Design your sign', blurb: 'Drag any sign type onto your photo. Position, resize, rotate. See it before you commit.' },
-  { n: '03', title: 'Get a quote',      blurb: 'Generate an itemised estimate. Send it to our team and we\'ll be in touch to finalise.' }
-];
 
 // ═══════════════════════════════════════════════════════════════
 //   PAGE
@@ -177,7 +172,6 @@ export default function Home() {
       <Header />
       <Hero />
       <Services />
-      <Process />
       <About />
       <Contact />
       <Footer />
@@ -212,10 +206,10 @@ function Header() {
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
             Services
           </a>
-          <a href="#process" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
+          <Link to="/gallery" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
-            Process
-          </a>
+            Gallery
+          </Link>
           <a href="#contact" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
             Contact
@@ -308,7 +302,7 @@ function Hero() {
             </span>
             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
-          <a href="#services"
+          <Link to="/gallery"
             className="lift inline-flex items-center justify-center gap-2 px-6 py-5 text-sm sm:text-base uppercase tracking-[0.15em]"
             style={{
               fontFamily: 'Anton, sans-serif',
@@ -317,7 +311,7 @@ function Hero() {
               color: BRAND.textPri
             }}>
             See What We Do
-          </a>
+          </Link>
         </div>
       </div>
     </section>
@@ -472,52 +466,6 @@ function ServiceCarousel() {
         })}
       </div>
     </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-//   PROCESS
-// ═══════════════════════════════════════════════════════════════
-function Process() {
-  return (
-    <section id="process" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-      <SectionHeader num="02" title="How It Works" />
-      <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-        Skip the back-and-forth. Compose your sign on a photo of the actual site
-        and get a real estimate in under a minute.
-      </p>
-
-      <div className="grid sm:grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-10">
-        {PROCESS_STEPS.map((s, i) => (
-          <div key={s.n} className={`anim-fadeup stagger-${i + 1} p-5 sm:p-6 relative`}
-            style={{
-              background: 'rgba(15,32,70,0.4)',
-              border: `1px solid ${BRAND.navyLine}`,
-              borderLeft: `3px solid ${BRAND.boltAmber}`
-            }}>
-            <div className="flex items-baseline gap-3 mb-3">
-              <span style={{
-                fontFamily: 'Anton, sans-serif',
-                fontSize: '2.5rem',
-                color: BRAND.boltAmber,
-                letterSpacing: '0.02em',
-                lineHeight: 1
-              }}>{s.n}</span>
-              <span className="text-[10px] uppercase tracking-[0.25em]"
-                style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-                Step
-              </span>
-            </div>
-            <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: '1.5rem', letterSpacing: '0.02em', lineHeight: 1.1 }} className="mb-2">
-              {s.title}
-            </div>
-            <p className="text-sm leading-relaxed" style={{ color: BRAND.textMuted }}>
-              {s.blurb}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -749,24 +697,60 @@ function Footer() {
 //   Edge-fade mask hides the seam at left/right viewport boundaries.
 //   Hover pauses the scroll and lifts the focused card.
 // ═══════════════════════════════════════════════════════════════
-// Original 10 photos from strikeprint.com.au gallery (categorised) plus the
-// 40 install photos pulled from Michael's local sign archive (generic label,
-// since they're not pre-categorised).
-const SHOWCASE_PHOTOS = [
-  { src: '/portfolio/hero.webp',      label: 'Storefront signage' },
-  { src: '/portfolio/wall-1.webp',    label: 'Wall graphics' },
-  { src: '/portfolio/privacy-1.webp', label: 'Privacy film' },
-  { src: '/portfolio/vending-1.webp', label: 'Vending wrap' },
-  { src: '/portfolio/panel-1.webp',   label: 'Panels & acrylics' },
-  { src: '/portfolio/wall-2.webp',    label: 'Wall graphics' },
-  { src: '/portfolio/privacy-2.webp', label: 'Privacy film' },
-  { src: '/portfolio/vending-2.webp', label: 'Vending wrap' },
-  { src: '/portfolio/panel-2.webp',   label: 'Panels & acrylics' },
-  { src: '/portfolio/privacy-3.webp', label: 'Privacy film' },
-  ...Array.from({ length: 40 }, (_, i) => ({
-    src:   `/portfolio/install-${String(i + 1).padStart(2, '0')}.webp`,
-    label: 'Strike Print install'
-  }))
+// 50 photos: 10 from the original strikeprint.com.au gallery plus 40 install
+// photos pulled from Michael's archive. Each is hand-categorised and the order
+// is shuffled so adjacent cards in the marquee aren't from the same job/site.
+export const SHOWCASE_PHOTOS = [
+  { src: '/portfolio/hero.webp',         label: 'Storefront signage' },
+  { src: '/portfolio/install-01.webp',   label: 'Panels & acrylics' },
+  { src: '/portfolio/install-08.webp',   label: 'Wall mural' },
+  { src: '/portfolio/install-19.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-04.webp',   label: 'Wall graphics' },
+  { src: '/portfolio/wall-1.webp',       label: 'Wall graphics' },
+  { src: '/portfolio/install-32.webp',   label: 'Vehicle wrap' },
+  { src: '/portfolio/install-09.webp',   label: 'Privacy film' },
+  { src: '/portfolio/install-13.webp',   label: 'Wall graphics' },
+  { src: '/portfolio/install-06.webp',   label: 'Lightbox' },
+  { src: '/portfolio/privacy-1.webp',    label: 'Privacy film' },
+  { src: '/portfolio/install-23.webp',   label: 'Wall mural' },
+  { src: '/portfolio/install-17.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-39.webp',   label: 'Vending wrap' },
+  { src: '/portfolio/install-12.webp',   label: 'Privacy film' },
+  { src: '/portfolio/panel-1.webp',      label: 'Panels & acrylics' },
+  { src: '/portfolio/install-28.webp',   label: 'Panels & acrylics' },
+  { src: '/portfolio/install-15.webp',   label: 'Wall graphics' },
+  { src: '/portfolio/install-26.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-37.webp',   label: 'Vehicle wrap' },
+  { src: '/portfolio/wall-2.webp',       label: 'Wall graphics' },
+  { src: '/portfolio/install-27.webp',   label: 'Wall mural' },
+  { src: '/portfolio/install-21.webp',   label: 'Privacy film' },
+  { src: '/portfolio/install-02.webp',   label: 'Panels & acrylics' },
+  { src: '/portfolio/install-10.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/vending-1.webp',    label: 'Vending wrap' },
+  { src: '/portfolio/install-05.webp',   label: 'Wall graphics' },
+  { src: '/portfolio/install-24.webp',   label: 'Wall mural' },
+  { src: '/portfolio/install-40.webp',   label: 'Panels & acrylics' },
+  { src: '/portfolio/install-22.webp',   label: 'Privacy film' },
+  { src: '/portfolio/install-34.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/privacy-2.webp',    label: 'Privacy film' },
+  { src: '/portfolio/install-29.webp',   label: 'Wall graphics' },
+  { src: '/portfolio/install-03.webp',   label: 'Vending wrap' },
+  { src: '/portfolio/install-14.webp',   label: 'Wall graphics' },
+  { src: '/portfolio/install-07.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-25.webp',   label: 'Wall mural' },
+  { src: '/portfolio/panel-2.webp',      label: 'Panels & acrylics' },
+  { src: '/portfolio/install-18.webp',   label: 'Panels & acrylics' },
+  { src: '/portfolio/install-31.webp',   label: 'Privacy film' },
+  { src: '/portfolio/install-38.webp',   label: 'Vehicle wrap' },
+  { src: '/portfolio/vending-2.webp',    label: 'Vending wrap' },
+  { src: '/portfolio/install-16.webp',   label: 'Wall graphics' },
+  { src: '/portfolio/install-20.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-30.webp',   label: 'Panels & acrylics' },
+  { src: '/portfolio/install-35.webp',   label: 'Privacy film' },
+  { src: '/portfolio/privacy-3.webp',    label: 'Privacy film' },
+  { src: '/portfolio/install-33.webp',   label: 'Wall graphics' },
+  { src: '/portfolio/install-36.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-11.webp',   label: 'Storefront signage' }
 ];
 
 function Showcase() {
