@@ -379,7 +379,7 @@ function Hero() {
 function Services() {
   return (
     <section id="services" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-      <SectionHeader num="01" title="What We Make" />
+      <SectionHeader title="What We Make" />
       <p className="mt-4 max-w-2xl mx-auto text-center text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
         We use premium materials on every job — <strong style={{ color: BRAND.textPri }}>Avery</strong>,{' '}
         <strong style={{ color: BRAND.textPri }}>3M</strong> and{' '}
@@ -537,7 +537,7 @@ function Contact() {
 
   return (
     <section id="contact" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-      <SectionHeader num="03" title="Get In Touch" />
+      <SectionHeader title="Get In Touch" />
       <p className="mt-4 max-w-2xl mx-auto text-center text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
         Quote tool not your speed? Call, email, or drop in to the Arndell Park
         workshop — we're happy to chat through anything.
@@ -817,15 +817,17 @@ function ShowcaseCard({ photo, index, ariaHidden }) {
 function SectionHeader({ num, title, centered = true }) {
   return (
     <div className={`anim-slidel flex items-baseline gap-3 sm:gap-4 ${centered ? 'justify-center' : ''}`}>
-      <span style={{
-        fontFamily: 'Anton, sans-serif',
-        fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
-        color: BRAND.boltAmber,
-        letterSpacing: '0.02em',
-        lineHeight: 1
-      }}>
-        {num}
-      </span>
+      {num && (
+        <span style={{
+          fontFamily: 'Anton, sans-serif',
+          fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
+          color: BRAND.boltAmber,
+          letterSpacing: '0.02em',
+          lineHeight: 1
+        }}>
+          {num}
+        </span>
+      )}
       <h2 style={{
         fontFamily: 'Anton, sans-serif',
         fontSize: 'clamp(1.75rem, 6vw, 3rem)',
