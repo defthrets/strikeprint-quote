@@ -109,8 +109,45 @@ export default function Home() {
       .hero-orb-b { animation: orbFloatB 28s ease-in-out infinite; animation-delay: -4s; }
       .hero-orb-c { animation: orbFloatC 18s ease-in-out infinite; animation-delay: -7s; }
       .hero-grid  { animation: gridShimmer 6s ease-in-out infinite; }
+
+      /* Electric STRIKING SIGNAGE — neon glow halo on a duplicate behind-layer
+         (text-shadow on background-clip:text doesn't render, so we paint a
+         solid-amber backing copy and animate ITS text-shadow). */
+      @keyframes electricGlow {
+        0%, 100% {
+          text-shadow:
+            0 0 12px rgba(245,154,16,0.85),
+            0 0 28px rgba(240,96,31,0.55),
+            0 0 56px rgba(250,217,5,0.30);
+        }
+        50% {
+          text-shadow:
+            0 0 22px rgba(245,154,16,1),
+            0 0 50px rgba(240,96,31,0.85),
+            0 0 95px rgba(250,217,5,0.50),
+            0 0 140px rgba(240,96,31,0.30);
+        }
+      }
+      /* Brief opacity dips so the headline reads like a neon tube settling.
+         Spaced apart so it never feels like a seizure-grade strobe. */
+      @keyframes electricFlicker {
+        0%, 100%      { opacity: 1; }
+        18%, 18.5%    { opacity: 0.6; }
+        18.2%         { opacity: 0.88; }
+        47%, 47.4%    { opacity: 0.75; }
+        72%, 72.3%    { opacity: 0.65; }
+        72.15%        { opacity: 0.92; }
+      }
+      .electric-glow {
+        animation: electricGlow 2.4s ease-in-out infinite;
+        will-change: text-shadow;
+      }
+      .electric-flicker {
+        animation: electricFlicker 7s linear infinite;
+        will-change: opacity;
+      }
       @media (prefers-reduced-motion: reduce) {
-        .hero-orb-a, .hero-orb-b, .hero-orb-c, .hero-grid { animation: none; }
+        .hero-orb-a, .hero-orb-b, .hero-orb-c, .hero-grid, .electric-glow, .electric-flicker { animation: none; }
       }
       .anim-fadeup { animation: fadeInUp 0.7s ease-out both; }
       .anim-fadein { animation: fadeIn 1.2s ease-out both; }
@@ -274,26 +311,26 @@ function Hero() {
       {/* Drifting glow orbs — 3 layered radial gradients on independent slow loops */}
       <div className="absolute pointer-events-none hero-orb hero-orb-a" aria-hidden style={{
         top: '6%', left: '-8%', width: '55vw', height: '55vw',
-        background: 'radial-gradient(circle at 50% 50%, rgba(240,96,31,0.22), rgba(240,96,31,0) 65%)',
-        filter: 'blur(60px)',
+        background: 'radial-gradient(circle at 50% 50%, rgba(240,96,31,0.38), rgba(240,96,31,0) 65%)',
+        filter: 'blur(50px)',
         borderRadius: '50%'
       }} />
       <div className="absolute pointer-events-none hero-orb hero-orb-b" aria-hidden style={{
         top: '-12%', right: '-10%', width: '60vw', height: '60vw',
-        background: 'radial-gradient(circle at 50% 50%, rgba(245,154,16,0.20), rgba(245,154,16,0) 65%)',
-        filter: 'blur(70px)',
+        background: 'radial-gradient(circle at 50% 50%, rgba(245,154,16,0.34), rgba(245,154,16,0) 65%)',
+        filter: 'blur(60px)',
         borderRadius: '50%'
       }} />
       <div className="absolute pointer-events-none hero-orb hero-orb-c" aria-hidden style={{
         bottom: '-15%', left: '25%', width: '50vw', height: '50vw',
-        background: 'radial-gradient(circle at 50% 50%, rgba(250,217,5,0.13), rgba(250,217,5,0) 65%)',
-        filter: 'blur(70px)',
+        background: 'radial-gradient(circle at 50% 50%, rgba(250,217,5,0.24), rgba(250,217,5,0) 65%)',
+        filter: 'blur(60px)',
         borderRadius: '50%'
       }} />
 
       {/* Existing soft centre glow on top — gives the headline a halo */}
       <div className="absolute inset-0 pointer-events-none anim-pulse" aria-hidden style={{
-        background: `radial-gradient(ellipse 800px 320px at 50% 30%, rgba(245,154,16,0.14), transparent 70%)`,
+        background: `radial-gradient(ellipse 900px 380px at 50% 30%, rgba(245,154,16,0.22), transparent 70%)`,
         filter: 'blur(40px)'
       }} />
 
@@ -318,12 +355,27 @@ function Hero() {
           }}>
           STAND OUT WITH
           <br />
-          <span style={{
-            background: BRAND.boltGrad,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>STRIKING SIGNAGE</span>
+          <span className="electric-flicker" style={{
+            position: 'relative',
+            display: 'inline-block'
+          }}>
+            {/* Behind: solid-amber duplicate with animated text-shadow glow */}
+            <span aria-hidden className="electric-glow" style={{
+              position: 'absolute',
+              inset: 0,
+              color: BRAND.boltAmber,
+              pointerEvents: 'none',
+              userSelect: 'none'
+            }}>STRIKING SIGNAGE</span>
+            {/* On top: the gradient text the user actually reads */}
+            <span style={{
+              position: 'relative',
+              background: BRAND.boltGrad,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>STRIKING SIGNAGE</span>
+          </span>
         </h1>
 
         {/* Sub-tagline */}
