@@ -967,7 +967,8 @@ export default function SignageQuoteBuilder() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
-  const photoInputRef = useRef(null);
+  const photoInputRef  = useRef(null);
+  const cameraInputRef = useRef(null);
 
   // Brief feedback toggle for the "Copy quote link" button.
   const [shareCopied, setShareCopied] = useState(false);
@@ -1513,30 +1514,44 @@ export default function SignageQuoteBuilder() {
               Upload a clear photo of the storefront, building, vehicle, or interior where the signage will go. You'll add signs onto it next.
             </p>
 
-            <label
+            {/* Hidden inputs — one for picking from gallery (no capture attr,
+                so the system picker offers both gallery and camera on phones),
+                and one dedicated camera input for the explicit 'Take Photo'
+                shortcut below the drop-zone. */}
+            <input ref={photoInputRef} type="file" accept="image/*"
+              onChange={(e) => handlePhotoFile(e.target.files[0])}
+              style={{
+                position: 'absolute', width: 1, height: 1,
+                padding: 0, margin: -1, overflow: 'hidden',
+                clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0
+              }} />
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
+              onChange={(e) => handlePhotoFile(e.target.files[0])}
+              style={{
+                position: 'absolute', width: 1, height: 1,
+                padding: 0, margin: -1, overflow: 'hidden',
+                clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0
+              }} />
+
+            <button type="button"
+              onClick={() => photoInputRef.current?.click()}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={(e) => { e.preventDefault(); setDragOver(false); handlePhotoFile(e.dataTransfer.files[0]); }}
-              className="relative cursor-pointer lift anim-fadeup stagger-2 block"
+              className="relative cursor-pointer lift anim-fadeup stagger-2 block w-full"
               style={{
                 aspectRatio: '4/3',
                 background: dragOver ? `${BRAND.boltAmber}10` : 'rgba(15,32,70,0.6)',
                 border: `2px dashed ${dragOver ? BRAND.boltAmber : BRAND.navyLineStrong}`,
-                backdropFilter: 'blur(8px)'
+                backdropFilter: 'blur(8px)',
+                color: BRAND.textPri
               }}>
-              <input ref={photoInputRef} type="file" accept="image/*" capture="environment"
-                onChange={(e) => handlePhotoFile(e.target.files[0])}
-                style={{
-                  position: 'absolute', width: 1, height: 1,
-                  padding: 0, margin: -1, overflow: 'hidden',
-                  clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0
-                }} />
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center pointer-events-none">
                 <div className="anim-float">
-                  <Camera className="w-12 h-12" style={{ color: BRAND.textFaint }} strokeWidth={1.5} />
+                  <ImageIcon className="w-12 h-12" style={{ color: BRAND.textFaint }} strokeWidth={1.5} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium" style={{ color: BRAND.textPri }}>Drop site photo or click to upload</p>
+                  <p className="text-sm font-medium" style={{ color: BRAND.textPri }}>Drop a site photo or click to upload</p>
                   <p className="text-[10px] mt-1 uppercase tracking-widest"
                     style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
                     JPG · PNG · WEBP
@@ -1544,7 +1559,33 @@ export default function SignageQuoteBuilder() {
                 </div>
               </div>
               <CornerBrackets />
-            </label>
+            </button>
+
+            {/* Camera shortcut — opens the rear camera directly. Useful when
+                you're on-site and want to capture rather than browse a gallery. */}
+            <div className="mt-3 flex items-center gap-3 anim-fadeup stagger-3">
+              <span className="flex-1 h-px" style={{ background: BRAND.navyLine }} />
+              <span className="text-[10px] uppercase tracking-[0.25em]"
+                style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+                or
+              </span>
+              <span className="flex-1 h-px" style={{ background: BRAND.navyLine }} />
+            </div>
+            <button type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="lift mt-3 anim-fadeup stagger-3 w-full inline-flex items-center justify-center gap-3 px-4 py-3.5"
+              style={{
+                background: 'rgba(8,21,46,0.6)',
+                border: `1px solid ${BRAND.navyLineStrong}`,
+                color: BRAND.textPri,
+                fontFamily: "'JetBrains Mono', monospace",
+                letterSpacing: '0.18em',
+                fontSize: '11px',
+                textTransform: 'uppercase'
+              }}>
+              <Camera className="w-4 h-4" style={{ color: BRAND.boltAmber }} strokeWidth={2} />
+              Take a Photo with Your Camera
+            </button>
 
             {error && <ErrorBox msg={error} />}
           </div>
