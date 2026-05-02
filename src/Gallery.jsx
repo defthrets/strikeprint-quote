@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, ChevronLeft, ChevronRight, X, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, ArrowLeft } from 'lucide-react';
 import { LOGO_URL } from './logo.js';
 import { SHOWCASE_PHOTOS } from './Home.jsx';
+import GetQuoteButton from './GetQuoteButton.jsx';
 
 // Same brand palette as Home — kept inline so Gallery doesn't pull anything
 // extra from Home's component tree, just the photo data.
@@ -128,17 +129,7 @@ export default function Gallery() {
               <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2} />
               Home
             </Link>
-            <Link to="/quote"
-              className="ml-1 inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-[11px] sm:text-xs uppercase tracking-[0.18em] font-bold"
-              style={{
-                background: BRAND.boltGrad,
-                color: BRAND.navy,
-                fontFamily: 'Anton, sans-serif',
-                letterSpacing: '0.1em'
-              }}>
-              <Zap className="w-3.5 h-3.5" strokeWidth={2.5} />
-              Get a Quote
-            </Link>
+            <GetQuoteButton className="ml-1" />
           </nav>
         </div>
       </header>

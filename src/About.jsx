@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, ArrowLeft, Send, ArrowRight, Video } from 'lucide-react';
+import { ArrowLeft, Send, ArrowRight, Video } from 'lucide-react';
 import { LOGO_URL } from './logo.js';
+import GetQuoteButton from './GetQuoteButton.jsx';
 
 const BRAND = {
   navy:            '#012659',
@@ -79,17 +80,7 @@ export default function About() {
               <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2} />
               Home
             </Link>
-            <Link to="/quote"
-              className="ml-1 inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-[11px] sm:text-xs uppercase tracking-[0.18em] font-bold"
-              style={{
-                background: BRAND.boltGrad,
-                color: BRAND.navy,
-                fontFamily: 'Anton, sans-serif',
-                letterSpacing: '0.1em'
-              }}>
-              <Zap className="w-3.5 h-3.5" strokeWidth={2.5} />
-              Get a Quote
-            </Link>
+            <GetQuoteButton className="ml-1" />
           </nav>
         </div>
       </header>

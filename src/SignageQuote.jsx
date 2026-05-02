@@ -1792,46 +1792,9 @@ function CompositionStage({
         </div>
       </div>
 
-      {/* Site conditions */}
-      <div className="anim-fadeup">
-        <SectionHeader num="03" title="Site Conditions" />
-        <p className="text-sm mt-4 mb-4 leading-relaxed" style={{ color: BRAND.textMuted }}>
-          Tick anything that applies to the install site. Each adds a line item to the quote.
-        </p>
-        <div className="grid sm:grid-cols-2 gap-2">
-          {Object.entries(SITE_CONDITIONS).map(([id, c]) => {
-            const active = conditions.has(id);
-            return (
-              <button key={id} onClick={() => toggleCondition(id)}
-                className="text-left p-4 lift flex items-center justify-between gap-3"
-                style={{
-                  background: active ? `${BRAND.boltAmber}10` : 'rgba(15,32,70,0.6)',
-                  border: `1px solid ${active ? BRAND.boltAmber : BRAND.navyLine}`,
-                  backdropFilter: 'blur(8px)'
-                }}>
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center"
-                    style={{
-                      background: active ? BRAND.boltAmber : 'transparent',
-                      border: `1.5px solid ${active ? BRAND.boltAmber : BRAND.navyLineStrong}`
-                    }}>
-                    {active && <Check className="w-3 h-3" style={{ color: BRAND.navy }} strokeWidth={3} />}
-                  </div>
-                  <span className="text-sm" style={{ color: active ? BRAND.textPri : '#cbd5e1' }}>{c.label}</span>
-                </div>
-                <span className="text-xs whitespace-nowrap flex-shrink-0"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", color: active ? BRAND.boltAmber : BRAND.textDim }}>
-                  +${c.cost}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Artwork / design */}
       <div className="anim-fadeup">
-        <SectionHeader num="04" title="Artwork &amp; Design" />
+        <SectionHeader num="03" title="Artwork &amp; Design" />
         <p className="text-sm mt-4 mb-4 leading-relaxed" style={{ color: BRAND.textMuted }}>
           Are you supplying print-ready artwork, or do you need our team to design it?
         </p>
@@ -2279,7 +2242,7 @@ function ColourSwatchInput({ label, value, onChange }) {
 function QuoteResult({ result, originalPhoto, conditions, onBack, onNew, onShare, shareCopied, fmt }) {
   return (
     <div className="anim-fadeup">
-      <SectionHeader num="03" title="Mockup &amp; Quote" big />
+      <SectionHeader num="04" title="Mockup &amp; Quote" big />
 
       <div className="mt-6 sm:mt-8 relative">
         <div className="absolute top-3 left-3 z-10 px-2 py-1 text-[10px] uppercase tracking-widest font-bold" style={{
