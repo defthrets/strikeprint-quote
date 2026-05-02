@@ -84,6 +84,34 @@ export default function Home() {
       @keyframes pulseGlow { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
       @keyframes glossySweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
       @keyframes serviceProgress { 0% { width: 0%; } 100% { width: 100%; } }
+
+      /* Hero ambient backdrop — slow drifting orbs + faint grid shimmer */
+      @keyframes orbFloatA {
+        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+        33%      { transform: translate3d(8%, -6%, 0) scale(1.08); }
+        66%      { transform: translate3d(-6%, 8%, 0) scale(0.94); }
+      }
+      @keyframes orbFloatB {
+        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+        50%      { transform: translate3d(-10%, 10%, 0) scale(1.12); }
+      }
+      @keyframes orbFloatC {
+        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+        40%      { transform: translate3d(7%, -10%, 0) scale(1.06); }
+        80%      { transform: translate3d(-5%, 5%, 0) scale(0.96); }
+      }
+      @keyframes gridShimmer {
+        0%, 100% { opacity: 0.35; }
+        50%      { opacity: 0.85; }
+      }
+      .hero-orb { will-change: transform; }
+      .hero-orb-a { animation: orbFloatA 22s ease-in-out infinite; }
+      .hero-orb-b { animation: orbFloatB 28s ease-in-out infinite; animation-delay: -4s; }
+      .hero-orb-c { animation: orbFloatC 18s ease-in-out infinite; animation-delay: -7s; }
+      .hero-grid  { animation: gridShimmer 6s ease-in-out infinite; }
+      @media (prefers-reduced-motion: reduce) {
+        .hero-orb-a, .hero-orb-b, .hero-orb-c, .hero-grid { animation: none; }
+      }
       .anim-fadeup { animation: fadeInUp 0.7s ease-out both; }
       .anim-fadein { animation: fadeIn 1.2s ease-out both; }
       .anim-slidel { animation: slideInL 0.8s ease-out both; }
@@ -232,9 +260,40 @@ function Header() {
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* Background grid + glow */}
+      {/* Subtle grid pattern, masked to fade out at the edges */}
+      <div className="absolute inset-0 pointer-events-none hero-grid" aria-hidden style={{
+        background: `
+          linear-gradient(rgba(245,154,16,0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(245,154,16,0.07) 1px, transparent 1px)
+        `,
+        backgroundSize: '64px 64px',
+        WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 35%, black, transparent 75%)',
+                maskImage: 'radial-gradient(ellipse 70% 60% at 50% 35%, black, transparent 75%)'
+      }} />
+
+      {/* Drifting glow orbs — 3 layered radial gradients on independent slow loops */}
+      <div className="absolute pointer-events-none hero-orb hero-orb-a" aria-hidden style={{
+        top: '6%', left: '-8%', width: '55vw', height: '55vw',
+        background: 'radial-gradient(circle at 50% 50%, rgba(240,96,31,0.22), rgba(240,96,31,0) 65%)',
+        filter: 'blur(60px)',
+        borderRadius: '50%'
+      }} />
+      <div className="absolute pointer-events-none hero-orb hero-orb-b" aria-hidden style={{
+        top: '-12%', right: '-10%', width: '60vw', height: '60vw',
+        background: 'radial-gradient(circle at 50% 50%, rgba(245,154,16,0.20), rgba(245,154,16,0) 65%)',
+        filter: 'blur(70px)',
+        borderRadius: '50%'
+      }} />
+      <div className="absolute pointer-events-none hero-orb hero-orb-c" aria-hidden style={{
+        bottom: '-15%', left: '25%', width: '50vw', height: '50vw',
+        background: 'radial-gradient(circle at 50% 50%, rgba(250,217,5,0.13), rgba(250,217,5,0) 65%)',
+        filter: 'blur(70px)',
+        borderRadius: '50%'
+      }} />
+
+      {/* Existing soft centre glow on top — gives the headline a halo */}
       <div className="absolute inset-0 pointer-events-none anim-pulse" aria-hidden style={{
-        background: `radial-gradient(ellipse 800px 320px at 50% 30%, rgba(245,154,16,0.18), transparent 70%)`,
+        background: `radial-gradient(ellipse 800px 320px at 50% 30%, rgba(245,154,16,0.14), transparent 70%)`,
         filter: 'blur(40px)'
       }} />
 
