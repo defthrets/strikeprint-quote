@@ -342,9 +342,9 @@ function Hero() {
         {/* Sub-tagline */}
         <p className="anim-fadeup stagger-1 max-w-2xl mx-auto text-base sm:text-lg lg:text-xl leading-relaxed"
           style={{ color: BRAND.textMuted }}>
-          Custom signs, banners, decals, vehicle wraps and pylons. Designed,
-          manufactured and installed in Western Sydney — built to get noticed and
-          built to last.
+          Custom signs, banners, decals, lightboxes, vehicle wraps, custom window
+          frosting, and more. Designed, manufactured and installed in Arndell Park,
+          Sydney — built to get noticed and built to last.
         </p>
       </div>
 
