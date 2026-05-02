@@ -12,9 +12,10 @@ const SignageQuote = lazy(() => import('./SignageQuote.jsx'));
 const Gallery = lazy(() => import('./Gallery.jsx'));
 const About   = lazy(() => import('./About.jsx'));
 
-// Brief loading state while the quote chunk fetches. Matches the dark navy
-// background so it doesn't flash white during the route transition.
-function QuoteLoading() {
+// Brief loading state while a lazy chunk fetches. Matches the dark navy
+// background so it doesn't flash white during the route transition. The
+// label is passed in so each route's spinner names the right thing.
+function RouteLoading({ label }) {
   return (
     <div style={{
       minHeight: '100vh',
@@ -28,7 +29,7 @@ function QuoteLoading() {
       letterSpacing: '0.25em',
       textTransform: 'uppercase'
     }}>
-      Loading quote tool…
+      Loading {label}…
     </div>
   );
 }
@@ -48,17 +49,17 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/gallery" element={
-          <Suspense fallback={<QuoteLoading />}>
+          <Suspense fallback={<RouteLoading label="gallery" />}>
             <Gallery />
           </Suspense>
         } />
         <Route path="/about" element={
-          <Suspense fallback={<QuoteLoading />}>
+          <Suspense fallback={<RouteLoading label="about" />}>
             <About />
           </Suspense>
         } />
         <Route path="/quote" element={
-          <Suspense fallback={<QuoteLoading />}>
+          <Suspense fallback={<RouteLoading label="quote tool" />}>
             <SignageQuote />
           </Suspense>
         } />
