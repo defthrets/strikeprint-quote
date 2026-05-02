@@ -121,14 +121,6 @@ export default function Gallery() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <Link to="/" className="flex items-center gap-3" title="Back to Strike Print home">
             <img src={LOGO_URL} alt="Strike Print" className="h-16 sm:h-24 w-auto" />
-            <div className="hidden sm:block">
-              <div style={{ fontFamily: 'Anton, sans-serif', letterSpacing: '0.04em', fontSize: '20px' }}
-                className="leading-tight font-bold">STRIKE PRINT</div>
-              <div className="text-[10px] uppercase tracking-[0.25em] mt-0.5"
-                style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-                Premium signage installed
-              </div>
-            </div>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2">
             <Link to="/" className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
