@@ -10,6 +10,7 @@ const SignageQuote = lazy(() => import('./SignageQuote.jsx'));
 // Gallery imports SHOWCASE_PHOTOS from Home — small enough to bundle
 // directly with the main chunk, no separate lazy import.
 const Gallery = lazy(() => import('./Gallery.jsx'));
+const About   = lazy(() => import('./About.jsx'));
 
 // Brief loading state while the quote chunk fetches. Matches the dark navy
 // background so it doesn't flash white during the route transition.
@@ -49,6 +50,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/gallery" element={
           <Suspense fallback={<QuoteLoading />}>
             <Gallery />
+          </Suspense>
+        } />
+        <Route path="/about" element={
+          <Suspense fallback={<QuoteLoading />}>
+            <About />
           </Suspense>
         } />
         <Route path="/quote" element={
