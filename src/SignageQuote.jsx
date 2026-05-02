@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Loader2, AlertTriangle, Check, Camera, X, ChevronRight, Trash2, Type, Square, Lightbulb, Flag, Triangle, Car, MapPin, Navigation, EyeOff, Image as ImageIcon, Layers, Maximize2, Plus, Wrench, Send, Download, Printer, RotateCcw, RotateCw, Pencil, Link2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { LOGO_URL } from './logo.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -130,7 +131,7 @@ const SIGN_CATALOGUE = {
   // PVC Banner — standard banner sizes
   banner_pvc: {
     name: 'PVC Banner', perSqm: 61, installBase: 97, installPerSqm: 20, minTotal: 146,
-    description: 'Heavy-duty 440 gsm PVC banner with welded hems and brass eyelets. Mounted with cable ties or rope to fences, scaffolding or façades.',
+    description: 'Heavy-duty 440 gsm PVC banner. Welded hems with brass eyelets for cable-tie or rope mounting, or keder edges for sailtrack and frame install.',
     sizes: [
       { id: 'sm', label: 'Small',  w: 600,  h: 1500, spec: '600 × 1500 mm',   sqm: 0.90 },
       { id: 'md', label: 'Medium', w: 900,  h: 2400, spec: '900 × 2400 mm',   sqm: 2.16 },
@@ -1448,9 +1449,11 @@ export default function SignageQuoteBuilder() {
         <header className="flex items-center justify-between mb-8 sm:mb-12 pb-5 sm:pb-6 anim-fadein"
           style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <img src={LOGO_URL} alt="Strike Print"
-              className="h-16 sm:h-24 w-auto object-contain anim-slideL flex-shrink-0 -mt-2"
-              style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))' }} />
+            <Link to="/" title="Back to Strike Print home" className="flex-shrink-0 lift">
+              <img src={LOGO_URL} alt="Strike Print"
+                className="h-16 sm:h-24 w-auto object-contain anim-slideL -mt-2 cursor-pointer"
+                style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.4))' }} />
+            </Link>
             <div className="min-w-0 anim-slideL stagger-1 hidden sm:block">
               <div style={{ fontFamily: 'Anton, sans-serif', letterSpacing: '0.05em' }}
                 className="text-sm sm:text-lg uppercase tracking-widest truncate" >

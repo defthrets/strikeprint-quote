@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Zap, Wrench, Send, ChevronRight, ArrowRight, Phone, Mail, MapPin, Clock,
@@ -88,6 +88,7 @@ export default function Home() {
       @keyframes slideInL { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
       @keyframes pulseGlow { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
       @keyframes glossySweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+      @keyframes serviceProgress { 0% { width: 0%; } 100% { width: 100%; } }
       .anim-fadeup { animation: fadeInUp 0.7s ease-out both; }
       .anim-fadein { animation: fadeIn 1.2s ease-out both; }
       .anim-slidel { animation: slideInL 0.8s ease-out both; }
@@ -249,7 +250,7 @@ function Hero() {
       }} />
 
       {/* Top: eyebrow + headline + sub-tagline */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 lg:pt-32">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-10 sm:pt-24 lg:pt-32">
         {/* Eyebrow */}
         <div className="flex items-center gap-3 mb-5 anim-fadein">
           <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
@@ -290,7 +291,7 @@ function Hero() {
       <Showcase />
 
       {/* Bottom: CTAs */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-16 sm:pb-24 lg:pb-32">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pb-10 sm:pb-24 lg:pb-32">
         {/* CTAs */}
         <div className="anim-fadeup stagger-2 flex flex-col sm:flex-row gap-3 sm:gap-4">
           <Link to="/quote"
@@ -328,18 +329,15 @@ function Hero() {
 // ═══════════════════════════════════════════════════════════════
 function Services() {
   return (
-    <section id="services" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+    <section id="services" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <SectionHeader num="01" title="What We Make" />
       <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
         Every sign in our catalogue can be quoted instantly through the design tool.
         Below is the headline range — if you need something specific, get in touch.
       </p>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-8 sm:mt-10">
-        {SERVICES.map((s, i) => (
-          <ServiceCard key={s.title} service={s} delay={i} />
-        ))}
-      </div>
+      <ServiceCarousel />
+
 
       <div className="mt-10 flex justify-center">
         <Link to="/quote"
@@ -359,47 +357,118 @@ function Services() {
   );
 }
 
-function ServiceCard({ service, delay }) {
-  const Icon = service.icon;
-  return (
-    <div className={`lift anim-fadeup stagger-${(delay % 6) + 1} p-5 sm:p-6 relative overflow-hidden`}
-      style={{
-        background: BRAND.navyRaise,
-        border: `1px solid ${BRAND.navyLineStrong}`,
-        backdropFilter: 'blur(8px)'
-      }}>
-      {/* Top-right amber corner accent */}
-      <div className="absolute top-0 right-0 w-12 h-12 pointer-events-none" aria-hidden style={{
-        background: `linear-gradient(225deg, ${BRAND.boltAmber}30, transparent 60%)`
-      }} />
+// ═══════════════════════════════════════════════════════════════
+//   SERVICE CAROUSEL — single rotating card. Auto-cycles every ~5s,
+//   crossfades between entries, pauses on hover, dot navigation.
+// ═══════════════════════════════════════════════════════════════
+const SERVICE_CYCLE_MS = 5200;
 
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center justify-center w-11 h-11"
-          style={{
-            background: BRAND.navyDeep,
-            border: `1px solid ${BRAND.boltAmber}40`,
-            color: BRAND.boltAmber
-          }}>
-          <Icon className="w-5 h-5" strokeWidth={2} />
+function ServiceCarousel() {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(() => {
+      setActiveIdx(i => (i + 1) % SERVICES.length);
+    }, SERVICE_CYCLE_MS);
+    return () => clearInterval(id);
+  }, [paused]);
+
+  const goTo = (i) => setActiveIdx(((i % SERVICES.length) + SERVICES.length) % SERVICES.length);
+
+  return (
+    <div className="mt-8 sm:mt-10"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}>
+      <div className="relative overflow-hidden"
+        style={{
+          background: BRAND.navyRaise,
+          border: `1px solid ${BRAND.navyLineStrong}`,
+          backdropFilter: 'blur(8px)',
+          minHeight: 'clamp(260px, 36vw, 320px)'
+        }}>
+        {/* Top-right amber corner accent — same as the old card */}
+        <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none" aria-hidden style={{
+          background: `linear-gradient(225deg, ${BRAND.boltAmber}30, transparent 60%)`
+        }} />
+
+        {/* Bottom progress bar — fills over the cycle duration, resets on change */}
+        <div className="absolute left-0 right-0 bottom-0 h-[3px]" aria-hidden
+          style={{ background: 'rgba(255,255,255,0.05)' }}>
+          <div key={`bar-${activeIdx}-${paused ? 'p' : 'r'}`}
+            className="h-full"
+            style={{
+              background: BRAND.boltGrad,
+              animation: paused ? 'none' : `serviceProgress ${SERVICE_CYCLE_MS}ms linear forwards`,
+              width: paused ? '100%' : '0%',
+              opacity: paused ? 0.4 : 1
+            }} />
         </div>
-        <div>
-          <div className="text-[9px] uppercase tracking-[0.25em]"
-            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-            Service
-          </div>
-          <div style={{
-            fontFamily: 'Bebas Neue, sans-serif',
-            fontSize: '1.35rem',
-            letterSpacing: '0.02em',
-            lineHeight: 1
-          }}>
-            {service.title}
-          </div>
-        </div>
+
+        {/* Stack of cards — only the active one is visible. Each fades + slides
+            in from the right when activated, fades out left when deactivated. */}
+        {SERVICES.map((s, i) => {
+          const Icon = s.icon;
+          const isActive = i === activeIdx;
+          return (
+            <div key={s.title}
+              aria-hidden={!isActive}
+              className="absolute inset-0 p-5 sm:p-7 lg:p-9 flex flex-col sm:flex-row gap-4 sm:gap-7"
+              style={{
+                opacity: isActive ? 1 : 0,
+                transform: `translateX(${isActive ? 0 : 24}px)`,
+                transition: 'opacity 550ms cubic-bezier(.2,.7,.3,1), transform 550ms cubic-bezier(.2,.7,.3,1)',
+                pointerEvents: isActive ? 'auto' : 'none'
+              }}>
+              <div className="flex-shrink-0">
+                <div className="flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20"
+                  style={{ background: BRAND.navyDeep, border: `1px solid ${BRAND.boltAmber}40`, color: BRAND.boltAmber }}>
+                  <Icon className="w-7 h-7 sm:w-9 sm:h-9" strokeWidth={2} />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] uppercase tracking-[0.25em] mb-2"
+                  style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+                  Service · {String(i + 1).padStart(2, '0')} / {String(SERVICES.length).padStart(2, '0')}
+                </div>
+                <h3 className="mb-3" style={{
+                  fontFamily: 'Bebas Neue, sans-serif',
+                  fontSize: 'clamp(1.5rem, 4.5vw, 2.4rem)',
+                  letterSpacing: '0.02em',
+                  lineHeight: 1.05
+                }}>
+                  {s.title}
+                </h3>
+                <p className="text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
+                  {s.blurb}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <p className="text-sm leading-relaxed" style={{ color: BRAND.textMuted }}>
-        {service.blurb}
-      </p>
+
+      {/* Dot navigation — active dot stretches into a bar */}
+      <div className="flex items-center justify-center gap-1.5 mt-4 sm:mt-5">
+        {SERVICES.map((s, i) => {
+          const isActive = i === activeIdx;
+          return (
+            <button key={s.title} onClick={() => goTo(i)}
+              aria-label={`Show ${s.title}`}
+              className="transition-all duration-500 cursor-pointer"
+              style={{
+                width: isActive ? '32px' : '8px',
+                height: '4px',
+                background: isActive ? BRAND.boltGrad : BRAND.navyLineStrong,
+                border: 'none',
+                padding: 0
+              }} />
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -409,7 +478,7 @@ function ServiceCard({ service, delay }) {
 // ═══════════════════════════════════════════════════════════════
 function Process() {
   return (
-    <section id="process" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+    <section id="process" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <SectionHeader num="02" title="How It Works" />
       <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
         Skip the back-and-forth. Compose your sign on a photo of the actual site
@@ -455,7 +524,7 @@ function Process() {
 // ═══════════════════════════════════════════════════════════════
 function About() {
   return (
-    <section id="about" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+    <section id="about" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <div className="grid lg:grid-cols-5 gap-8 lg:gap-12 items-start">
         <div className="lg:col-span-2">
           <SectionHeader num="03" title="About" />
@@ -509,7 +578,7 @@ function Contact() {
   ];
 
   return (
-    <section id="contact" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+    <section id="contact" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <SectionHeader num="04" title="Get In Touch" />
       <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
         Quote tool not your speed? Call, email, or drop in to the Arndell Park
@@ -696,7 +765,7 @@ function Showcase() {
   // seamlessly without a visible jump. The aria-hidden duplicate keeps
   // assistive tech from announcing every photo twice.
   return (
-    <div className="anim-fadein mt-12 sm:mt-16 -mx-4 sm:-mx-6 select-none">
+    <div className="anim-fadein mt-12 sm:mt-16 mb-10 sm:mb-12 -mx-4 sm:-mx-6 select-none">
       <div className="px-4 sm:px-6 mb-3 sm:mb-4 flex items-center gap-3">
         <span className="h-px w-10" style={{ background: BRAND.boltGrad }} />
         <span className="text-[10px] uppercase tracking-[0.3em] font-bold"
