@@ -53,10 +53,10 @@ export default function GetQuoteButton({ className = '' }) {
 
       {open && (
         <div onClick={() => setOpen(false)}
-          className="fixed inset-0 z-50 anim-fadein flex items-center justify-center p-4 sm:p-6"
+          className="fixed inset-0 z-50 anim-fadein overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6"
           style={{ background: 'rgba(8, 21, 46, 0.92)', backdropFilter: 'blur(8px)' }}>
           <div onClick={(e) => e.stopPropagation()}
-            className="anim-scalein relative w-full max-w-md"
+            className="anim-scalein relative w-full max-w-md my-auto"
             style={{
               background: 'rgba(15, 32, 70, 0.92)',
               border: `1px solid ${BRAND.boltAmber}40`,
