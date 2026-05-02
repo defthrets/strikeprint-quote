@@ -332,11 +332,10 @@ function Services() {
     <section id="services" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <SectionHeader num="01" title="What We Make" />
       <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-        Top-quality materials, every job. We print on <strong style={{ color: BRAND.textPri }}>Avery</strong>,{' '}
+        We use premium materials on every job — <strong style={{ color: BRAND.textPri }}>Avery</strong>,{' '}
         <strong style={{ color: BRAND.textPri }}>3M</strong> and{' '}
-        <strong style={{ color: BRAND.textPri }}>Arlon</strong> cast vinyl films, fabricate from premium
-        ACM, acrylic and aluminium, and finish with UV-stable inks rated for years of Australian sun.
-        Every sign we hang is built to last — no fading, peeling or warping.
+        <strong style={{ color: BRAND.textPri }}>Arlon</strong> cast vinyl films, ACM, acrylic and aluminium,
+        finished with UV-stable inks rated for years of Australian sun. Every sign we hang is built to last.
       </p>
 
       <ServiceCarousel />
