@@ -197,7 +197,7 @@ function Header() {
       }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <Link to="/" className="flex items-center gap-3">
-          <img src={LOGO_URL} alt="Strike Print" className="h-12 sm:h-16 w-auto" />
+          <img src={LOGO_URL} alt="Strike Print" className="h-16 sm:h-24 w-auto" />
           <div className="hidden sm:block">
             <div className="leading-tight font-bold" style={{ fontFamily: 'Anton, sans-serif', letterSpacing: '0.04em', fontSize: '20px' }}>
               STRIKE PRINT
@@ -332,8 +332,11 @@ function Services() {
     <section id="services" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
       <SectionHeader num="01" title="What We Make" />
       <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-        Every sign in our catalogue can be quoted instantly through the design tool.
-        Below is the headline range — if you need something specific, get in touch.
+        Top-quality materials, every job. We print on <strong style={{ color: BRAND.textPri }}>Avery</strong>,{' '}
+        <strong style={{ color: BRAND.textPri }}>3M</strong> and{' '}
+        <strong style={{ color: BRAND.textPri }}>Arlon</strong> cast vinyl films, fabricate from premium
+        ACM, acrylic and aluminium, and finish with UV-stable inks rated for years of Australian sun.
+        Every sign we hang is built to last — no fading, peeling or warping.
       </p>
 
       <ServiceCarousel />
