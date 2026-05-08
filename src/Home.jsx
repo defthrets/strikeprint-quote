@@ -1,209 +1,696 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  Zap, Wrench, Send, ChevronRight, ArrowRight, Phone, Mail, MapPin, Clock,
-  Square, Car, Flag, Lightbulb, EyeOff, Navigation
-} from 'lucide-react';
-import { LOGO_URL } from './logo.js';
-import GetQuoteButton, { GetQuoteModal } from './GetQuoteButton.jsx';
-import MobileNavMenu from './MobileNavMenu.jsx';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Sun, Moon, Phone, Mail, MapPin, Clock, Square, Lightbulb, Car, Flag, Eye, Navigation, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
-// Brand palette mirrors the quote tool — navy ground with bolt-orange and amber accents.
-const BRAND = {
-  navy:            '#012659',
-  navyDeep:        '#08152e',
-  navyCard:        'rgba(8, 21, 46, 0.95)',
-  navyRaise:       'rgba(15, 32, 70, 0.7)',
-  navyLine:        'rgba(255, 255, 255, 0.08)',
-  navyLineStrong:  'rgba(255, 255, 255, 0.15)',
-  boltOrange:      '#f0601f',
-  boltAmber:       '#f59a10',
-  boltYellow:      '#fad905',
-  textPri:         '#f8fafc',
-  textMuted:       '#cbd5e1',
-  textDim:         '#94a3b8',
-  textFaint:       '#64748b',
-  boltGrad:        'linear-gradient(135deg, #f59a10, #f0601f, #fad905)'
-};
+// ════════════════════════════════════════════════════════════════
+//   STRIKE PRINT — full single-page redesign
+//   Ported 1:1 from the Claude Design handoff (Big Shoulders Display
+//   italic + Inter Tight + Instrument Serif, dark/light theme,
+//   spring-physics cursor, hero parallax, 3D card tilt, marquee +
+//   masonry portfolio with shared lightbox).
+// ════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════
-//   SERVICES — marketing-facing grouping of what Strike Print does.
-//   Stay in sync with the quote tool's SIGN_CATALOGUE in spirit but
-//   the wording here is for storytelling, not pricing.
-// ═══════════════════════════════════════════════════════════════
-const SERVICES = [
-  {
-    icon: Square,
-    title: 'Shopfront & Building Signs',
-    blurb: 'ACM panels, fascias and storefront signage. Custom digital print on aluminium composite — engineered for kerb appeal that holds up under sun and weather.'
-  },
-  {
-    icon: Lightbulb,
-    title: 'Illuminated Signs',
-    blurb: 'Lightboxes, channel letters and halo-lit cabinets. Internally LED-lit so your sign reads as clearly at midnight as it does at noon.'
-  },
-  {
-    icon: Car,
-    title: 'Vehicle Wraps & Decals',
-    blurb: 'Door logos, panel decals, full wraps. Vans, trucks, fleet — turn the asset you already own into a mobile billboard.'
-  },
-  {
-    icon: Flag,
-    title: 'Banners, Flags & A-Frames',
-    blurb: 'Heavy-duty PVC banners, feather flags and footpath A-frames. Quick-turn marketing for events, sales and seasonal campaigns.'
-  },
-  {
-    icon: EyeOff,
-    title: 'Windows & Wall Graphics',
-    blurb: 'Vinyl window graphics, frosted privacy film, large-format wall murals. Brand presence and privacy in equal measure.'
-  },
-  {
-    icon: Navigation,
-    title: 'Pylons & Wayfinding',
-    blurb: 'Free-standing roadside pylons and compact directional signs. Premium road-facing signage for centres, car parks and campus navigation.'
-  }
+// Curated 15-photo set used by both the hero marquee and the portfolio
+// masonry grid. Sourced from /public/portfolio/ — already shipped.
+const PHOTOS = [
+  ['/portfolio/hero.webp',         'Inhouse production'],
+  ['/portfolio/install-01.webp',   'Panels & promotional'],
+  ['/portfolio/install-08.webp',   'Wall mural'],
+  ['/portfolio/install-19.webp',   'Storefront signage'],
+  ['/portfolio/install-04.webp',   'Wall graphics'],
+  ['/portfolio/install-32.webp',   'Vehicle wrap'],
+  ['/portfolio/install-13.webp',   'Wall graphics'],
+  ['/portfolio/install-23.webp',   'Bar graphics'],
+  ['/portfolio/install-17.webp',   'Storefront signage'],
+  ['/portfolio/install-26.webp',   'Banners'],
+  ['/portfolio/install-27.webp',   'Hanging fabric banners'],
+  ['/portfolio/install-07.webp',   'Storefront signage'],
+  ['/portfolio/install-34.webp',   'Storefront signage'],
+  ['/portfolio/install-38.webp',   'Vehicle wrap'],
+  ['/portfolio/install-36.webp',   'Storefront signage']
 ];
 
+// Masonry grid layout: which photos use the special spans (tall/wide/big).
+// Index aligns with PHOTOS where applicable; the order here is the order
+// used in the grid (different from the marquee).
+const PORTFOLIO_GRID = [
+  { src: '/portfolio/hero.webp',         label: 'Inhouse production',     span: 'big' },
+  { src: '/portfolio/install-19.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-32.webp',   label: 'Vehicle wrap' },
+  { src: '/portfolio/install-08.webp',   label: 'Wall mural',             span: 'wide' },
+  { src: '/portfolio/install-04.webp',   label: 'Wall graphics' },
+  { src: '/portfolio/install-13.webp',   label: 'Wall graphics' },
+  { src: '/portfolio/install-23.webp',   label: 'Bar graphics',           span: 'tall' },
+  { src: '/portfolio/install-17.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-26.webp',   label: 'Banners' },
+  { src: '/portfolio/install-27.webp',   label: 'Hanging fabric banners' },
+  { src: '/portfolio/install-34.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-38.webp',   label: 'Vehicle wrap' },
+  { src: '/portfolio/install-36.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-07.webp',   label: 'Storefront signage' },
+  { src: '/portfolio/install-01.webp',   label: 'Panels & promotional' }
+];
 
-// ═══════════════════════════════════════════════════════════════
-//   PAGE
-// ═══════════════════════════════════════════════════════════════
+const SERVICES = [
+  { num: '01', icon: Square,     title: 'Shopfront & Building Signs', body: 'ACM panels, fascias and storefront signage. Custom digital print on aluminium composite — engineered for kerb appeal that holds up under sun and weather.' },
+  { num: '02', icon: Lightbulb,  title: 'Illuminated Signs',         body: 'Lightboxes, channel letters and halo-lit cabinets. Internally LED-lit so your sign reads as clearly at midnight as it does at noon.' },
+  { num: '03', icon: Car,        title: 'Vehicle Wraps & Decals',    body: 'Door logos, panel decals, full wraps. Vans, trucks, fleet — turn the asset you already own into a mobile billboard.' },
+  { num: '04', icon: Flag,       title: 'Banners, Flags & A-Frames', body: 'Heavy-duty PVC banners, feather flags and footpath A-frames. Quick-turn marketing for events, sales and seasonal campaigns.' },
+  { num: '05', icon: Eye,        title: 'Windows & Wall Graphics',   body: 'Vinyl window graphics, frosted privacy film, large-format wall murals. Brand presence and privacy in equal measure.' },
+  { num: '06', icon: Navigation, title: 'Pylons & Wayfinding',       body: 'Free-standing roadside pylons and compact directional signs. Premium road-facing signage for centres, car parks and campus navigation.' }
+];
+
+const PILLARS = [
+  { key: 'Materials', body: 'ACM, acrylic, vinyl, fabric, LEDs — only what we trust on a real install.' },
+  { key: 'Install',   body: 'Licensed and insured. Heritage zones, council permits, lift hire — handled.' },
+  { key: 'Design',    body: 'Bring your own artwork or let us lay it out — bring it from idea to wall.' },
+  { key: 'Aftercare', body: 'Sign needs work? We come back. We stand behind every install.' }
+];
+
+const MATERIALS = [
+  { name: 'AVERY',           detail: 'Cast vinyl' },
+  { name: '3M',              detail: 'Wraps · Decals' },
+  { name: 'ARLON',           detail: 'Print media' },
+  { name: 'ACM + Acrylic',   detail: 'Panels · Letters' },
+  { name: 'LED',             detail: 'Halo · Channel' },
+  { name: 'UV-stable inks',  detail: 'Australian outdoor rated' }
+];
+
+// All design CSS — injected once on mount. Keeps the React component
+// focused on structure while the visual identity lives in one block.
+const HOME_CSS = `
+  :root {
+    --navy: #012659;
+    --navy-deep: #08152e;
+    --navy-card: rgba(8, 21, 46, 0.95);
+    --navy-raise: rgba(15, 32, 70, 0.7);
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.15);
+    --amber: #f59a10;
+    --orange: #f0601f;
+    --yellow: #fad905;
+    --text: #f8fafc;
+    --muted: #cbd5e1;
+    --dim: #94a3b8;
+    --faint: #64748b;
+    --grad: linear-gradient(135deg, #f59a10, #f0601f, #fad905);
+    --bg-1: rgba(245,154,16,0.10);
+    --bg-2: rgba(240,96,31,0.08);
+    --bg-base-1: #08152e;
+    --bg-base-2: #012659;
+    --grain-opacity: 0.06;
+    --grain-blend: overlay;
+    --header-bg: rgba(8, 21, 46, 0.78);
+    --header-bg-scrolled: rgba(8, 21, 46, 0.92);
+    --map-filter: grayscale(0.35) contrast(1.05);
+    --shadow-card: 0 18px 50px rgba(0,0,0,0.45);
+  }
+  [data-theme="light"] {
+    --navy: #08152e;
+    --navy-deep: #ffffff;
+    --navy-card: rgba(255, 255, 255, 0.96);
+    --navy-raise: rgba(255, 255, 255, 0.85);
+    --line: rgba(8, 21, 46, 0.08);
+    --line-strong: rgba(8, 21, 46, 0.16);
+    --text: #0c1e44;
+    --muted: #475569;
+    --dim: #64748b;
+    --faint: #94a3b8;
+    --bg-1: rgba(245,154,16,0.16);
+    --bg-2: rgba(240,96,31,0.10);
+    --bg-base-1: #faf7f2;
+    --bg-base-2: #f1ece2;
+    --grain-opacity: 0.05;
+    --grain-blend: multiply;
+    --header-bg: rgba(255, 255, 255, 0.78);
+    --header-bg-scrolled: rgba(255, 255, 255, 0.94);
+    --map-filter: contrast(1.02) saturate(0.95);
+    --shadow-card: 0 18px 50px rgba(8, 21, 46, 0.18);
+  }
+  .strike-page *, .strike-page *::before, .strike-page *::after { box-sizing: border-box; }
+  .strike-page {
+    font-family: 'Inter Tight', sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+    color: var(--text);
+    background:
+      radial-gradient(ellipse at top left, var(--bg-1), transparent 60%),
+      radial-gradient(ellipse at bottom right, var(--bg-2), transparent 60%),
+      linear-gradient(180deg, var(--bg-base-1) 0%, var(--bg-base-2) 100%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    transition: color .3s, background-color .3s;
+    min-height: 100vh;
+  }
+  html { scroll-behavior: smooth; }
+  ::selection { background: var(--amber); color: #08152e; }
+  .strike-page a { color: inherit; }
+
+  /* Custom cursor */
+  .cursor-ring, .cursor-dot {
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9999;
+    opacity: 0;
+    transition: opacity .25s ease, width .25s ease, height .25s ease, margin .25s ease, background-color .2s ease;
+    will-change: transform;
+    mix-blend-mode: screen;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    margin: -18px 0 0 -18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--amber);
+    box-shadow: 0 0 12px rgba(245,154,16,0.35), inset 0 0 6px rgba(245,154,16,0.18);
+  }
+  .cursor-dot {
+    width: 6px; height: 6px;
+    margin: -3px 0 0 -3px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 10px rgba(245,154,16,0.9);
+  }
+  .cursor-ring.on, .cursor-dot.on { opacity: 1; }
+  .cursor-ring.boost { width: 60px; height: 60px; margin: -30px 0 0 -30px; border-color: var(--yellow); }
+  .cursor-dot.boost { width: 10px; height: 10px; margin: -5px 0 0 -5px; background: var(--yellow); }
+  [data-theme="light"] .cursor-ring, [data-theme="light"] .cursor-dot { mix-blend-mode: normal; }
+  @media (hover: none), (pointer: coarse) { .cursor-ring, .cursor-dot { display: none; } }
+
+  /* Grain overlay */
+  .grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 1;
+    opacity: var(--grain-opacity);
+    mix-blend-mode: var(--grain-blend);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.65'/></svg>");
+  }
+
+  /* Section numerals */
+  .sect-num {
+    position: absolute;
+    top: 16px; right: 28px;
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 900; font-style: italic;
+    font-size: clamp(80px, 14vw, 200px);
+    line-height: 1;
+    padding-right: 0.08em;
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(245,154,16,0.18);
+    letter-spacing: 0.02em;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+  }
+
+  /* Card hover spotlight */
+  .pf, .service { transform-style: preserve-3d; }
+  .pf::before, .service::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle 180px at var(--mx, 50%) var(--my, 50%), rgba(245,154,16,0.22), transparent 60%);
+    opacity: 0; transition: opacity .3s;
+    pointer-events: none; z-index: 1;
+  }
+  .pf:hover::before, .service:hover::before { opacity: 1; }
+  .pf .tag, .service > * { position: relative; z-index: 2; }
+
+  .anton { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-style: italic; letter-spacing: -0.01em; }
+  .bebas { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; }
+  .mono  { font-family: 'JetBrains Mono', monospace; }
+  .serif-i { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
+  .grad-text {
+    background: var(--grad);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    padding: 0.12em 0.18em 0.14em 0.04em;
+    margin: -0.12em 0 -0.14em -0.04em;
+    overflow: visible;
+  }
+
+  /* Header */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    background: var(--header-bg);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    transition: background-color .3s, border-color .3s;
+  }
+  .header-inner {
+    max-width: 1280px; margin: 0 auto;
+    padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+  .brand-mark {
+    height: 64px; width: auto; display: block; object-fit: contain;
+    filter: drop-shadow(0 4px 16px rgba(245,154,16,0.4));
+  }
+  .nav-links { display: flex; align-items: center; gap: 4px; }
+  .nav-link {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--muted); text-decoration: none;
+    padding: 9px 14px;
+    transition: color .2s;
+    background: none; border: none; cursor: pointer;
+  }
+  .nav-link:hover { color: var(--amber); }
+  .cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 20px;
+    background: var(--grad);
+    color: var(--navy);
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 800; font-style: italic;
+    letter-spacing: 0.02em; text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 12px;
+    font-size: 14px;
+    border: none; cursor: pointer;
+    position: relative; overflow: hidden;
+    transition: transform .2s;
+  }
+  .cta:hover { transform: translateY(-2px); }
+  .cta::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%);
+    transform: translateX(-100%);
+  }
+  .cta:hover::before { animation: gloss .9s ease-out forwards; }
+  @keyframes gloss { to { transform: translateX(200%); } }
+
+  .theme-toggle {
+    width: 38px; height: 38px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color .2s, color .2s, transform .2s;
+    margin-left: 6px;
+  }
+  .theme-toggle:hover { border-color: var(--amber); color: var(--amber); transform: translateY(-1px); }
+
+  /* Hero */
+  .hero { position: relative; padding: 140px 28px 80px; text-align: center; overflow: hidden; }
+  .hero-grid {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      linear-gradient(rgba(245,154,16,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,154,16,0.07) 1px, transparent 1px);
+    background-size: 64px 64px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black, transparent 75%);
+            mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black, transparent 75%);
+    animation: shimmer 6s ease-in-out infinite;
+    transform: translate3d(var(--gridX, 0px), var(--gridY, 0px), 0);
+    transition: transform 0.6s cubic-bezier(.2,.7,.3,1);
+  }
+  .hero-bolt {
+    position: absolute; top: 50%; left: 50%;
+    width: clamp(420px, 55vw, 720px); aspect-ratio: 3 / 2;
+    transform: translate3d(calc(-50% + var(--bx, 0px)), calc(-50% + var(--by, 0px)), 0);
+    background-image: url('/logo.webp');
+    background-repeat: no-repeat; background-position: center center; background-size: contain;
+    opacity: 0.05; pointer-events: none;
+    filter: blur(0.5px);
+    transition: transform 0.8s cubic-bezier(.2,.7,.3,1), opacity 0.6s;
+    z-index: 0;
+  }
+  .hero h1, .hero p.lede, .eyebrow, .hero-actions, .marquee-section { position: relative; z-index: 1; }
+  @keyframes shimmer { 0%,100% { opacity: .35; } 50% { opacity: .85; } }
+  .orb { position: absolute; pointer-events: none; border-radius: 50%; filter: blur(60px); }
+  .orb-a { top: 6%; left: -8%; width: 55vw; height: 55vw; background: radial-gradient(circle, rgba(240,96,31,0.38), transparent 65%); animation: orbA 22s ease-in-out infinite; }
+  .orb-b { top: -12%; right: -10%; width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(245,154,16,0.34), transparent 65%); animation: orbB 28s ease-in-out infinite -4s; }
+  .orb-c { bottom: -15%; left: 25%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(250,217,5,0.24), transparent 65%); animation: orbC 18s ease-in-out infinite -7s; }
+  @keyframes orbA { 0%,100%{transform:translate3d(0,0,0) scale(1)} 33%{transform:translate3d(8%,-6%,0) scale(1.08)} 66%{transform:translate3d(-6%,8%,0) scale(.94)} }
+  @keyframes orbB { 0%,100%{transform:translate3d(0,0,0) scale(1)} 50%{transform:translate3d(-10%,10%,0) scale(1.12)} }
+  @keyframes orbC { 0%,100%{transform:translate3d(0,0,0) scale(1)} 40%{transform:translate3d(7%,-10%,0) scale(1.06)} 80%{transform:translate3d(-5%,5%,0) scale(.96)} }
+
+  .eyebrow { display: inline-flex; align-items: center; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; justify-content: center; }
+  .eyebrow .line { height: 1px; width: 60px; background: var(--grad); }
+  .eyebrow .label { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3em; font-weight: 700; color: var(--amber); }
+  .hero h1 {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 900; font-style: italic;
+    letter-spacing: -0.01em;
+    font-size: clamp(3rem, 9vw, 7rem);
+    line-height: 1.02;
+    padding: 0.06em 0.04em 0.04em 0;
+    margin: 0 0 24px;
+    position: relative;
+  }
+  .glitch {
+    display: inline-block;
+    background: var(--grad);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    padding: 0.12em 0.18em 0.14em 0.04em;
+    margin: -0.12em 0 -0.14em -0.04em;
+    overflow: visible;
+    animation: glitch 8s steps(1) infinite;
+  }
+  @keyframes glitch {
+    0%, 92%, 100% { transform: translate(0,0); text-shadow: none; }
+    92.6% { transform: translate(-2px,0); text-shadow: 2px 0 rgba(0,200,255,0.55), -2px 0 rgba(240,96,31,0.55); }
+    93.2% { transform: translate(2px,1px); text-shadow: -2px 0 rgba(0,200,255,0.55), 2px 0 rgba(240,96,31,0.55); }
+    93.8% { transform: translate(-1px,-1px); text-shadow: 1px 0 rgba(245,154,16,0.7); }
+    94.4% { transform: translate(0,0); text-shadow: none; }
+    95.0% { transform: translate(3px,0); text-shadow: -3px 0 rgba(0,200,255,0.7), 3px 0 rgba(240,96,31,0.7); }
+    95.6% { transform: translate(-1px,0); text-shadow: 1px 0 rgba(245,154,16,0.5); }
+    96.2% { transform: translate(0,0); text-shadow: none; }
+  }
+  .hero p.lede { max-width: 640px; margin: 0 auto; font-size: clamp(15px, 2vw, 19px); line-height: 1.6; color: var(--muted); }
+  .hero-actions { display: inline-flex; gap: 14px; margin-top: 36px; flex-wrap: wrap; justify-content: center; }
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 22px;
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace; letter-spacing: 0.18em; text-transform: uppercase;
+    font-weight: 600; font-size: 12px; text-decoration: none;
+    transition: border-color .2s, color .2s;
+    cursor: pointer;
+  }
+  .btn-secondary:hover { border-color: var(--amber); color: var(--amber); }
+
+  /* Marquee */
+  .marquee-section { position: relative; margin-top: 56px; padding-bottom: 24px; }
+  .marquee-mask {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, black 4%, black 96%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, black 4%, black 96%, transparent 100%);
+  }
+  .marquee-track { display: flex; gap: 14px; width: max-content; animation: scroll 110s linear infinite; }
+  .marquee-track:hover { animation-play-state: paused; }
+  @keyframes scroll { to { transform: translate3d(-50%, 0, 0); } }
+  .show-card {
+    flex-shrink: 0;
+    width: clamp(220px, 26vw, 320px);
+    aspect-ratio: 4/3;
+    background: var(--navy-deep);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    position: relative; overflow: hidden;
+    transition: transform .45s cubic-bezier(.2,.7,.3,1), border-color .45s, box-shadow .45s;
+    cursor: zoom-in;
+  }
+  .show-card:hover { transform: translateY(-6px); border-color: var(--amber); box-shadow: 0 18px 50px rgba(0,0,0,0.45), 0 0 0 1px var(--amber); }
+  .show-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: saturate(0.92) brightness(0.92); transition: transform 1.2s cubic-bezier(.2,.7,.3,1), filter .6s; }
+  .show-card:hover img { transform: scale(1.06); filter: saturate(1.05) brightness(1); }
+  .show-label {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 14px 16px;
+    background: linear-gradient(to top, rgba(8,21,46,0.95), rgba(8,21,46,0.65) 60%, transparent);
+    display: flex; align-items: center; gap: 8px;
+    transform: translateY(35%); opacity: 0.8;
+    transition: transform .45s cubic-bezier(.2,.7,.3,1), opacity .45s;
+  }
+  .show-card:hover .show-label { transform: translateY(0); opacity: 1; }
+  .show-label .tick { width: 16px; height: 1px; background: var(--amber); }
+  .show-label span:last-child { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.22em; font-weight: 700; }
+
+  /* Sections */
+  .section { max-width: 1280px; margin: 0 auto; padding: 80px 28px; position: relative; }
+  .sect-header { text-align: center; }
+  .sect-eyebrow { display: inline-flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .sect-eyebrow .line { height: 1px; width: 50px; background: var(--grad); }
+  .sect-eyebrow .label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--amber); font-weight: 700; }
+  .sect-title { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-style: italic; font-size: clamp(2.2rem, 6.5vw, 4rem); letter-spacing: -0.005em; line-height: 1.05; padding: 0.04em 0.06em 0.04em 0; margin: 0; text-transform: uppercase; }
+  .sect-intro { max-width: 640px; margin: 16px auto 0; text-align: center; color: var(--muted); font-size: clamp(14px, 1.6vw, 17px); line-height: 1.6; }
+
+  /* Pillars */
+  .pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 48px; }
+  .pillar {
+    background: var(--navy-raise); border: 1px solid var(--line);
+    border-top: 2px solid var(--amber); border-radius: 12px;
+    padding: 24px;
+    transition: transform .3s, border-color .3s;
+  }
+  .pillar:hover { transform: translateY(-4px); }
+  .pillar .key { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; font-weight: 700; }
+  .pillar .body { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* Services */
+  .services { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 48px; }
+  .service {
+    background: var(--navy-raise); border: 1px solid var(--line-strong);
+    border-radius: 14px; padding: 28px 24px;
+    position: relative; overflow: hidden;
+    transition: transform .3s, border-color .3s, box-shadow .3s;
+  }
+  .service-corner { position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(225deg, rgba(245,154,16,0.18), transparent 60%); pointer-events: none; }
+  .service:hover { transform: translateY(-4px); border-color: var(--amber); box-shadow: 0 16px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(245,154,16,0.4); }
+  .service .num { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); margin-bottom: 14px; }
+  .service .icon-box {
+    width: 56px; height: 56px;
+    background: var(--navy-deep); border: 1px solid rgba(245,154,16,0.4);
+    color: var(--amber);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px;
+  }
+  .service h3 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: clamp(24px, 3vw, 32px); letter-spacing: 0; line-height: 1.05; margin: 0 0 10px; text-transform: uppercase; }
+  .service p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+  /* Portfolio masonry */
+  .portfolio { margin-top: 48px; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 200px; gap: 12px; }
+  .pf {
+    position: relative; overflow: hidden;
+    background: var(--navy-deep);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    transition: transform .3s, box-shadow .3s, border-color .3s;
+    cursor: zoom-in;
+  }
+  .pf:hover { transform: scale(0.985); border-color: var(--amber); box-shadow: 0 16px 40px rgba(0,0,0,.4); }
+  .pf img { width: 100%; height: 100%; object-fit: cover; transition: transform 1s cubic-bezier(.2,.7,.3,1); display: block; }
+  .pf:hover img { transform: scale(1.06); }
+  .pf-shade { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, rgba(8,21,46,0.85) 100%); pointer-events: none; }
+  .pf .tag {
+    position: absolute; left: 16px; bottom: 16px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em;
+    text-transform: uppercase; font-weight: 700; color: var(--text);
+    z-index: 2; display: flex; align-items: center; gap: 8px;
+  }
+  .pf .tag .dot { width: 14px; height: 1px; background: var(--amber); }
+  .pf.tall { grid-row: span 2; }
+  .pf.wide { grid-column: span 2; }
+  .pf.big  { grid-column: span 2; grid-row: span 2; }
+
+  /* About + materials */
+  .about-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: center; margin-top: 48px; }
+  .about h2 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-style: italic; font-size: clamp(2rem, 5.5vw, 3.5rem); letter-spacing: -0.005em; line-height: 1.05; padding: 0.04em 0.06em 0.04em 0; margin: 0 0 20px; text-transform: uppercase; }
+  .about p { color: var(--muted); font-size: 16px; line-height: 1.7; margin: 0 0 16px; }
+  .materials {
+    background: var(--navy-deep); border: 1px solid var(--line-strong);
+    border-top: 2px solid var(--amber); border-radius: 14px;
+    padding: 32px;
+  }
+  .materials .head { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--amber); margin-bottom: 24px; font-weight: 700; }
+  .materials .row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .materials .row:last-child { border-bottom: none; }
+  .materials .row strong { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0; color: var(--text); }
+  .materials .row span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; font-family: 'JetBrains Mono', monospace; }
+
+  /* Contact */
+  .contact-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 40px; }
+  .ct {
+    background: var(--navy-raise); border: 1px solid var(--line-strong);
+    border-radius: 12px; padding: 22px;
+    text-decoration: none; color: var(--text);
+    display: block; transition: transform .25s, border-color .25s;
+  }
+  .ct:hover { transform: translateY(-3px); border-color: var(--amber); }
+  .ct .label { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); }
+  .ct .label svg { color: var(--amber); }
+  .ct .value { font-family: 'Inter Tight', sans-serif; font-weight: 600; font-size: 16px; line-height: 1.3; letter-spacing: -0.01em; }
+
+  .map-wrap {
+    margin-top: 28px; position: relative; overflow: hidden;
+    background: var(--navy-deep); border: 1px solid var(--line-strong);
+    border-top: 2px solid var(--amber); border-radius: 14px;
+  }
+  .map-wrap iframe {
+    display: block; width: 100%;
+    height: clamp(320px, 45vw, 460px);
+    border: 0;
+    filter: var(--map-filter);
+  }
+  .map-overlay {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 16px 22px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: linear-gradient(to top, rgba(8,21,46,0.96), rgba(8,21,46,0.5) 80%, transparent);
+    pointer-events: none;
+  }
+  .map-overlay .addr { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; color: #f8fafc; }
+  .map-overlay .addr svg { color: var(--amber); }
+  .map-overlay a {
+    pointer-events: auto;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    background: var(--grad);
+    color: var(--navy);
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700;
+    text-decoration: none;
+    border-radius: 12px 12px 12px 2px;
+    transition: transform .2s;
+  }
+  .map-overlay a:hover { transform: translateY(-2px); }
+
+  .reviews-strip {
+    margin-top: 28px;
+    background: var(--navy-raise); border: 1px solid var(--line-strong);
+    border-radius: 14px; padding: 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap;
+  }
+  .stars { display: inline-flex; gap: 4px; color: var(--amber); font-size: 22px; }
+  .reviews-strip .copy { flex: 1; min-width: 240px; }
+  .reviews-strip .copy .title { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: 28px; text-transform: uppercase; }
+  .reviews-strip .copy .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  .big-cta {
+    margin-top: 48px;
+    position: relative; overflow: hidden;
+    background: var(--navy-deep);
+    border: 1px solid rgba(245,154,16,0.4);
+    border-left: 4px solid var(--amber);
+    padding: 48px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 32px;
+    border-radius: 14px;
+  }
+  .big-cta-glow {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 500px 200px at 80% 50%, rgba(245,154,16,0.18), transparent 70%);
+    pointer-events: none;
+    animation: pulseGlow 3.5s ease-in-out infinite;
+  }
+  @keyframes pulseGlow { 0%,100% { opacity: .7 } 50% { opacity: 1 } }
+  .big-cta-copy { flex: 1; min-width: 260px; position: relative; z-index: 1; }
+  .big-cta-copy .eb { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; }
+  .big-cta-copy h3 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-style: italic; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1.05; padding: 0.04em 0.06em 0.04em 0; margin: 0 0 14px; text-transform: uppercase; }
+  .big-cta-copy p { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 0; }
+
+  .footer {
+    max-width: 1280px; margin: 24px auto 0; padding: 32px 28px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px; flex-wrap: wrap;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--faint);
+  }
+  .footer a { color: var(--faint); text-decoration: none; transition: color .2s; }
+  .footer a:hover { color: var(--amber); }
+  .footer .right { display: flex; gap: 24px; align-items: center; }
+
+  /* Reveal */
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity .8s cubic-bezier(.2,.7,.3,1), transform .8s cubic-bezier(.2,.7,.3,1); }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  /* Lightbox */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 9998;
+    background: rgba(8, 21, 46, 0.92);
+    backdrop-filter: blur(14px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px;
+    opacity: 1;
+  }
+  .lightbox-img {
+    max-width: 92vw; max-height: 86vh; object-fit: contain;
+    border: 1px solid rgba(245,154,16,0.4);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    transform: scale(1);
+    cursor: zoom-out;
+  }
+  .lightbox-caption {
+    position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.22em; font-weight: 700;
+    color: #f8fafc;
+    background: rgba(8, 21, 46, 0.7);
+    border: 1px solid rgba(245,154,16,0.35);
+    padding: 8px 16px;
+    display: flex; align-items: center; gap: 10px;
+    border-radius: 10px;
+  }
+  .lightbox-caption .tick { width: 14px; height: 1px; background: var(--amber); }
+  .lightbox-btn {
+    position: absolute;
+    background: transparent; color: #f8fafc;
+    border: 1px solid rgba(255,255,255,0.25);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color .2s, color .2s, background .2s, transform .2s;
+    border-radius: 10px;
+  }
+  .lightbox-btn:hover { border-color: var(--amber); color: var(--amber); background: rgba(245,154,16,0.08); }
+  .lightbox-close { top: 24px; right: 24px; width: 44px; height: 44px; }
+  .lightbox-close:hover { transform: rotate(90deg); }
+  .lightbox-nav { top: 50%; transform: translateY(-50%); width: 52px; height: 52px; }
+  .lightbox-nav.prev { left: 24px; }
+  .lightbox-nav.next { right: 24px; }
+  .lightbox-counter {
+    position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: #f8fafc; opacity: 0.7; letter-spacing: 0.18em;
+  }
+
+  @media (max-width: 1100px) {
+    .pillars { grid-template-columns: repeat(2, 1fr); }
+    .services { grid-template-columns: repeat(2, 1fr); }
+    .portfolio { grid-template-columns: repeat(3, 1fr); }
+    .about-grid { grid-template-columns: 1fr; gap: 32px; }
+    .contact-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 720px) {
+    .nav-links .nav-link { display: none; }
+    .header-inner { padding: 10px 18px; }
+    .section { padding: 56px 18px; }
+    .hero { padding: 120px 18px 56px; }
+    .services { grid-template-columns: 1fr; }
+    .portfolio { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 160px; }
+    .pf.big { grid-column: span 2; grid-row: span 2; }
+    .pf.wide { grid-column: span 2; }
+    .pillars { grid-template-columns: 1fr; }
+    .contact-grid { grid-template-columns: 1fr; }
+    .big-cta { padding: 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track, .orb, .hero-grid, .glitch, .big-cta-glow { animation: none !important; }
+  }
+`;
+
 export default function Home() {
-  // Load fonts + animations on mount. Mirrors the SignageQuote setup so the
-  // typography stays consistent between marketing and tool.
+  const [theme, setTheme] = useState('dark');
+  const [lightbox, setLightbox] = useState(null); // { items: [...], idx: number } | null
+  const ringRef = useRef(null);
+  const dotRef = useRef(null);
+  const heroRef = useRef(null);
+  const heroBoltRef = useRef(null);
+  const heroGridRef = useRef(null);
+  const headerRef = useRef(null);
+
+  // ── Inject fonts + styles + theme on mount ──
   useEffect(() => {
     const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap';
+    link.href = 'https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Inter+Tight:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
 
     const style = document.createElement('style');
     style.id = 'strikeprint-home-styles';
-    style.textContent = `
-      @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-      @keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
-      @keyframes slideInL { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-      @keyframes pulseGlow { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
-      @keyframes glossySweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
-      @keyframes serviceProgress { 0% { width: 0%; } 100% { width: 100%; } }
-
-      /* Hero ambient backdrop — slow drifting orbs + faint grid shimmer */
-      @keyframes orbFloatA {
-        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-        33%      { transform: translate3d(8%, -6%, 0) scale(1.08); }
-        66%      { transform: translate3d(-6%, 8%, 0) scale(0.94); }
-      }
-      @keyframes orbFloatB {
-        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-        50%      { transform: translate3d(-10%, 10%, 0) scale(1.12); }
-      }
-      @keyframes orbFloatC {
-        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-        40%      { transform: translate3d(7%, -10%, 0) scale(1.06); }
-        80%      { transform: translate3d(-5%, 5%, 0) scale(0.96); }
-      }
-      @keyframes gridShimmer {
-        0%, 100% { opacity: 0.35; }
-        50%      { opacity: 0.85; }
-      }
-      .hero-orb { will-change: transform; }
-      .hero-orb-a { animation: orbFloatA 22s ease-in-out infinite; }
-      .hero-orb-b { animation: orbFloatB 28s ease-in-out infinite; animation-delay: -4s; }
-      .hero-orb-c { animation: orbFloatC 18s ease-in-out infinite; animation-delay: -7s; }
-      .hero-grid  { animation: gridShimmer 6s ease-in-out infinite; }
-
-      /* STRIKING SIGNAGE glitch — clean for ~95% of an 8s cycle, then a
-         short burst of horizontal jitter + RGB-split text-shadow. steps(1)
-         keeps each frame snap-rendered (no smooth tween) for a digital feel. */
-      @keyframes textGlitch {
-        0%, 92%, 100% {
-          transform: translate(0, 0);
-          text-shadow: none;
-        }
-        92.6% { transform: translate(-2px, 0); text-shadow: 2px 0 rgba(0, 200, 255, 0.55), -2px 0 rgba(240, 96, 31, 0.55); }
-        93.2% { transform: translate(2px, 1px); text-shadow: -2px 0 rgba(0, 200, 255, 0.55), 2px 0 rgba(240, 96, 31, 0.55); }
-        93.8% { transform: translate(-1px, -1px); text-shadow: 1px 0 rgba(245, 154, 16, 0.7); }
-        94.4% { transform: translate(0, 0); text-shadow: none; }
-        95.0% { transform: translate(3px, 0); text-shadow: -3px 0 rgba(0, 200, 255, 0.7), 3px 0 rgba(240, 96, 31, 0.7); }
-        95.6% { transform: translate(-1px, 0); text-shadow: 1px 0 rgba(245, 154, 16, 0.5); }
-        96.2% { transform: translate(0, 0); text-shadow: none; }
-      }
-      .glitch-text {
-        animation: textGlitch 8s steps(1) infinite;
-        will-change: transform, text-shadow;
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .hero-orb-a, .hero-orb-b, .hero-orb-c, .hero-grid, .glitch-text { animation: none; }
-      }
-      .anim-fadeup { animation: fadeInUp 0.7s ease-out both; }
-      .anim-fadein { animation: fadeIn 1.2s ease-out both; }
-      .anim-slidel { animation: slideInL 0.8s ease-out both; }
-      .anim-pulse  { animation: pulseGlow 3.5s ease-in-out infinite; }
-      .stagger-1 { animation-delay: 80ms; }
-      .stagger-2 { animation-delay: 160ms; }
-      .stagger-3 { animation-delay: 240ms; }
-      .stagger-4 { animation-delay: 320ms; }
-      .stagger-5 { animation-delay: 400ms; }
-      .stagger-6 { animation-delay: 480ms; }
-
-      .lift { transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out; }
-      .lift:hover { transform: translateY(-2px); }
-
-      .glossy-btn { position: relative; overflow: hidden; }
-      .glossy-btn::before {
-        content: ''; position: absolute; inset: 0;
-        background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
-        transform: translateX(-100%);
-      }
-      .glossy-btn:hover::before { animation: glossySweep 0.9s ease-out forwards; }
-
-      /* Showcase marquee — continuous horizontal scroll, hover-pause + lift */
-      @keyframes marqueeScroll {
-        0%   { transform: translate3d(0, 0, 0); }
-        100% { transform: translate3d(-50%, 0, 0); }
-      }
-      .showcase-track { animation: marqueeScroll 180s linear infinite; will-change: transform; }
-      .showcase-track:hover { animation-play-state: paused; }
-      .showcase-mask {
-        -webkit-mask-image: linear-gradient(to right, transparent 0, black 4%, black 96%, transparent 100%);
-                mask-image: linear-gradient(to right, transparent 0, black 4%, black 96%, transparent 100%);
-      }
-      .showcase-card {
-        transition: transform 0.45s cubic-bezier(.2,.7,.3,1),
-                    border-color 0.45s ease,
-                    box-shadow 0.45s ease;
-      }
-      .showcase-card:hover {
-        transform: translateY(-6px);
-        border-color: ${BRAND.boltAmber};
-        box-shadow: 0 18px 50px rgba(0,0,0,0.45), 0 0 0 1px ${BRAND.boltAmber};
-        z-index: 1;
-      }
-      .showcase-img {
-        transition: transform 1.2s cubic-bezier(.2,.7,.3,1), filter 0.6s ease;
-        filter: saturate(0.92) brightness(0.92);
-      }
-      .showcase-card:hover .showcase-img {
-        transform: scale(1.06);
-        filter: saturate(1.05) brightness(1);
-      }
-      .showcase-label {
-        transform: translateY(35%);
-        opacity: 0.8;
-        transition: transform 0.45s cubic-bezier(.2,.7,.3,1), opacity 0.45s ease;
-      }
-      .showcase-card:hover .showcase-label {
-        transform: translateY(0);
-        opacity: 1;
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .showcase-track { animation: none; }
-        .showcase-img, .showcase-label, .showcase-card { transition: none; }
-      }
-
-      html { scroll-behavior: smooth; }
-    `;
+    style.textContent = HOME_CSS;
     document.head.appendChild(style);
+
+    // Initial theme: stored choice → system preference → dark
+    const stored = (typeof localStorage !== 'undefined' && localStorage.getItem('strike-theme')) || null;
+    const prefersLight = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
+    const initial = stored || (prefersLight ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', initial);
+    setTheme(initial);
 
     return () => {
       try { document.head.removeChild(link); } catch {}
@@ -211,620 +698,467 @@ export default function Home() {
     };
   }, []);
 
-  return (
-    <div style={{
-      fontFamily: "'Outfit', sans-serif",
-      minHeight: '100vh',
-      color: BRAND.textPri,
-      background: `radial-gradient(ellipse at top left, rgba(245,154,16,0.10), transparent 60%),
-                   radial-gradient(ellipse at bottom right, rgba(240,96,31,0.08), transparent 60%),
-                   linear-gradient(180deg, ${BRAND.navyDeep} 0%, ${BRAND.navy} 100%)`
-    }}>
-      <Header />
-      <Hero />
-      <Services />
-      <Contact />
-      <Footer />
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-//   HEADER
-// ═══════════════════════════════════════════════════════════════
-function Header() {
-  return (
-    <header className="sticky top-0 z-50 backdrop-blur"
-      style={{
-        background: 'rgba(8, 21, 46, 0.78)',
-        borderBottom: `1px solid ${BRAND.navyLine}`
-      }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-        <Link to="/" className="flex items-center gap-3">
-          <img src={LOGO_URL} alt="Strike Print" className="h-16 sm:h-24 w-auto" />
-        </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
-          <a href="#services" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
-            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
-            Services
-          </a>
-          <Link to="/gallery" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
-            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
-            Gallery
-          </Link>
-          <Link to="/about" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
-            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
-            About
-          </Link>
-          <a href="#contact" className="hidden md:inline-block px-3 py-2 text-[11px] uppercase tracking-[0.18em] hover:text-amber-400 transition-colors"
-            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textMuted }}>
-            Contact
-          </a>
-          <GetQuoteButton className="ml-1 glossy-btn" />
-          <MobileNavMenu />
-        </nav>
-      </div>
-    </header>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-//   HERO
-// ═══════════════════════════════════════════════════════════════
-function Hero() {
-  return (
-    <section className="relative overflow-hidden">
-      {/* Subtle grid pattern, masked to fade out at the edges */}
-      <div className="absolute inset-0 pointer-events-none hero-grid" aria-hidden style={{
-        background: `
-          linear-gradient(rgba(245,154,16,0.07) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(245,154,16,0.07) 1px, transparent 1px)
-        `,
-        backgroundSize: '64px 64px',
-        WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 35%, black, transparent 75%)',
-                maskImage: 'radial-gradient(ellipse 70% 60% at 50% 35%, black, transparent 75%)'
-      }} />
-
-      {/* Drifting glow orbs — 3 layered radial gradients on independent slow loops */}
-      <div className="absolute pointer-events-none hero-orb hero-orb-a" aria-hidden style={{
-        top: '6%', left: '-8%', width: '55vw', height: '55vw',
-        background: 'radial-gradient(circle at 50% 50%, rgba(240,96,31,0.38), rgba(240,96,31,0) 65%)',
-        filter: 'blur(50px)',
-        borderRadius: '50%'
-      }} />
-      <div className="absolute pointer-events-none hero-orb hero-orb-b" aria-hidden style={{
-        top: '-12%', right: '-10%', width: '60vw', height: '60vw',
-        background: 'radial-gradient(circle at 50% 50%, rgba(245,154,16,0.34), rgba(245,154,16,0) 65%)',
-        filter: 'blur(60px)',
-        borderRadius: '50%'
-      }} />
-      <div className="absolute pointer-events-none hero-orb hero-orb-c" aria-hidden style={{
-        bottom: '-15%', left: '25%', width: '50vw', height: '50vw',
-        background: 'radial-gradient(circle at 50% 50%, rgba(250,217,5,0.24), rgba(250,217,5,0) 65%)',
-        filter: 'blur(60px)',
-        borderRadius: '50%'
-      }} />
-
-      {/* Existing soft centre glow on top — gives the headline a halo */}
-      <div className="absolute inset-0 pointer-events-none anim-pulse" aria-hidden style={{
-        background: `radial-gradient(ellipse 900px 380px at 50% 30%, rgba(245,154,16,0.22), transparent 70%)`,
-        filter: 'blur(40px)'
-      }} />
-
-      {/* Top: eyebrow + headline + sub-tagline */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-10 sm:pt-24 lg:pt-32 text-center">
-        {/* Eyebrow */}
-        <div className="flex items-center justify-center gap-3 mb-5 anim-fadein flex-wrap">
-          <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
-          <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.3em] font-bold"
-            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-            Sydney · Arndell Park · Established 20 years · Design · Print · Install
-          </span>
-          <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
-        </div>
-
-        {/* Headline */}
-        <h1 className="anim-fadeup leading-[0.92] mb-6"
-          style={{
-            fontFamily: 'Anton, sans-serif',
-            letterSpacing: '0.01em',
-            fontSize: 'clamp(2.75rem, 9vw, 6.5rem)'
-          }}>
-          STAND OUT WITH
-          <br />
-          <span className="glitch-text" style={{
-            background: BRAND.boltGrad,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            display: 'inline-block'
-          }}>STRIKING</span>{' '}
-          <span style={{ color: BRAND.textPri, display: 'inline-block' }}>SIGNAGE</span>
-        </h1>
-
-        {/* Sub-tagline */}
-        <p className="anim-fadeup stagger-1 max-w-2xl mx-auto text-base sm:text-lg lg:text-xl leading-relaxed"
-          style={{ color: BRAND.textMuted }}>
-          Custom signs, banners, decals, lightboxes, vehicle wraps, custom window
-          frosting, and more. Designed, manufactured and installed in Arndell Park,
-          Sydney — built to get noticed and built to last.
-        </p>
-      </div>
-
-      {/* Recent work showcase — sits between the sub-tagline and the CTAs,
-          full-bleed across the section so the marquee runs edge-to-edge. */}
-      <Showcase />
-
-      {/* Bottom spacer — keeps the marquee from sitting flush against the next section */}
-      <div className="pb-10 sm:pb-24 lg:pb-32" />
-    </section>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-//   SERVICES
-// ═══════════════════════════════════════════════════════════════
-function Services() {
-  const [quoteOpen, setQuoteOpen] = useState(false);
-  return (
-    <section id="services" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-      <SectionHeader title="What We Make" />
-      <p className="mt-4 max-w-2xl mx-auto text-center text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-        We use premium materials on every job — <strong style={{ color: BRAND.textPri }}>Avery</strong>,{' '}
-        <strong style={{ color: BRAND.textPri }}>3M</strong> and{' '}
-        <strong style={{ color: BRAND.textPri }}>Arlon</strong> cast vinyl films, ACM, acrylic and aluminium,
-        finished with UV-stable inks rated for years of Australian sun. Every sign we hang is built to last.
-      </p>
-
-      <div className="mt-6 flex justify-center">
-        <Link to="/gallery"
-          className="lift inline-flex items-center justify-center gap-2 px-6 py-3 text-sm uppercase tracking-[0.18em]"
-          style={{
-            fontFamily: 'Anton, sans-serif',
-            background: 'transparent',
-            border: `1px solid ${BRAND.navyLineStrong}`,
-            color: BRAND.textPri
-          }}>
-          See What We Do
-        </Link>
-      </div>
-
-      <ServiceCarousel />
-
-
-      {/* Big CTA card under the services carousel */}
-      <div className="mt-10 sm:mt-12 relative overflow-hidden p-6 sm:p-10"
-        style={{
-          background: BRAND.navyDeep,
-          border: `1px solid ${BRAND.boltAmber}40`,
-          borderLeft: `4px solid ${BRAND.boltAmber}`
-        }}>
-        <div className="absolute inset-0 anim-pulse pointer-events-none" aria-hidden style={{
-          background: `radial-gradient(ellipse 500px 200px at 80% 50%, rgba(245,154,16,0.15), transparent 70%)`
-        }} />
-        <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
-          <div className="flex-1">
-            <div className="text-[10px] uppercase tracking-[0.25em] mb-2"
-              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-              Skip the back-and-forth
-            </div>
-            <div style={{ fontFamily: 'Anton, sans-serif', fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', letterSpacing: '0.02em', lineHeight: 1.05 }}>
-              Get a real quote. Right now.
-            </div>
-            <p className="mt-3 text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-              Upload a photo, drag the signs you want, send it through. We'll come back
-              with final pricing and a site-survey timeline.
-            </p>
-          </div>
-          <button onClick={() => setQuoteOpen(true)}
-            className="glossy-btn group inline-flex items-center gap-3 px-5 sm:px-6 py-4 sm:py-5 flex-shrink-0 cursor-pointer"
-            style={{
-              background: BRAND.boltGrad,
-              color: BRAND.navy,
-              fontFamily: 'Anton, sans-serif',
-              letterSpacing: '0.1em',
-              border: 'none'
-            }}>
-            <Send className="w-5 h-5" strokeWidth={2.5} />
-            <span className="text-base sm:text-xl">Start Quote</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </div>
-      </div>
-      {quoteOpen && <GetQuoteModal onClose={() => setQuoteOpen(false)} />}
-    </section>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-//   SERVICE CAROUSEL — single rotating card. Auto-cycles every ~5s,
-//   crossfades between entries, pauses on hover, dot navigation.
-// ═══════════════════════════════════════════════════════════════
-const SERVICE_CYCLE_MS = 5200;
-
-function ServiceCarousel() {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
-
+  // Persist theme changes + apply to root
   useEffect(() => {
-    if (paused) return;
-    const id = setInterval(() => {
-      setActiveIdx(i => (i + 1) % SERVICES.length);
-    }, SERVICE_CYCLE_MS);
-    return () => clearInterval(id);
-  }, [paused]);
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('strike-theme', theme); } catch {}
+  }, [theme]);
 
-  const goTo = (i) => setActiveIdx(((i % SERVICES.length) + SERVICES.length) % SERVICES.length);
+  // ── Custom cursor: ring 1:1, dot with spring physics ──
+  useEffect(() => {
+    if (window.matchMedia('(hover: none), (pointer: coarse)').matches) return;
+    const ring = ringRef.current;
+    const dot = dotRef.current;
+    if (!ring || !dot) return;
+
+    let tx = 0, ty = 0, dx = 0, dy = 0, vx = 0, vy = 0;
+    const STIFFNESS = 0.05;
+    const DAMPING = 0.86;
+    let raf = null;
+    let onScreen = false;
+
+    const tick = () => {
+      const ax = (tx - dx) * STIFFNESS;
+      const ay = (ty - dy) * STIFFNESS;
+      vx = (vx + ax) * DAMPING;
+      vy = (vy + ay) * DAMPING;
+      dx += vx; dy += vy;
+      ring.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+      dot.style.transform  = `translate3d(${dx}px, ${dy}px, 0)`;
+      raf = requestAnimationFrame(tick);
+    };
+
+    const onMove = (e) => {
+      tx = e.clientX; ty = e.clientY;
+      if (!onScreen) {
+        onScreen = true;
+        ring.classList.add('on'); dot.classList.add('on');
+        if (dx === 0 && dy === 0) { dx = tx; dy = ty; }
+      }
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    const onLeave = () => {
+      onScreen = false;
+      ring.classList.remove('on'); dot.classList.remove('on');
+    };
+    const onOver = (e) => {
+      const hit = e.target.closest('a, button, .pf, .show-card, .service, .ct, .pillar, .cta');
+      ring.classList.toggle('boost', !!hit);
+      dot.classList.toggle('boost', !!hit);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseleave', onLeave);
+    document.addEventListener('mouseover', onOver);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseleave', onLeave);
+      document.removeEventListener('mouseover', onOver);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // ── Hero parallax: drift grid + ghost bolt with cursor ──
+  useEffect(() => {
+    const hero = heroRef.current;
+    const grid = heroGridRef.current;
+    const bolt = heroBoltRef.current;
+    if (!hero) return;
+    const onMove = (e) => {
+      const r = hero.getBoundingClientRect();
+      const dx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+      const dy = ((e.clientY - r.top) / r.height - 0.5) * 2;
+      if (grid) {
+        grid.style.setProperty('--gridX', (dx * -14) + 'px');
+        grid.style.setProperty('--gridY', (dy * -14) + 'px');
+      }
+      if (bolt) {
+        bolt.style.setProperty('--bx', (dx * 24) + 'px');
+        bolt.style.setProperty('--by', (dy * 18) + 'px');
+      }
+    };
+    hero.addEventListener('mousemove', onMove);
+    return () => hero.removeEventListener('mousemove', onMove);
+  }, []);
+
+  // ── Tilt + shine on cards (.pf, .service) ──
+  useEffect(() => {
+    const cards = document.querySelectorAll('.pf, .service');
+    const handlers = [];
+    cards.forEach(card => {
+      const onMove = (e) => {
+        const r = card.getBoundingClientRect();
+        const px = ((e.clientX - r.left) / r.width) * 100;
+        const py = ((e.clientY - r.top) / r.height) * 100;
+        card.style.setProperty('--mx', px + '%');
+        card.style.setProperty('--my', py + '%');
+        const rx = ((py - 50) / 50) * -3;
+        const ry = ((px - 50) / 50) * 3;
+        card.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0)`;
+      };
+      const onLeave = () => { card.style.transform = ''; };
+      card.addEventListener('mousemove', onMove);
+      card.addEventListener('mouseleave', onLeave);
+      handlers.push([card, onMove, onLeave]);
+    });
+    return () => {
+      handlers.forEach(([c, m, l]) => {
+        c.removeEventListener('mousemove', m);
+        c.removeEventListener('mouseleave', l);
+      });
+    };
+  }, []);
+
+  // ── Header solidify on scroll ──
+  useEffect(() => {
+    const h = headerRef.current;
+    if (!h) return;
+    const onScroll = () => {
+      const styles = getComputedStyle(document.documentElement);
+      h.style.background = window.scrollY > 40
+        ? styles.getPropertyValue('--header-bg-scrolled')
+        : styles.getPropertyValue('--header-bg');
+      h.style.borderBottomColor = window.scrollY > 40
+        ? 'rgba(245,154,16,0.25)'
+        : styles.getPropertyValue('--line');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // ── Reveal on scroll ──
+  useEffect(() => {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  // ── Lightbox keyboard nav + body scroll lock ──
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape')          setLightbox(null);
+      else if (e.key === 'ArrowLeft')  setLightbox(lb => lb && { ...lb, idx: (lb.idx - 1 + lb.items.length) % lb.items.length });
+      else if (e.key === 'ArrowRight') setLightbox(lb => lb && { ...lb, idx: (lb.idx + 1) % lb.items.length });
+    };
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [lightbox]);
+
+  const openLightbox = useCallback((items, idx) => setLightbox({ items, idx }), []);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+  const nextLightbox = useCallback(() => setLightbox(lb => lb && { ...lb, idx: (lb.idx + 1) % lb.items.length }), []);
+  const prevLightbox = useCallback(() => setLightbox(lb => lb && { ...lb, idx: (lb.idx - 1 + lb.items.length) % lb.items.length }), []);
+
+  const year = new Date().getFullYear();
 
   return (
-    <div className="mt-8 sm:mt-10"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}>
-      <div className="relative overflow-hidden"
-        style={{
-          background: BRAND.navyRaise,
-          border: `1px solid ${BRAND.navyLineStrong}`,
-          backdropFilter: 'blur(8px)',
-          minHeight: 'clamp(260px, 36vw, 320px)'
-        }}>
-        {/* Top-right amber corner accent — same as the old card */}
-        <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none" aria-hidden style={{
-          background: `linear-gradient(225deg, ${BRAND.boltAmber}30, transparent 60%)`
-        }} />
+    <div className="strike-page">
+      <div className="grain" aria-hidden="true" />
+      <div ref={ringRef} className="cursor-ring" />
+      <div ref={dotRef} className="cursor-dot" />
 
-        {/* Bottom progress bar — fills over the cycle duration, resets on change */}
-        <div className="absolute left-0 right-0 bottom-0 h-[3px]" aria-hidden
-          style={{ background: 'rgba(255,255,255,0.05)' }}>
-          <div key={`bar-${activeIdx}-${paused ? 'p' : 'r'}`}
-            className="h-full"
-            style={{
-              background: BRAND.boltGrad,
-              animation: paused ? 'none' : `serviceProgress ${SERVICE_CYCLE_MS}ms linear forwards`,
-              width: paused ? '100%' : '0%',
-              opacity: paused ? 0.4 : 1
-            }} />
+      {/* Header */}
+      <header ref={headerRef} className="header">
+        <div className="header-inner">
+          <a href="#top" className="brand" aria-label="Strike Print">
+            <img className="brand-mark" src="/logo.webp" alt="Strike Print" style={{ width: 128, height: 81 }} />
+          </a>
+          <nav className="nav-links">
+            <a href="#work" className="nav-link">Work</a>
+            <a href="#services" className="nav-link">Services</a>
+            <a href="#about" className="nav-link">About</a>
+            <a href="#contact" className="nav-link">Contact</a>
+            <a href="tel:0422626286" className="cta">Call now →</a>
+            <button className="theme-toggle" onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+              aria-label="Toggle theme" title="Toggle theme">
+              {theme === 'light'
+                ? <Sun width={16} height={16} strokeWidth={2} />
+                : <Moon width={16} height={16} strokeWidth={2} />}
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section id="top" ref={heroRef} className="hero">
+        <div ref={heroGridRef} className="hero-grid" />
+        <div ref={heroBoltRef} className="hero-bolt" />
+        <div className="orb orb-a" />
+        <div className="orb orb-b" />
+        <div className="orb orb-c" />
+
+        <div className="eyebrow">
+          <span className="line" />
+          <span className="label">Sydney · Arndell Park · Established 20 years · Design · Print · Install</span>
+          <span className="line" />
+        </div>
+        <h1>
+          STAND OUT WITH<br />
+          <span className="glitch">STRIKING</span> SIGNAGE
+        </h1>
+        <p className="lede">
+          Custom signs, banners, decals, lightboxes, vehicle wraps, custom window
+          frosting, and more. Designed, manufactured and installed Australia wide.
+          Made inhouse from Arndell Park, Sydney.
+        </p>
+        <div className="hero-actions">
+          <a href="#work" className="btn-secondary">See our work →</a>
+          <a href="#contact" className="btn-secondary">Get in touch</a>
         </div>
 
-        {/* Stack of cards — only the active one is visible. Each fades + slides
-            in from the right when activated, fades out left when deactivated. */}
-        {SERVICES.map((s, i) => {
-          const Icon = s.icon;
-          const isActive = i === activeIdx;
-          return (
-            <div key={s.title}
-              aria-hidden={!isActive}
-              className="absolute inset-0 p-5 sm:p-7 lg:p-9 flex flex-col sm:flex-row gap-4 sm:gap-7"
-              style={{
-                opacity: isActive ? 1 : 0,
-                transform: `translateX(${isActive ? 0 : 24}px)`,
-                transition: 'opacity 550ms cubic-bezier(.2,.7,.3,1), transform 550ms cubic-bezier(.2,.7,.3,1)',
-                pointerEvents: isActive ? 'auto' : 'none'
-              }}>
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20"
-                  style={{ background: BRAND.navyDeep, border: `1px solid ${BRAND.boltAmber}40`, color: BRAND.boltAmber }}>
-                  <Icon className="w-7 h-7 sm:w-9 sm:h-9" strokeWidth={2} />
+        <div className="marquee-section">
+          <div className="marquee-mask">
+            <div className="marquee-track">
+              {[...PHOTOS, ...PHOTOS].map(([src, label], i) => (
+                <div key={i} className="show-card"
+                  onClick={() => openLightbox(PHOTOS.map(([s, l]) => ({ src: s, label: l })), i % PHOTOS.length)}>
+                  <img src={src} alt={label} loading="lazy" decoding="async" />
+                  <div className="show-label">
+                    <span className="tick" />
+                    <span>{label}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[10px] uppercase tracking-[0.25em] mb-2"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-                  Service · {String(i + 1).padStart(2, '0')} / {String(SERVICES.length).padStart(2, '0')}
-                </div>
-                <h3 className="mb-3" style={{
-                  fontFamily: 'Bebas Neue, sans-serif',
-                  fontSize: 'clamp(1.5rem, 4.5vw, 2.4rem)',
-                  letterSpacing: '0.02em',
-                  lineHeight: 1.05
-                }}>
-                  {s.title}
-                </h3>
-                <p className="text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-                  {s.blurb}
-                </p>
-              </div>
+              ))}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        </div>
+      </section>
 
-      {/* Dot navigation — active dot stretches into a bar */}
-      <div className="flex items-center justify-center gap-1.5 mt-4 sm:mt-5">
-        {SERVICES.map((s, i) => {
-          const isActive = i === activeIdx;
-          return (
-            <button key={s.title} onClick={() => goTo(i)}
-              aria-label={`Show ${s.title}`}
-              className="transition-all duration-500 cursor-pointer"
-              style={{
-                width: isActive ? '32px' : '8px',
-                height: '4px',
-                background: isActive ? BRAND.boltGrad : BRAND.navyLineStrong,
-                border: 'none',
-                padding: 0
-              }} />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+      {/* About */}
+      <section id="about" className="section">
+        <span className="sect-num">01</span>
+        <div className="sect-header">
+          <div className="sect-eyebrow">
+            <span className="line" /><span className="label">About Strike Print</span><span className="line" />
+          </div>
+          <h2 className="sect-title">Custom signage, <span className="grad-text">built to last</span>.</h2>
+          <p className="sect-intro">
+            Strike Print is an Arndell Park signage installer serving Sydney and beyond. We
+            design, manufacture and install custom signs that get businesses noticed and keep
+            them looking sharp for years.
+          </p>
+          <p className="sect-intro" style={{ marginTop: 16 }}>
+            From a single shopfront fascia to a fleet vehicle rollout, every job runs the same
+            way: clean specs, premium materials, careful install. We work with local trades,
+            retail, hospitality, fitness, healthcare and corporate clients across Western Sydney.
+          </p>
+        </div>
 
-// ═══════════════════════════════════════════════════════════════
-//   CONTACT
-// ═══════════════════════════════════════════════════════════════
-function Contact() {
-  const items = [
-    { icon: Phone,  label: 'Phone',   value: '0422 626 286',                    href: 'tel:0422626286' },
-    { icon: Mail,   label: 'Email',   value: 'info@strikeprint.com.au',         href: 'mailto:info@strikeprint.com.au' },
-    { icon: MapPin, label: 'Address', value: '26/70 Holbeche Rd, Arndell Park NSW 2148', href: 'https://maps.google.com/?q=26/70+Holbeche+Rd+Arndell+Park+NSW+2148' },
-    { icon: Clock,  label: 'Hours',   value: 'Mon–Fri · 8am–4pm', href: null }
-  ];
+        <div className="pillars">
+          {PILLARS.map(p => (
+            <div key={p.key} className="pillar reveal">
+              <div className="key">{p.key}</div>
+              <div className="body">{p.body}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-  return (
-    <section id="contact" className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-      <SectionHeader title="Get In Touch" />
-      <p className="mt-4 max-w-2xl mx-auto text-center text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-        Quote tool not your speed? Call, email, or drop in to the Arndell Park
-        workshop — we're happy to chat through anything.
-      </p>
+      {/* Services */}
+      <section id="services" className="section">
+        <span className="sect-num">02</span>
+        <div className="sect-header">
+          <div className="sect-eyebrow">
+            <span className="line" /><span className="label">What we make</span><span className="line" />
+          </div>
+          <h2 className="sect-title">What we do</h2>
+          <p className="sect-intro">
+            We use premium materials on every job — <strong style={{ color: 'var(--text)' }}>Avery</strong>,{' '}
+            <strong style={{ color: 'var(--text)' }}>3M</strong> and{' '}
+            <strong style={{ color: 'var(--text)' }}>Arlon</strong> cast vinyl films, ACM, acrylic
+            and aluminium, finished with UV-stable inks rated for years of Australian sun. Every
+            sign we hang is built to last.
+          </p>
+        </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-8 sm:mt-10">
-        {items.map((it, i) => {
-          const Inner = it.href ? 'a' : 'div';
-          return (
-            <Inner key={it.label} {...(it.href ? { href: it.href, target: it.href.startsWith('http') ? '_blank' : undefined, rel: 'noopener noreferrer' } : {})}
-              className={`lift anim-fadeup stagger-${i + 1} p-5 block`}
-              style={{
-                background: BRAND.navyRaise,
-                border: `1px solid ${BRAND.navyLineStrong}`,
-                color: BRAND.textPri,
-                textDecoration: 'none'
-              }}>
-              <div className="flex items-center gap-2.5 mb-3">
-                <it.icon className="w-4 h-4" style={{ color: BRAND.boltAmber }} strokeWidth={2} />
-                <span className="text-[10px] uppercase tracking-[0.25em]"
-                  style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-                  {it.label}
-                </span>
+        <div className="services">
+          {SERVICES.map(s => {
+            const Icon = s.icon;
+            return (
+              <div key={s.num} className="service reveal">
+                <div className="service-corner" aria-hidden />
+                <div className="num">Service · {s.num} / 06</div>
+                <div className="icon-box"><Icon width={22} height={22} strokeWidth={2} /></div>
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
               </div>
-              <div className="text-sm sm:text-base leading-snug" style={{ color: BRAND.textPri, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
-                {it.value}
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Portfolio */}
+      <section id="work" className="section">
+        <span className="sect-num">03</span>
+        <div className="sect-header">
+          <h2 className="sect-title">Selected installs</h2>
+          <p className="sect-intro">
+            A snapshot from the Arndell Park workshop — shopfronts, vehicle wraps, lightboxes,
+            privacy frosting and more across Sydney.
+          </p>
+        </div>
+
+        <div className="portfolio">
+          {PORTFOLIO_GRID.map((p, idx) => (
+            <div key={idx}
+              className={`pf reveal ${p.span || ''}`.trim()}
+              onClick={() => openLightbox(PORTFOLIO_GRID, idx)}>
+              <img src={p.src} alt={p.label} loading={idx < 4 ? 'eager' : 'lazy'} />
+              <div className="pf-shade" aria-hidden />
+              <div className="tag"><span className="dot" />{p.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Materials / Quality strip */}
+      <section className="section about" style={{ paddingTop: 0 }}>
+        <div className="about-grid">
+          <div className="reveal">
+            <h2>Premium materials. <span className="grad-text">No shortcuts.</span></h2>
+            <p>
+              We've been at it for two decades because the work has to last. That means only
+              premium products like Avery, 3M and Arlon vinyls, ACM panels, solid acrylic,
+              marine-grade aluminium and UV-stable inks rated for years of Australian sun. We
+              know the right product for the job.
+            </p>
+            <p>Heritage zones, council permits, lift hire, after-hours installs — handled.
+              Licensed, insured, and on time.</p>
+            <a href="#contact" className="btn-secondary" style={{ marginTop: 8 }}>Talk to us →</a>
+          </div>
+          <div className="materials reveal">
+            <div className="head">Trusted materials</div>
+            {MATERIALS.map(m => (
+              <div key={m.name} className="row">
+                <strong>{m.name}</strong>
+                <span>{m.detail}</span>
               </div>
-            </Inner>
-          );
-        })}
-      </div>
-
-      {/* Google Maps embed — Arndell Park workshop */}
-      <ShopMap />
-    </section>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-//   SHOP MAP — Google Maps iframe of the Arndell Park workshop.
-//   Uses the public ?q=&output=embed URL — no API key, no quota.
-// ═══════════════════════════════════════════════════════════════
-const SHOP_ADDRESS = '26/70 Holbeche Rd, Arndell Park NSW 2148';
-const SHOP_MAPS_LINK = 'https://www.google.com/maps/search/?api=1&query=' +
-  encodeURIComponent(SHOP_ADDRESS);
-const SHOP_MAPS_EMBED = 'https://maps.google.com/maps?q=' +
-  encodeURIComponent(SHOP_ADDRESS) + '&z=15&output=embed';
-
-function ShopMap() {
-  return (
-    <div className="anim-fadeup mt-6 sm:mt-8 relative overflow-hidden"
-      style={{
-        background: BRAND.navyDeep,
-        border: `1px solid ${BRAND.navyLineStrong}`,
-        borderTop: `2px solid ${BRAND.boltAmber}`
-      }}>
-      {/* The map itself. Slight grayscale + contrast bump so Google's
-          default palette blends with the navy theme rather than fighting it. */}
-      <iframe
-        src={SHOP_MAPS_EMBED}
-        title={`Strike Print workshop — ${SHOP_ADDRESS}`}
-        loading="lazy"
-        allowFullScreen
-        referrerPolicy="no-referrer-when-downgrade"
-        style={{
-          display: 'block',
-          width: '100%',
-          height: 'clamp(280px, 45vw, 440px)',
-          border: 0,
-          filter: 'grayscale(0.35) contrast(1.05)'
-        }}
-      />
-
-      {/* Footer bar inside the frame: address + open-in-Maps shortcut */}
-      <div className="absolute bottom-0 inset-x-0 px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-        style={{
-          background: 'linear-gradient(to top, rgba(8,21,46,0.96), rgba(8,21,46,0.7) 70%, transparent)',
-          pointerEvents: 'none'
-        }}>
-        <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4" style={{ color: BRAND.boltAmber }} strokeWidth={2.5} />
-          <span className="text-[11px] sm:text-xs tracking-wide" style={{ color: BRAND.textPri, fontFamily: 'Outfit, sans-serif', fontWeight: 600 }}>
-            {SHOP_ADDRESS}
-          </span>
+            ))}
+          </div>
         </div>
-        <a href={SHOP_MAPS_LINK} target="_blank" rel="noopener noreferrer"
-          className="lift inline-flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] font-bold self-start sm:self-auto"
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            background: BRAND.boltGrad,
-            color: BRAND.navy,
-            pointerEvents: 'auto'
-          }}>
-          <ArrowRight className="w-3 h-3" strokeWidth={3} />
-          Get Directions
-        </a>
-      </div>
-    </div>
-  );
-}
+      </section>
 
-// ═══════════════════════════════════════════════════════════════
-//   FOOTER
-// ═══════════════════════════════════════════════════════════════
-function Footer() {
-  return (
-    <footer className="max-w-7xl mx-auto px-4 sm:px-6 py-8 mt-8"
-      style={{ borderTop: `1px solid ${BRAND.navyLine}` }}>
-      <div className="flex flex-col sm:flex-row justify-between gap-4 text-[10px] uppercase tracking-widest"
-        style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
-        <div className="flex items-center gap-2">
-          <img src={LOGO_URL} alt="Strike Print" className="h-6 w-auto opacity-60" />
-          <span>Strike Print · Arndell Park NSW · {new Date().getFullYear()}</span>
+      {/* Contact */}
+      <section id="contact" className="section">
+        <span className="sect-num">04</span>
+        <div className="sect-header">
+          <div className="sect-eyebrow">
+            <span className="line" /><span className="label">Get in touch</span><span className="line" />
+          </div>
+          <h2 className="sect-title">Drop in. Call. Email.</h2>
+          <p className="sect-intro">
+            Quote tool not your speed? Call, email, or drop in to the Arndell Park workshop —
+            we're happy to chat through anything.
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-          <a href="#contact" style={{ color: BRAND.textFaint }} className="hover:text-amber-400 transition-colors">Contact</a>
-          <Link to="/quote" style={{ color: BRAND.textFaint }} className="hover:text-amber-400 transition-colors">Quote tool</Link>
+
+        <div className="contact-grid">
+          <a className="ct" href="tel:0422626286">
+            <div className="label"><Phone width={14} height={14} strokeWidth={2} />Phone</div>
+            <div className="value">0422 626 286</div>
+          </a>
+          <a className="ct" href="mailto:info@strikeprint.com.au">
+            <div className="label"><Mail width={14} height={14} strokeWidth={2} />Email</div>
+            <div className="value">info@strikeprint.com.au</div>
+          </a>
+          <a className="ct" target="_blank" rel="noopener noreferrer"
+            href="https://maps.google.com/?q=26/70+Holbeche+Rd+Arndell+Park+NSW+2148">
+            <div className="label"><MapPin width={14} height={14} strokeWidth={2} />Address</div>
+            <div className="value">26/70 Holbeche Rd<br />Arndell Park NSW 2148</div>
+          </a>
+          <div className="ct" style={{ cursor: 'default' }}>
+            <div className="label"><Clock width={14} height={14} strokeWidth={2} />Hours</div>
+            <div className="value">Mon–Fri · 8am–4pm</div>
+          </div>
         </div>
-      </div>
-    </footer>
-  );
-}
 
-// ═══════════════════════════════════════════════════════════════
-//   SHOWCASE — auto-scrolling portfolio marquee.
-//   Edge-fade mask hides the seam at left/right viewport boundaries.
-//   Hover pauses the scroll and lifts the focused card.
-// ═══════════════════════════════════════════════════════════════
-// 46 photos after Mick's relabel/delete pass on the original 50.
-// Categories are intentionally specific (e.g. 'Bar graphics' vs the older
-// 'Wall mural'); the Gallery generates filter chips from these labels.
-export const SHOWCASE_PHOTOS = [
-  { src: '/portfolio/hero.webp',         label: 'Inhouse production' },
-  { src: '/portfolio/install-01.webp',   label: 'Panels and promotional' },
-  { src: '/portfolio/install-08.webp',   label: 'Wall mural' },
-  { src: '/portfolio/install-19.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-04.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/wall-1.webp',       label: 'Wall graphics' },
-  { src: '/portfolio/install-32.webp',   label: 'Vehicle wrap' },
-  { src: '/portfolio/install-09.webp',   label: 'Privacy film' },
-  { src: '/portfolio/install-13.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-06.webp',   label: 'Custom privacy frosting' },
-  { src: '/portfolio/privacy-1.webp',    label: 'Privacy film' },
-  { src: '/portfolio/install-23.webp',   label: 'Bar graphics' },
-  { src: '/portfolio/install-17.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-39.webp',   label: 'Vending wrap' },
-  { src: '/portfolio/install-12.webp',   label: 'Privacy film' },
-  { src: '/portfolio/panel-1.webp',      label: 'Panels & acrylics' },
-  { src: '/portfolio/install-28.webp',   label: 'Panels & acrylics' },
-  { src: '/portfolio/install-15.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-26.webp',   label: 'Banners' },
-  { src: '/portfolio/install-37.webp',   label: 'Tradie signage' },
-  { src: '/portfolio/wall-2.webp',       label: 'Wall graphics' },
-  { src: '/portfolio/install-27.webp',   label: 'Hanging fabric banners' },
-  { src: '/portfolio/install-21.webp',   label: 'Window vinyl graphics' },
-  { src: '/portfolio/install-02.webp',   label: 'Panels & acrylics' },
-  { src: '/portfolio/vending-1.webp',    label: 'Vending wrap' },
-  { src: '/portfolio/install-05.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-24.webp',   label: 'Bar graphics' },
-  { src: '/portfolio/install-40.webp',   label: 'Panels & acrylics' },
-  { src: '/portfolio/install-22.webp',   label: 'Privacy film' },
-  { src: '/portfolio/install-34.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/privacy-2.webp',    label: 'Privacy film' },
-  { src: '/portfolio/install-29.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-03.webp',   label: 'Vending wrap' },
-  { src: '/portfolio/install-14.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-07.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/panel-2.webp',      label: 'Panels & acrylics' },
-  { src: '/portfolio/install-18.webp',   label: 'Panels & acrylics' },
-  { src: '/portfolio/install-31.webp',   label: 'Privacy film' },
-  { src: '/portfolio/install-38.webp',   label: 'Vehicle wrap' },
-  { src: '/portfolio/install-16.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-20.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-35.webp',   label: 'Custom vinyl' },
-  { src: '/portfolio/privacy-3.webp',    label: 'Privacy film' },
-  { src: '/portfolio/install-33.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-36.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-11.webp',   label: 'Storefront signage' }
-];
-
-function Showcase() {
-  // Render the photo set twice back-to-back so translateX(-50%) loops
-  // seamlessly without a visible jump. The aria-hidden duplicate keeps
-  // assistive tech from announcing every photo twice.
-  return (
-    <div className="anim-fadein mt-12 sm:mt-16 mb-10 sm:mb-12 -mx-4 sm:-mx-6 select-none">
-      <div className="px-4 sm:px-6 mb-3 sm:mb-4 flex items-center justify-center gap-3">
-        <span className="h-px w-12 sm:w-16" style={{ background: BRAND.boltGrad }} />
-        <span className="text-[10px] uppercase tracking-[0.3em] font-bold"
-          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-          Recent work
-        </span>
-        <span className="h-px w-12 sm:w-16" style={{ background: BRAND.boltGrad }} />
-      </div>
-
-      <div className="showcase-mask overflow-hidden">
-        <div className="showcase-track flex gap-3 sm:gap-4" style={{ width: 'max-content' }}>
-          {SHOWCASE_PHOTOS.map((p, i) => <ShowcaseCard key={`a-${i}`} photo={p} index={i} />)}
-          {SHOWCASE_PHOTOS.map((p, i) => <ShowcaseCard key={`b-${i}`} photo={p} index={i} ariaHidden />)}
+        <div className="map-wrap reveal">
+          <iframe
+            src="https://maps.google.com/maps?q=26%2F70+Holbeche+Rd%2C+Arndell+Park+NSW+2148&z=15&output=embed"
+            title="Strike Print workshop — 26/70 Holbeche Rd, Arndell Park NSW 2148"
+            loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
+          <div className="map-overlay">
+            <div className="addr">
+              <MapPin width={16} height={16} strokeWidth={2.5} />
+              26/70 Holbeche Rd, Arndell Park NSW 2148
+            </div>
+            <a href="https://www.google.com/maps/search/?api=1&query=26%2F70+Holbeche+Rd%2C+Arndell+Park+NSW+2148"
+              target="_blank" rel="noopener noreferrer">→ Get Directions</a>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-}
 
-function ShowcaseCard({ photo, index, ariaHidden }) {
-  return (
-    <div className="showcase-card flex-shrink-0 relative overflow-hidden"
-      {...(ariaHidden ? { 'aria-hidden': true } : {})}
-      style={{
-        width: 'clamp(220px, 28vw, 340px)',
-        aspectRatio: '4 / 3',
-        background: BRAND.navyDeep,
-        border: `1px solid ${BRAND.navyLineStrong}`
-      }}>
-      <img src={photo.src} alt={ariaHidden ? '' : photo.label}
-        loading={index < 3 ? 'eager' : 'lazy'}
-        decoding="async"
-        className="showcase-img absolute inset-0 w-full h-full"
-        style={{ objectFit: 'cover' }} />
-      <div className="showcase-label absolute inset-x-0 bottom-0 px-4 py-3 flex items-center gap-2"
-        style={{
-          background: 'linear-gradient(to top, rgba(8,21,46,0.95), rgba(8,21,46,0.65) 60%, transparent)'
-        }}>
-        <span className="h-px w-4" style={{ background: BRAND.boltAmber }} />
-        <span className="text-[10px] uppercase tracking-[0.22em] font-bold"
-          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textPri }}>
-          {photo.label}
-        </span>
-      </div>
-    </div>
-  );
-}
+        <div className="reviews-strip reveal">
+          <div className="copy">
+            <div className="title">Liked the work?</div>
+            <div className="sub">Leave us a Google review — it helps a small workshop go a long way.</div>
+          </div>
+          <div className="stars">★ ★ ★ ★ ★</div>
+          <a className="cta" href="https://www.google.com/search?q=strike+print+arndell+park"
+            target="_blank" rel="noopener noreferrer">See us on Google →</a>
+        </div>
 
-// ═══════════════════════════════════════════════════════════════
-//   SHARED — section header (matches the quote tool's style)
-// ═══════════════════════════════════════════════════════════════
-function SectionHeader({ num, title, centered = true }) {
-  return (
-    <div className={`anim-slidel flex items-baseline gap-3 sm:gap-4 ${centered ? 'justify-center' : ''}`}>
-      {num && (
-        <span style={{
-          fontFamily: 'Anton, sans-serif',
-          fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
-          color: BRAND.boltAmber,
-          letterSpacing: '0.02em',
-          lineHeight: 1
-        }}>
-          {num}
-        </span>
+        <div className="big-cta reveal">
+          <div className="big-cta-glow" aria-hidden />
+          <div className="big-cta-copy">
+            <div className="eb">Skip the back-and-forth</div>
+            <h3>Get a real quote. Right now.</h3>
+            <p>Give Paul a call today and discuss your next sign.</p>
+          </div>
+          <a className="cta" style={{ fontSize: 18, padding: '18px 28px' }} href="tel:0422626286">
+            → Call 0422 626 286
+          </a>
+        </div>
+      </section>
+
+      <footer className="footer">
+        <div>Strike Print · Arndell Park NSW · {year}</div>
+        <div className="right">
+          <a href="#contact">Contact</a>
+          <a href="tel:0422626286">0422 626 286</a>
+          <a href="mailto:info@strikeprint.com.au">info@strikeprint.com.au</a>
+        </div>
+      </footer>
+
+      {/* Lightbox */}
+      {lightbox && lightbox.items[lightbox.idx] && (
+        <div className="lightbox" onClick={closeLightbox}>
+          <div className="lightbox-counter">
+            {String(lightbox.idx + 1).padStart(2, '0')} / {String(lightbox.items.length).padStart(2, '0')}
+          </div>
+          <button className="lightbox-btn lightbox-close" onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
+            aria-label="Close">
+            <X width={20} height={20} strokeWidth={2.5} />
+          </button>
+          <button className="lightbox-btn lightbox-nav prev" onClick={(e) => { e.stopPropagation(); prevLightbox(); }}
+            aria-label="Previous">
+            <ChevronLeft width={22} height={22} strokeWidth={2.5} />
+          </button>
+          <img className="lightbox-img" src={lightbox.items[lightbox.idx].src}
+            alt={lightbox.items[lightbox.idx].label} onClick={closeLightbox} />
+          <button className="lightbox-btn lightbox-nav next" onClick={(e) => { e.stopPropagation(); nextLightbox(); }}
+            aria-label="Next">
+            <ChevronRight width={22} height={22} strokeWidth={2.5} />
+          </button>
+          <div className="lightbox-caption" onClick={(e) => e.stopPropagation()}>
+            <span className="tick" />
+            <span>{lightbox.items[lightbox.idx].label}</span>
+          </div>
+        </div>
       )}
-      <h2 style={{
-        fontFamily: 'Anton, sans-serif',
-        fontSize: 'clamp(1.75rem, 6vw, 3rem)',
-        letterSpacing: '0.02em',
-        lineHeight: 1
-      }}>
-        {title}
-      </h2>
     </div>
   );
 }

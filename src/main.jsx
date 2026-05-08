@@ -7,11 +7,10 @@ import './index.css';
 // The quote tool is large (~240KB JS). Lazy-load it so visitors who only
 // see the homepage don't pay for the editor bundle until they navigate.
 const SignageQuote = lazy(() => import('./SignageQuote.jsx'));
-// Gallery imports SHOWCASE_PHOTOS from Home — small enough to bundle
-// directly with the main chunk, no separate lazy import.
-const Gallery = lazy(() => import('./Gallery.jsx'));
-const About   = lazy(() => import('./About.jsx'));
-const Admin   = lazy(() => import('./Admin.jsx'));
+const Admin        = lazy(() => import('./Admin.jsx'));
+// Gallery + About used to be separate routes — their content now lives
+// on the redesigned homepage as /#work and /#about anchors. Old links
+// land on the catch-all → Home and the anchor scrolls to the section.
 
 // Brief loading state while a lazy chunk fetches. Matches the dark navy
 // background so it doesn't flash white during the route transition. The
@@ -49,16 +48,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/gallery" element={
-          <Suspense fallback={<RouteLoading label="gallery" />}>
-            <Gallery />
-          </Suspense>
-        } />
-        <Route path="/about" element={
-          <Suspense fallback={<RouteLoading label="about" />}>
-            <About />
-          </Suspense>
-        } />
         <Route path="/quote" element={
           <Suspense fallback={<RouteLoading label="quote tool" />}>
             <SignageQuote />
