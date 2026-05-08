@@ -1128,7 +1128,13 @@ function ContentTab() {
         const body = await r.json().catch(() => ({}));
         throw new Error(body.error || `Save failed (${r.status})`);
       }
-      await refresh();
+      // PATCH now returns the full content shape ({ overrides, merged,
+      // defaults, audit, rev }) — same as GET. Use it directly so we
+      // don't have to do a second round-trip whose GET response could
+      // have been served from browser cache (the bug that made saves
+      // appear to revert).
+      const fresh = await r.json();
+      setData(fresh);
     } catch (err) {
       setError(err.message);
     } finally {

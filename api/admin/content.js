@@ -57,12 +57,12 @@ export default async function handler(req, res) {
   }
 }
 
-async function getContent(req, res) {
-  const gallery = await readGallery();
-  // Hand back the raw overrides AND the merged-with-defaults values,
-  // plus the defaults themselves so the admin UI can show "this is the
-  // factory default" hints / reset buttons.
-  return res.status(200).json({
+// Build the response shape the admin UI consumes — { overrides, merged,
+// defaults, audit, rev }. Used by GET, AND by PATCH so the client can
+// use the PATCH response directly without a second fetch (avoids any
+// chance of browser-cached stale GETs after a save).
+function buildContentResponse(gallery) {
+  return {
     overrides: {
       services:       gallery.services       || {},
       hero:           gallery.hero           || {},
@@ -108,7 +108,12 @@ async function getContent(req, res) {
     // activity" panel so editors can see who's been touching what.
     audit: Array.isArray(gallery.audit) ? gallery.audit.slice(0, 50) : [],
     rev: gallery.rev || 0
-  });
+  };
+}
+
+async function getContent(req, res) {
+  const gallery = await readGallery();
+  return res.status(200).json(buildContentResponse(gallery));
 }
 
 async function patchContent(req, res, user) {
@@ -214,7 +219,9 @@ async function patchContent(req, res, user) {
       ? Object.keys(updates).join(',')
       : (Array.isArray(updates) ? `[${updates.length} slots]` : null)
   });
-  return res.status(200).json(updated);
+  // Return the same shape as GET so the client can swap its data state
+  // straight from this response — no second fetch required after a save.
+  return res.status(200).json(buildContentResponse(updated));
 }
 
 function parseBody(body) {
