@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Sun, Moon, Phone, Mail, MapPin, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { buildServices, buildHero, buildContact } from './services-meta.js';
+import {
+  buildServices, buildHero, buildContact, buildAbout,
+  buildServicesIntro, buildContactIntro, buildMaterials,
+  buildMaterialsRows, buildPillars, buildReviews, buildBigCta, buildFooter
+} from './services-meta.js';
 
 // ════════════════════════════════════════════════════════════════
 //   STRIKE PRINT — full single-page redesign
@@ -35,21 +39,10 @@ const PHOTOS = [
 // load. See src/services-meta.js for the slug + title + fallback definitions
 // (used when no admin photos are tagged for a category yet).
 
-const PILLARS = [
-  { key: 'Materials', body: 'ACM, acrylic, vinyl, fabric, LEDs — only what we trust on a real install.' },
-  { key: 'Install',   body: 'Licensed and insured. Heritage zones, council permits, lift hire — handled.' },
-  { key: 'Design',    body: 'Bring your own artwork or let us lay it out — bring it from idea to wall.' },
-  { key: 'Aftercare', body: 'Sign needs work? We come back. We stand behind every install.' }
-];
-
-const MATERIALS = [
-  { name: 'AVERY',           detail: 'Cast vinyl' },
-  { name: '3M',              detail: 'Wraps · Decals' },
-  { name: 'ARLON',           detail: 'Print media' },
-  { name: 'ACM + Acrylic',   detail: 'Panels · Letters' },
-  { name: 'LED',             detail: 'Halo · Channel' },
-  { name: 'UV-stable inks',  detail: 'Australian outdoor rated' }
-];
+// PILLARS + MATERIALS rows + all section copy live in services-meta.js
+// now and are fetched via /api/photos at runtime (with admin overrides
+// applied). The useMemo bindings in the Home component derive them from
+// the fetched payload.
 
 // All design CSS — injected once on mount. Keeps the React component
 // focused on structure while the visual identity lives in one block.
@@ -613,28 +606,33 @@ const HOME_CSS = `
 export default function Home() {
   const [theme, setTheme] = useState('dark');
   const [lightbox, setLightbox] = useState(null); // { items: [...], idx: number } | null
-  // Admin-managed content. All start empty so the page renders factory
-  // defaults (from services-meta.js) until /api/photos resolves — keeps
-  // the homepage instant while admin data hydrates.
+  // Admin-managed content. `content` holds the *server-merged* values
+  // (defaults overlaid with admin overrides). Empty until /api/photos
+  // resolves — derivations below fall back to compiled defaults so the
+  // page renders instantly even before the fetch returns.
   const [photos, setPhotos] = useState([]);
   const [serviceOverrides, setServiceOverrides] = useState({});
-  const [heroOverrides, setHeroOverrides] = useState({});
-  const [contactOverrides, setContactOverrides] = useState({});
+  const [content, setContent] = useState(null);
   const heroRef = useRef(null);
   const heroBoltRef = useRef(null);
   const heroGridRef = useRef(null);
   const headerRef = useRef(null);
 
-  // Derive the SERVICES array from fetched photos + admin title/body
-  // overrides. Memoised so the lightbox gallery references stay stable
-  // across renders (otherwise a click would re-open with a brand-new
-  // array each time, breaking idx-tracking).
-  const SERVICES = useMemo(
-    () => buildServices(photos, serviceOverrides),
-    [photos, serviceOverrides]
-  );
-  const HERO    = useMemo(() => buildHero(heroOverrides),       [heroOverrides]);
-  const CONTACT = useMemo(() => buildContact(contactOverrides), [contactOverrides]);
+  // Derive everything the JSX needs. Memoised so reference identity stays
+  // stable across re-renders (matters for the lightbox: a fresh `gallery`
+  // array on every render would break idx tracking).
+  const SERVICES        = useMemo(() => buildServices(photos, serviceOverrides), [photos, serviceOverrides]);
+  const HERO            = useMemo(() => content?.hero           || buildHero(),           [content]);
+  const CONTACT         = useMemo(() => content?.contact        || buildContact(),        [content]);
+  const ABOUT           = useMemo(() => content?.about          || buildAbout(),          [content]);
+  const SERVICES_INTRO  = useMemo(() => content?.services_intro || buildServicesIntro(),  [content]);
+  const CONTACT_INTRO   = useMemo(() => content?.contact_intro  || buildContactIntro(),   [content]);
+  const MATERIALS       = useMemo(() => content?.materials      || buildMaterials(),      [content]);
+  const MATERIALS_ROWS  = useMemo(() => content?.materials_rows || buildMaterialsRows(),  [content]);
+  const PILLARS         = useMemo(() => content?.pillars        || buildPillars(),        [content]);
+  const REVIEWS         = useMemo(() => content?.reviews        || buildReviews(),        [content]);
+  const BIG_CTA         = useMemo(() => content?.big_cta        || buildBigCta(),         [content]);
+  const FOOTER          = useMemo(() => content?.footer         || buildFooter(),         [content]);
 
   // ── Inject fonts + styles + theme on mount ──
   useEffect(() => {
@@ -680,8 +678,11 @@ export default function Home() {
         if (cancelled || !data) return;
         if (Array.isArray(data.photos)) setPhotos(data.photos);
         if (data.services && typeof data.services === 'object') setServiceOverrides(data.services);
-        if (data.hero    && typeof data.hero === 'object')      setHeroOverrides(data.hero);
-        if (data.contact && typeof data.contact === 'object')   setContactOverrides(data.contact);
+        // Stash the whole merged content payload — useMemo derivations
+        // pluck individual sections off it. data is server-merged, so
+        // every section already has all fields populated (defaults +
+        // overrides), no client-side merging needed.
+        setContent(data);
       })
       .catch(() => { /* fallback to compiled defaults */ });
     return () => { cancelled = true; };
@@ -866,24 +867,20 @@ export default function Home() {
         <span className="sect-num">01</span>
         <div className="sect-header">
           <div className="sect-eyebrow">
-            <span className="line" /><span className="label">About Strike Print</span><span className="line" />
+            <span className="line" /><span className="label">{ABOUT.eyebrow}</span><span className="line" />
           </div>
-          <h2 className="sect-title">Custom signage, <span className="grad-text">built to last</span>.</h2>
-          <p className="sect-intro">
-            Strike Print is an Arndell Park signage installer serving Sydney and beyond. We
-            design, manufacture and install custom signs that get businesses noticed and keep
-            them looking sharp for years.
-          </p>
-          <p className="sect-intro" style={{ marginTop: 16 }}>
-            From a single shopfront fascia to a fleet vehicle rollout, every job runs the same
-            way: clean specs, premium materials, careful install. We work with local trades,
-            retail, hospitality, fitness, healthcare and corporate clients across Western Sydney.
-          </p>
+          <h2 className="sect-title">
+            {ABOUT.titlePre}{ABOUT.titlePre && ABOUT.titleGrad ? ' ' : ''}
+            {ABOUT.titleGrad && <span className="grad-text">{ABOUT.titleGrad}</span>}
+            {ABOUT.titlePost}
+          </h2>
+          <p className="sect-intro" style={{ whiteSpace: 'pre-line' }}>{ABOUT.intro1}</p>
+          <p className="sect-intro" style={{ marginTop: 16, whiteSpace: 'pre-line' }}>{ABOUT.intro2}</p>
         </div>
 
         <div className="pillars">
-          {PILLARS.map(p => (
-            <div key={p.key} className="pillar reveal">
+          {PILLARS.map((p, i) => (
+            <div key={i} className="pillar reveal">
               <div className="key">{p.key}</div>
               <div className="body">{p.body}</div>
             </div>
@@ -896,16 +893,10 @@ export default function Home() {
         <span className="sect-num">02</span>
         <div className="sect-header">
           <div className="sect-eyebrow">
-            <span className="line" /><span className="label">What we make</span><span className="line" />
+            <span className="line" /><span className="label">{SERVICES_INTRO.eyebrow}</span><span className="line" />
           </div>
-          <h2 className="sect-title">What we do</h2>
-          <p className="sect-intro">
-            We use premium materials on every job — <strong style={{ color: 'var(--text)' }}>Avery</strong>,{' '}
-            <strong style={{ color: 'var(--text)' }}>3M</strong> and{' '}
-            <strong style={{ color: 'var(--text)' }}>Arlon</strong> cast vinyl films, ACM, acrylic
-            and aluminium, finished with UV-stable inks rated for years of Australian sun. Every
-            sign we hang is built to last.
-          </p>
+          <h2 className="sect-title">{SERVICES_INTRO.title}</h2>
+          <p className="sect-intro" style={{ whiteSpace: 'pre-line' }}>{SERVICES_INTRO.intro}</p>
         </div>
 
         <div className="services">
@@ -942,21 +933,19 @@ export default function Home() {
       <section className="section about" style={{ paddingTop: 0 }}>
         <div className="about-grid">
           <div className="reveal">
-            <h2>Premium materials. <span className="grad-text">No shortcuts.</span></h2>
-            <p>
-              We've been at it for two decades because the work has to last. That means only
-              premium products like Avery, 3M and Arlon vinyls, ACM panels, solid acrylic,
-              marine-grade aluminium and UV-stable inks rated for years of Australian sun. We
-              know the right product for the job.
-            </p>
-            <p>Heritage zones, council permits, lift hire, after-hours installs — handled.
-              Licensed, insured, and on time.</p>
-            <a href="#contact" className="btn-secondary" style={{ marginTop: 8 }}>Talk to us →</a>
+            <h2>
+              {MATERIALS.titlePre}{MATERIALS.titlePre && MATERIALS.titleGrad ? ' ' : ''}
+              {MATERIALS.titleGrad && <span className="grad-text">{MATERIALS.titleGrad}</span>}
+              {MATERIALS.titlePost}
+            </h2>
+            <p style={{ whiteSpace: 'pre-line' }}>{MATERIALS.body1}</p>
+            <p style={{ whiteSpace: 'pre-line' }}>{MATERIALS.body2}</p>
+            <a href="#contact" className="btn-secondary" style={{ marginTop: 8 }}>{MATERIALS.ctaLabel}</a>
           </div>
           <div className="materials reveal">
-            <div className="head">Trusted materials</div>
-            {MATERIALS.map(m => (
-              <div key={m.name} className="row">
+            <div className="head">{MATERIALS.boxTitle}</div>
+            {MATERIALS_ROWS.map((m, i) => (
+              <div key={i} className="row">
                 <strong>{m.name}</strong>
                 <span>{m.detail}</span>
               </div>
@@ -970,13 +959,10 @@ export default function Home() {
         <span className="sect-num">03</span>
         <div className="sect-header">
           <div className="sect-eyebrow">
-            <span className="line" /><span className="label">Get in touch</span><span className="line" />
+            <span className="line" /><span className="label">{CONTACT_INTRO.eyebrow}</span><span className="line" />
           </div>
-          <h2 className="sect-title">Drop in. Call. Email.</h2>
-          <p className="sect-intro">
-            Quote tool not your speed? Call, email, or drop in to the Arndell Park workshop —
-            we're happy to chat through anything.
-          </p>
+          <h2 className="sect-title">{CONTACT_INTRO.title}</h2>
+          <p className="sect-intro" style={{ whiteSpace: 'pre-line' }}>{CONTACT_INTRO.intro}</p>
         </div>
 
         <div className="contact-grid">
@@ -1016,30 +1002,30 @@ export default function Home() {
 
         <div className="reviews-strip reveal">
           <div className="copy">
-            <div className="title">Liked the work?</div>
-            <div className="sub">Leave us a Google review — it helps a small workshop go a long way.</div>
+            <div className="title">{REVIEWS.title}</div>
+            <div className="sub" style={{ whiteSpace: 'pre-line' }}>{REVIEWS.sub}</div>
           </div>
           <div className="stars">★ ★ ★ ★ ★</div>
-          <a className="cta" href="https://www.google.com/search?q=strike+print+arndell+park"
-            target="_blank" rel="noopener noreferrer">See us on Google →</a>
+          <a className="cta" href={REVIEWS.ctaUrl}
+            target="_blank" rel="noopener noreferrer">{REVIEWS.ctaLabel}</a>
         </div>
 
         <div className="big-cta reveal">
           <div className="big-cta-glow" aria-hidden />
           <div className="big-cta-copy">
-            <div className="eb">Skip the back-and-forth</div>
-            <h3>Get a real quote. Right now.</h3>
-            <p>Give Paul a call today and discuss your next sign.</p>
+            <div className="eb">{BIG_CTA.eyebrow}</div>
+            <h3>{BIG_CTA.title}</h3>
+            <p style={{ whiteSpace: 'pre-line' }}>{BIG_CTA.body}</p>
           </div>
           <a className="cta" style={{ fontSize: 18, padding: '18px 28px' }}
             href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>
-            → Call {CONTACT.phone}
+            {BIG_CTA.ctaLabel} {CONTACT.phone}
           </a>
         </div>
       </section>
 
       <footer className="footer">
-        <div>Strike Print · Arndell Park NSW · {year}</div>
+        <div>{FOOTER.tagline} · {year}</div>
         <div className="right">
           <a href="#contact">Contact</a>
           <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>{CONTACT.phone}</a>

@@ -7,7 +7,11 @@
 // exist yet, returns just photos: [] and the homepage uses its compiled-in
 // fallbacks (so the site never blanks out).
 import { readGallery } from './admin/_lib/store.js';
-import { buildHero, buildContact, SERVICE_CATEGORIES } from '../src/services-meta.js';
+import {
+  buildHero, buildContact, buildAbout, buildServicesIntro, buildContactIntro,
+  buildMaterials, buildMaterialsRows, buildPillars, buildReviews, buildBigCta,
+  buildFooter, SERVICE_CATEGORIES
+} from '../src/services-meta.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -50,8 +54,19 @@ export default async function handler(req, res) {
     return res.status(200).json({
       photos,
       services,
-      hero:    buildHero(gallery.hero),
-      contact: buildContact(gallery.contact)
+      // All merged with defaults server-side so the homepage just consumes
+      // ready-to-render values (one fetch, no per-section guarding needed).
+      hero:           buildHero(gallery.hero),
+      contact:        buildContact(gallery.contact),
+      about:          buildAbout(gallery.about),
+      services_intro: buildServicesIntro(gallery.services_intro),
+      contact_intro:  buildContactIntro(gallery.contact_intro),
+      materials:      buildMaterials(gallery.materials),
+      materials_rows: buildMaterialsRows(gallery.materials_rows),
+      pillars:        buildPillars(gallery.pillars),
+      reviews:        buildReviews(gallery.reviews),
+      big_cta:        buildBigCta(gallery.big_cta),
+      footer:         buildFooter(gallery.footer)
     });
   } catch (err) {
     console.error('public/photos error', err);

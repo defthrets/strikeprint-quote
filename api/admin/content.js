@@ -17,8 +17,19 @@ import {
   HERO_DEFAULTS,
   CONTACT_DEFAULTS,
   SERVICE_CATEGORIES,
+  FLAT_SECTIONS,
+  ARRAY_SECTIONS,
   buildHero,
-  buildContact
+  buildContact,
+  buildAbout,
+  buildPillars,
+  buildServicesIntro,
+  buildContactIntro,
+  buildMaterials,
+  buildMaterialsRows,
+  buildReviews,
+  buildBigCta,
+  buildFooter
 } from '../../src/services-meta.js';
 
 export default async function handler(req, res) {
@@ -43,9 +54,18 @@ async function getContent(req, res) {
   // factory default" hints / reset buttons.
   return res.status(200).json({
     overrides: {
-      services: gallery.services || {},
-      hero:     gallery.hero     || {},
-      contact:  gallery.contact  || {}
+      services:       gallery.services       || {},
+      hero:           gallery.hero           || {},
+      contact:        gallery.contact        || {},
+      about:          gallery.about          || {},
+      services_intro: gallery.services_intro || {},
+      contact_intro:  gallery.contact_intro  || {},
+      materials:      gallery.materials      || {},
+      reviews:        gallery.reviews        || {},
+      big_cta:        gallery.big_cta        || {},
+      footer:         gallery.footer         || {},
+      pillars:        Array.isArray(gallery.pillars)        ? gallery.pillars        : [],
+      materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : []
     },
     merged: {
       services: SERVICE_CATEGORIES.map(cat => {
@@ -58,12 +78,21 @@ async function getContent(req, res) {
           defaults: { title: cat.title, body: cat.body }
         };
       }),
-      hero:    buildHero(gallery.hero),
-      contact: buildContact(gallery.contact)
+      hero:           buildHero(gallery.hero),
+      contact:        buildContact(gallery.contact),
+      about:          buildAbout(gallery.about),
+      services_intro: buildServicesIntro(gallery.services_intro),
+      contact_intro:  buildContactIntro(gallery.contact_intro),
+      materials:      buildMaterials(gallery.materials),
+      reviews:        buildReviews(gallery.reviews),
+      big_cta:        buildBigCta(gallery.big_cta),
+      footer:         buildFooter(gallery.footer),
+      pillars:        buildPillars(gallery.pillars),
+      materials_rows: buildMaterialsRows(gallery.materials_rows)
     },
-    defaults: {
-      hero:    HERO_DEFAULTS,
-      contact: CONTACT_DEFAULTS
+    defaults: { ...FLAT_SECTIONS,
+      pillars:        ARRAY_SECTIONS.pillars.defaults,
+      materials_rows: ARRAY_SECTIONS.materials_rows.defaults
     }
   });
 }
@@ -108,11 +137,11 @@ async function patchContent(req, res) {
     return res.status(200).json(updated);
   }
 
-  if (section === 'hero' || section === 'contact') {
-    // updates: { [field]: string | null }
-    const allowed = section === 'hero'
-      ? Object.keys(HERO_DEFAULTS)
-      : Object.keys(CONTACT_DEFAULTS);
+  // Flat sections (hero, contact, about, services_intro, contact_intro,
+  // materials, reviews, big_cta, footer). Updates is { [field]: string|null };
+  // empty/null clears the override → falls through to default on read.
+  if (FLAT_SECTIONS[section]) {
+    const allowed = Object.keys(FLAT_SECTIONS[section]);
     const current = gallery[section] || {};
     const next = { ...current };
     for (const [field, val] of Object.entries(updates)) {
@@ -126,6 +155,46 @@ async function patchContent(req, res) {
       }
     }
     const updated = await writeGallery({ ...gallery, [section]: next });
+    return res.status(200).json(updated);
+  }
+
+  // Array sections (pillars, materials_rows). Body shape:
+  //   { section: 'pillars', updates: [{ key, body }, …] }   (full replace)
+  // Slot count must match the defaults exactly. To "reset" a slot, send
+  // an empty object {} — the homepage will fall back to the default for
+  // that index. To reset the whole section, send updates: [].
+  if (ARRAY_SECTIONS[section]) {
+    const meta = ARRAY_SECTIONS[section];
+    if (!Array.isArray(updates)) {
+      return res.status(400).json({ error: `${section} updates must be an array` });
+    }
+    // Empty array = clear all overrides (homepage uses defaults)
+    if (updates.length === 0) {
+      const updated = await writeGallery({ ...gallery, [section]: [] });
+      return res.status(200).json(updated);
+    }
+    // Otherwise must exactly match the slot count
+    if (updates.length !== meta.defaults.length) {
+      return res.status(400).json({
+        error: `${section} expects ${meta.defaults.length} slots, got ${updates.length}`
+      });
+    }
+    // Validate + normalise each slot. Allowed keys are the itemKeys for
+    // that section (e.g. ['key', 'body'] for pillars). Empty fields stay
+    // empty in the stored value — buildPillars/buildMaterialsRows will
+    // fall back to the default per-field on read.
+    const normalised = updates.map(item => {
+      if (!item || typeof item !== 'object') return {};
+      const out = {};
+      for (const k of meta.itemKeys) {
+        if (item[k] !== undefined && item[k] !== null) {
+          const s = String(item[k]).trim();
+          if (s !== '') out[k] = s;
+        }
+      }
+      return out;
+    });
+    const updated = await writeGallery({ ...gallery, [section]: normalised });
     return res.status(200).json(updated);
   }
 

@@ -65,10 +65,22 @@ export async function readGallery() {
     //      absent (so callers don't need to null-guard)
     return {
       ...json,
-      photos:   json.photos.map(migratePhoto),
-      services: json.services || {},
-      hero:     json.hero     || {},
-      contact:  json.contact  || {}
+      photos:         json.photos.map(migratePhoto),
+      // Per-slug overrides for service tile title/body
+      services:       json.services       || {},
+      // Flat-key sections (sparse — anything missing falls through to defaults)
+      hero:           json.hero           || {},
+      contact:        json.contact        || {},
+      about:          json.about          || {},
+      services_intro: json.services_intro || {},
+      contact_intro:  json.contact_intro  || {},
+      materials:      json.materials      || {},
+      reviews:        json.reviews        || {},
+      big_cta:        json.big_cta        || {},
+      footer:         json.footer         || {},
+      // Array sections — slot-aligned with their defaults
+      pillars:        Array.isArray(json.pillars)        ? json.pillars        : [],
+      materials_rows: Array.isArray(json.materials_rows) ? json.materials_rows : []
     };
   } catch (err) {
     // Blob doesn't exist yet — first read seeds it. @vercel/blob throws
@@ -84,13 +96,22 @@ export async function readGallery() {
 
 export async function writeGallery(gallery) {
   const payload = {
-    version: 2, // bumped when content overrides were added
+    version: 3, // bumped each time the schema gains new override keys
     updatedAt: new Date().toISOString(),
-    photos:   gallery.photos   || [],
-    // Sparse override maps. Empty objects when admin hasn't touched them.
-    services: gallery.services || {},
-    hero:     gallery.hero     || {},
-    contact:  gallery.contact  || {}
+    photos:         gallery.photos         || [],
+    // Sparse override maps. Empty objects/arrays when untouched.
+    services:       gallery.services       || {},
+    hero:           gallery.hero           || {},
+    contact:        gallery.contact        || {},
+    about:          gallery.about          || {},
+    services_intro: gallery.services_intro || {},
+    contact_intro:  gallery.contact_intro  || {},
+    materials:      gallery.materials      || {},
+    reviews:        gallery.reviews        || {},
+    big_cta:        gallery.big_cta        || {},
+    footer:         gallery.footer         || {},
+    pillars:        Array.isArray(gallery.pillars)        ? gallery.pillars        : [],
+    materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : []
   };
   await put(GALLERY_KEY, JSON.stringify(payload, null, 2), {
     access: 'public',

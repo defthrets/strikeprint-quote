@@ -676,6 +676,10 @@ function PhotosTab() {
 // factory default. The "edited" hint disappears once the field matches
 // the default.
 
+// Field definitions per section. `key` matches the override field name on
+// the server, `multiline` switches input → textarea, `hint` shows next to
+// the label. Server defaults provide the placeholder text in each input.
+
 const HERO_FIELDS = [
   { key: 'eyebrow',        label: 'Eyebrow',                hint: 'Thin amber pill above the headline' },
   { key: 'headlinePre',    label: 'Headline · part 1',      hint: 'Before the glitch word (e.g. "STAND OUT WITH")' },
@@ -686,12 +690,73 @@ const HERO_FIELDS = [
   { key: 'ctaSecondary',   label: 'Secondary CTA label',    hint: 'Right button under the lede' }
 ];
 
+const ABOUT_FIELDS = [
+  { key: 'eyebrow',   label: 'Section eyebrow',  hint: 'Small label above the heading' },
+  { key: 'titlePre',  label: 'Title · before',   hint: 'Plain text before the highlighted word(s)' },
+  { key: 'titleGrad', label: 'Title · highlight', hint: 'The amber-gradient phrase in the middle' },
+  { key: 'titlePost', label: 'Title · after',    hint: 'Plain text after the highlight (often just punctuation)' },
+  { key: 'intro1',    label: 'Intro · paragraph 1', hint: 'First paragraph under the heading',  multiline: true, rows: 3 },
+  { key: 'intro2',    label: 'Intro · paragraph 2', hint: 'Second paragraph under the heading', multiline: true, rows: 3 }
+];
+
+const SERVICES_INTRO_FIELDS = [
+  { key: 'eyebrow', label: 'Section eyebrow', hint: 'Small label above the heading (e.g. "What we make")' },
+  { key: 'title',   label: 'Section title',   hint: 'Big italic heading' },
+  { key: 'intro',   label: 'Intro paragraph', hint: 'Lead paragraph under the heading', multiline: true, rows: 3 }
+];
+
+const MATERIALS_FIELDS = [
+  { key: 'titlePre',  label: 'Heading · before',     hint: 'Plain text before the highlighted phrase' },
+  { key: 'titleGrad', label: 'Heading · highlight',  hint: 'The amber-gradient phrase' },
+  { key: 'titlePost', label: 'Heading · after',      hint: 'Plain text after the highlight (usually empty)' },
+  { key: 'body1',     label: 'Body · paragraph 1',   hint: 'First paragraph next to the materials box', multiline: true, rows: 3 },
+  { key: 'body2',     label: 'Body · paragraph 2',   hint: 'Second paragraph (often shorter)',           multiline: true, rows: 2 },
+  { key: 'ctaLabel',  label: 'CTA button label',     hint: 'Button text linking to #contact' },
+  { key: 'boxTitle',  label: 'Materials box header', hint: 'Heading inside the brand list (e.g. "Trusted materials")' }
+];
+
+const CONTACT_INTRO_FIELDS = [
+  { key: 'eyebrow', label: 'Section eyebrow', hint: 'Small label above the heading' },
+  { key: 'title',   label: 'Section title',   hint: 'Big italic heading' },
+  { key: 'intro',   label: 'Intro paragraph', hint: 'Lead paragraph under the heading', multiline: true, rows: 3 }
+];
+
 const CONTACT_FIELDS = [
   { key: 'phone',     label: 'Phone',     hint: 'Displayed and used in tel: links' },
   { key: 'email',     label: 'Email',     hint: 'Displayed and used in mailto: links' },
   { key: 'address',   label: 'Address',   hint: 'Use a blank line to break onto two lines on the page', multiline: true, rows: 2 },
   { key: 'hours',     label: 'Hours',     hint: 'e.g. Mon–Fri · 8am–4pm' },
   { key: 'mapsQuery', label: 'Map query', hint: 'What the embedded Google Map searches for. Usually mirrors the address.' }
+];
+
+const REVIEWS_FIELDS = [
+  { key: 'title',    label: 'Title',         hint: 'e.g. "Liked the work?"' },
+  { key: 'sub',      label: 'Sub-text',      hint: 'One-line description under the title', multiline: true, rows: 2 },
+  { key: 'ctaLabel', label: 'CTA label',     hint: 'Button text' },
+  { key: 'ctaUrl',   label: 'CTA URL',       hint: 'Where the button links — usually a Google search/review URL' }
+];
+
+const BIG_CTA_FIELDS = [
+  { key: 'eyebrow',  label: 'Eyebrow',          hint: 'Small label above the heading' },
+  { key: 'title',    label: 'Heading',          hint: 'Big italic heading on the orange-edged card' },
+  { key: 'body',     label: 'Body',             hint: 'One-line description under the heading', multiline: true, rows: 2 },
+  { key: 'ctaLabel', label: 'CTA label prefix', hint: 'Phone number is auto-appended (e.g. "→ Call" becomes "→ Call 0422 626 286")' }
+];
+
+const FOOTER_FIELDS = [
+  { key: 'tagline', label: 'Tagline', hint: 'Footer left side; the year auto-appends after a · separator' }
+];
+
+// Definition of every editable list section. `count` is the fixed slot
+// count enforced by the server. `itemFields` is what each row exposes.
+const PILLARS_FIELDS = [
+  { key: 'key',  label: 'Label', hint: 'Short heading (e.g. "Materials")' },
+  { key: 'body', label: 'Body',  hint: 'One-line description', multiline: true, rows: 2 }
+];
+
+const MATERIALS_ROWS_FIELDS = [
+  { key: 'name',   label: 'Brand',  hint: 'Big text in the row (e.g. "AVERY")' },
+  { key: 'detail', label: 'Detail', hint: 'Small caption (e.g. "Cast vinyl")' }
 ];
 
 function ContentTab() {
@@ -764,37 +829,92 @@ function ContentTab() {
       <ContentSection
         title="Hero" subtitle="Top of the homepage — eyebrow, headline, lede, CTAs"
         fields={HERO_FIELDS}
-        merged={data.merged.hero}
-        defaults={data.defaults.hero}
+        merged={data.merged.hero}     defaults={data.defaults.hero}
         overrides={data.overrides.hero}
-        saving={savingKey === 'hero'}
-        onSave={(updates) => saveSection('hero', updates)}
+        saving={savingKey === 'hero'} onSave={(u) => saveSection('hero', u)}
       />
 
       <ContentSection
-        title="Contact" subtitle="Phone, email, address, hours — used in the contact panel, footer, and CTA buttons"
-        fields={CONTACT_FIELDS}
-        merged={data.merged.contact}
-        defaults={data.defaults.contact}
-        overrides={data.overrides.contact}
-        saving={savingKey === 'contact'}
-        onSave={(updates) => saveSection('contact', updates)}
+        title="About" subtitle="Section 01 — eyebrow, headline, two intro paragraphs"
+        fields={ABOUT_FIELDS}
+        merged={data.merged.about}     defaults={data.defaults.about}
+        overrides={data.overrides.about}
+        saving={savingKey === 'about'} onSave={(u) => saveSection('about', u)}
       />
 
-      {/* Coming-next hint: about copy, pillars, materials, footer text are
-          on the roadmap. Made visible here so the admin knows what's next. */}
-      <div className="p-4 text-sm"
-        style={{
-          background: 'rgba(245,154,16,0.05)',
-          border: `1px dashed ${BRAND.boltAmber}40`,
-          color: BRAND.textMuted
-        }}>
-        <div className="text-[10px] uppercase tracking-[0.25em] mb-1.5"
-          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-          Next up
-        </div>
-        About copy &amp; pillars · Materials list · Reviews + CTA blocks · Footer tagline
-      </div>
+      <ListContentSection
+        title="Pillars" subtitle="The 4 cards under About (Materials · Install · Design · Aftercare)"
+        section="pillars"
+        itemFields={PILLARS_FIELDS}
+        merged={data.merged.pillars}     defaults={data.defaults.pillars}
+        overrides={data.overrides.pillars}
+        saving={savingKey === 'pillars'} onSave={(u) => saveSection('pillars', u)}
+      />
+
+      <ContentSection
+        title="Services intro" subtitle="Section 02 header — above the 6 service tiles. (Tile titles + bodies are edited from the Photos tab.)"
+        fields={SERVICES_INTRO_FIELDS}
+        merged={data.merged.services_intro}     defaults={data.defaults.services_intro}
+        overrides={data.overrides.services_intro}
+        saving={savingKey === 'services_intro'} onSave={(u) => saveSection('services_intro', u)}
+      />
+
+      <ContentSection
+        title="Materials block" subtitle="The two-column 'Premium materials. No shortcuts.' strip + the Trusted materials box header"
+        fields={MATERIALS_FIELDS}
+        merged={data.merged.materials}     defaults={data.defaults.materials}
+        overrides={data.overrides.materials}
+        saving={savingKey === 'materials'} onSave={(u) => saveSection('materials', u)}
+      />
+
+      <ListContentSection
+        title="Materials rows" subtitle="The 6 brand entries inside the Trusted materials box"
+        section="materials_rows"
+        itemFields={MATERIALS_ROWS_FIELDS}
+        merged={data.merged.materials_rows}     defaults={data.defaults.materials_rows}
+        overrides={data.overrides.materials_rows}
+        saving={savingKey === 'materials_rows'} onSave={(u) => saveSection('materials_rows', u)}
+      />
+
+      <ContentSection
+        title="Contact intro" subtitle="Section 03 header — above the contact cards"
+        fields={CONTACT_INTRO_FIELDS}
+        merged={data.merged.contact_intro}     defaults={data.defaults.contact_intro}
+        overrides={data.overrides.contact_intro}
+        saving={savingKey === 'contact_intro'} onSave={(u) => saveSection('contact_intro', u)}
+      />
+
+      <ContentSection
+        title="Contact info" subtitle="Phone, email, address, hours — used in the contact panel, footer, and CTA buttons"
+        fields={CONTACT_FIELDS}
+        merged={data.merged.contact}     defaults={data.defaults.contact}
+        overrides={data.overrides.contact}
+        saving={savingKey === 'contact'} onSave={(u) => saveSection('contact', u)}
+      />
+
+      <ContentSection
+        title="Reviews CTA" subtitle="The 'Liked the work?' strip with the Google review link"
+        fields={REVIEWS_FIELDS}
+        merged={data.merged.reviews}     defaults={data.defaults.reviews}
+        overrides={data.overrides.reviews}
+        saving={savingKey === 'reviews'} onSave={(u) => saveSection('reviews', u)}
+      />
+
+      <ContentSection
+        title="Big CTA card" subtitle="The orange-edged 'Get a real quote' card at the bottom of the contact section"
+        fields={BIG_CTA_FIELDS}
+        merged={data.merged.big_cta}     defaults={data.defaults.big_cta}
+        overrides={data.overrides.big_cta}
+        saving={savingKey === 'big_cta'} onSave={(u) => saveSection('big_cta', u)}
+      />
+
+      <ContentSection
+        title="Footer" subtitle="Tagline on the left side of the footer — the year auto-appends"
+        fields={FOOTER_FIELDS}
+        merged={data.merged.footer}     defaults={data.defaults.footer}
+        overrides={data.overrides.footer}
+        saving={savingKey === 'footer'} onSave={(u) => saveSection('footer', u)}
+      />
     </div>
   );
 }
@@ -958,6 +1078,186 @@ function mergedToDrafts(fields, merged) {
   const out = {};
   for (const f of fields) out[f.key] = merged?.[f.key] ?? '';
   return out;
+}
+
+// Editable list section — pillars, materials_rows. Fixed slot count;
+// each row exposes the same set of itemFields. On save, sends the full
+// array back to the server (PATCH section + array of slot objects).
+// Empty fields stored as undefined → server uses default for that slot.
+function ListContentSection({ title, subtitle, section, itemFields, merged, defaults, overrides, saving, onSave }) {
+  // Drafts: parallel array, one entry per slot, each holds field drafts
+  const buildDrafts = (rows) => (rows || []).map(r => {
+    const o = {};
+    for (const f of itemFields) o[f.key] = r?.[f.key] ?? '';
+    return o;
+  });
+  const [drafts, setDrafts] = useState(() => buildDrafts(merged));
+  useEffect(() => { setDrafts(buildDrafts(merged)); }, [merged]); // eslint-disable-line
+
+  // Diff each row vs merged → any field different = dirty
+  const dirty = drafts.some((row, i) => {
+    const live = merged[i] || {};
+    return itemFields.some(f => (row[f.key] ?? '') !== (live[f.key] ?? ''));
+  });
+
+  const handleSave = () => {
+    // Send the full array. Each slot: send only the fields that don't
+    // match the per-slot default (so the override storage stays sparse).
+    const payload = drafts.map((row, i) => {
+      const def = defaults[i] || {};
+      const out = {};
+      for (const f of itemFields) {
+        const v = (row[f.key] ?? '').trim();
+        if (v && v !== (def[f.key] ?? '')) out[f.key] = v;
+      }
+      return out;
+    });
+    onSave(payload);
+  };
+
+  const handleResetAll = () => {
+    if (!overrides || overrides.length === 0) return;
+    onSave([]);
+  };
+
+  const overriddenCount = (overrides || []).filter(o => o && Object.keys(o).length > 0).length;
+
+  return (
+    <section style={{
+      background: BRAND.navyRaise,
+      border: `1px solid ${BRAND.navyLineStrong}`,
+      borderTop: `2px solid ${BRAND.boltAmber}`
+    }}>
+      <header className="px-5 py-4 flex items-baseline gap-3 flex-wrap"
+        style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
+        <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '1.4rem', letterSpacing: '0.02em', color: BRAND.textPri }}>
+          {title}
+        </h3>
+        <p className="text-sm flex-1 min-w-[260px]" style={{ color: BRAND.textMuted }}>
+          {subtitle}
+        </p>
+        <span className="text-[10px] uppercase tracking-[0.22em]"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+          {overriddenCount === 0
+            ? 'Showing factory defaults'
+            : `${overriddenCount} of ${defaults.length} edited`}
+        </span>
+      </header>
+
+      <div className="p-5 space-y-3">
+        {drafts.map((row, i) => {
+          const def = defaults[i] || {};
+          const isOverridden = overrides && overrides[i] && Object.keys(overrides[i]).length > 0;
+          return (
+            <div key={i} className="p-3"
+              style={{
+                background: 'rgba(8,21,46,0.4)',
+                border: `1px solid ${isOverridden ? BRAND.boltAmber + '40' : BRAND.navyLine}`,
+                borderLeft: `3px solid ${isOverridden ? BRAND.boltAmber : BRAND.navyLineStrong}`
+              }}>
+              <div className="flex items-baseline gap-2 mb-2 flex-wrap">
+                <span className="text-[10px] uppercase tracking-[0.25em] font-bold"
+                  style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                  Slot {String(i + 1).padStart(2, '0')}
+                </span>
+                {isOverridden && (
+                  <span className="text-[9px] uppercase tracking-[0.22em]"
+                    style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                    · edited
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {itemFields.map(f => {
+                  const v = row[f.key] ?? '';
+                  const placeholder = def[f.key] ?? '';
+                  return (
+                    <div key={f.key}>
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <label className="text-[9px] uppercase tracking-[0.22em] font-bold"
+                          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                          {f.label}
+                        </label>
+                        <span className="text-[9px] ml-auto"
+                          style={{ color: BRAND.textFaint, fontStyle: 'italic' }}>
+                          {f.hint}
+                        </span>
+                      </div>
+                      {f.multiline ? (
+                        <textarea value={v} rows={f.rows || 2}
+                          onChange={e => setDrafts(prev => {
+                            const next = [...prev];
+                            next[i] = { ...next[i], [f.key]: e.target.value };
+                            return next;
+                          })}
+                          placeholder={placeholder}
+                          className="w-full px-2.5 py-1.5 text-sm outline-none resize-y"
+                          style={{
+                            fontFamily: "'Outfit', sans-serif",
+                            background: 'rgba(8,21,46,0.6)',
+                            border: `1px solid ${BRAND.navyLineStrong}`,
+                            color: BRAND.textPri
+                          }} />
+                      ) : (
+                        <input value={v}
+                          onChange={e => setDrafts(prev => {
+                            const next = [...prev];
+                            next[i] = { ...next[i], [f.key]: e.target.value };
+                            return next;
+                          })}
+                          placeholder={placeholder}
+                          className="w-full px-2.5 py-1.5 text-sm outline-none"
+                          style={{
+                            fontFamily: "'Outfit', sans-serif",
+                            background: 'rgba(8,21,46,0.6)',
+                            border: `1px solid ${BRAND.navyLineStrong}`,
+                            color: BRAND.textPri
+                          }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="flex items-center gap-3 pt-2"
+          style={{ borderTop: `1px solid ${BRAND.navyLine}`, paddingTop: 16 }}>
+          <button onClick={handleSave} disabled={!dirty || saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: BRAND.boltGrad,
+              color: BRAND.navy,
+              fontFamily: 'Anton, sans-serif',
+              letterSpacing: '0.1em',
+              border: 'none'
+            }}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" strokeWidth={2.5} />}
+            <span className="text-sm">{saving ? 'Saving…' : 'Save changes'}</span>
+          </button>
+          {overriddenCount > 0 && (
+            <button onClick={handleResetAll} disabled={saving}
+              className="px-4 py-2 text-[10px] uppercase tracking-[0.22em] cursor-pointer disabled:opacity-40"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                background: 'transparent',
+                color: BRAND.textMuted,
+                border: `1px dashed ${BRAND.navyLineStrong}`
+              }}>
+              Reset all to defaults
+            </button>
+          )}
+          {!dirty && !saving && (
+            <span className="text-[10px] uppercase tracking-[0.22em]"
+              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
+              No changes
+            </span>
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 // Section header for one service group. Shows the group's number + name +
