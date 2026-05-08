@@ -10,7 +10,7 @@ import { readGallery } from './admin/_lib/store.js';
 import {
   buildHero, buildContact, buildAbout, buildServicesIntro, buildContactIntro,
   buildMaterials, buildMaterialsRows, buildPillars, buildReviews, buildBigCta,
-  buildFooter, SERVICE_CATEGORIES
+  buildFooter, buildTheme, buildSettings, SERVICE_CATEGORIES
 } from '../src/services-meta.js';
 
 export default async function handler(req, res) {
@@ -68,7 +68,15 @@ export default async function handler(req, res) {
       pillars:        buildPillars(gallery.pillars),
       reviews:        buildReviews(gallery.reviews),
       big_cta:        buildBigCta(gallery.big_cta),
-      footer:         buildFooter(gallery.footer)
+      footer:         buildFooter(gallery.footer),
+      // Brand colours + font choices — homepage applies these via CSS
+      // custom properties so a save in admin updates live within the
+      // CDN window. Defaults match what the design originally shipped.
+      theme:          buildTheme(gallery.theme),
+      // Site-wide config — site title + meta description applied to
+      // <head> at runtime; quoteEmail is read by /api/send-quote so
+      // admin can re-route quote enquiries without a deploy.
+      settings:       buildSettings(gallery.settings)
     });
   } catch (err) {
     console.error('public/photos error', err);

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { upload } from '@vercel/blob/client';
 import { Lock, LogOut, AlertTriangle, Loader2, ArrowLeft, Image as ImageIcon, Type, Palette, Settings, Upload, Trash2, Plus, Check, Star } from 'lucide-react';
 import { LOGO_URL } from './logo.js';
-import { SERVICE_CATEGORIES } from './services-meta.js';
+import { SERVICE_CATEGORIES, DISPLAY_FONT_OPTIONS, BODY_FONT_OPTIONS } from './services-meta.js';
 
 const BRAND = {
   navy:           '#012659',
@@ -293,10 +293,10 @@ function LoginForm({ onSuccess }) {
 }
 
 const TABS = [
-  { id: 'photos',   label: 'Photos',          icon: ImageIcon, ready: true,  status: 'Live' },
-  { id: 'content',  label: 'Content',         icon: Type,      ready: true,  status: 'Live' },
-  { id: 'theme',    label: 'Colours & fonts', icon: Palette,   ready: false, status: 'Phase 4' },
-  { id: 'settings', label: 'Settings',        icon: Settings,  ready: false, status: 'Phase 4' }
+  { id: 'photos',   label: 'Photos',          icon: ImageIcon, ready: true, status: 'Live' },
+  { id: 'content',  label: 'Content',         icon: Type,      ready: true, status: 'Live' },
+  { id: 'theme',    label: 'Colours & fonts', icon: Palette,   ready: true, status: 'Live' },
+  { id: 'settings', label: 'Settings',        icon: Settings,  ready: true, status: 'Live' }
 ];
 
 function Dashboard({ user }) {
@@ -397,8 +397,10 @@ function Dashboard({ user }) {
       </div>
 
       {/* Tab content */}
-      {active.id === 'photos'  && <PhotosTab />}
-      {active.id === 'content' && <ContentTab />}
+      {active.id === 'photos'   && <PhotosTab />}
+      {active.id === 'content'  && <ContentTab />}
+      {active.id === 'theme'    && <ThemeTab />}
+      {active.id === 'settings' && <SettingsTab />}
       {!active.ready && <PlaceholderTab tab={active} />}
     </div>
   );
@@ -1253,6 +1255,406 @@ function ContentTab() {
         merged={data.merged.footer}     defaults={data.defaults.footer}
         overrides={data.overrides.footer}
         saving={savingKey === 'footer'} onSave={(u) => saveSection('footer', u)}
+      />
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Theme tab — brand colours + font choices.
+//
+// Colours are 3 hex values driving the amber→orange→yellow gradient
+// used everywhere on the homepage. Native <input type="color"> opens
+// the OS picker; alongside it a text input lets admin paste a hex
+// value if they have a brand specification on hand.
+//
+// Fonts are dropdowns from a curated list (DISPLAY_FONT_OPTIONS /
+// BODY_FONT_OPTIONS in services-meta.js). The homepage's Google Fonts
+// loader watches the chosen pair and re-injects the link tag, so a
+// save here triggers a font swap with no rebuild.
+
+const THEME_FIELDS = [
+  { key: 'amber',       label: 'Primary accent',   type: 'color', hint: 'Main brand colour — used on CTAs, links, accents' },
+  { key: 'orange',      label: 'Gradient mid',     type: 'color', hint: 'Middle stop in the amber→orange→yellow gradient' },
+  { key: 'yellow',      label: 'Gradient highlight', type: 'color', hint: 'Final stop — gives the gradient its glow' },
+  { key: 'displayFont', label: 'Display font',     type: 'select', options: DISPLAY_FONT_OPTIONS, hint: 'Big italic headlines (hero, section titles)' },
+  { key: 'bodyFont',    label: 'Body font',        type: 'select', options: BODY_FONT_OPTIONS,    hint: 'Paragraph text + regular UI copy' }
+];
+
+function ThemeTab() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const refresh = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/admin/content', { credentials: 'same-origin', cache: 'no-store' });
+      if (!r.ok) throw new Error(`Load failed (${r.status})`);
+      setData(await r.json());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { refresh(); }, []);
+
+  const save = async (updates) => {
+    setSaving(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/admin/content', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section: 'theme', updates })
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.error || `Save failed (${r.status})`);
+      }
+      setData(await r.json());
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16" style={{ color: BRAND.textDim }}>
+        <Loader2 className="w-5 h-5 animate-spin" />
+        <span className="ml-3 text-xs uppercase tracking-[0.25em]"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+          Loading theme…
+        </span>
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div className="flex items-start gap-2 p-3 text-sm"
+          style={{ background: 'rgba(127,29,29,0.3)', border: '1px solid #7f1d1d', color: '#fca5a5' }}>
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+      <ThemeSection
+        merged={data.merged.theme}
+        defaults={data.defaults.theme}
+        overrides={data.overrides.theme}
+        saving={saving}
+        onSave={save}
+      />
+
+      {/* Live preview — shows what the gradient looks like with the
+          current saved values (not the in-progress drafts). Cheap way
+          to confirm the save took without flipping back to the public
+          site. */}
+      <div className="p-5"
+        style={{
+          background: BRAND.navyRaise,
+          border: `1px solid ${BRAND.navyLineStrong}`,
+          borderTop: `2px solid ${BRAND.boltAmber}`
+        }}>
+        <div className="text-[10px] uppercase tracking-[0.25em] font-bold mb-3"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+          Live preview
+        </div>
+        <div style={{
+          height: 80,
+          background: `linear-gradient(135deg, ${data.merged.theme.amber}, ${data.merged.theme.orange}, ${data.merged.theme.yellow})`
+        }} />
+        <p className="text-xs mt-3" style={{ color: BRAND.textMuted }}>
+          Display font sample: <span style={{
+            fontFamily: `'${data.merged.theme.displayFont}', sans-serif`,
+            fontWeight: 800,
+            fontStyle: 'italic',
+            fontSize: '24px',
+            color: BRAND.textPri
+          }}>STAND OUT WITH STRIKING SIGNAGE</span>
+        </p>
+        <p className="text-xs mt-2" style={{ color: BRAND.textMuted }}>
+          Body font sample: <span style={{
+            fontFamily: `'${data.merged.theme.bodyFont}', sans-serif`,
+            color: BRAND.textPri
+          }}>Custom signs, banners, decals, lightboxes, vehicle wraps and more.</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// One section for the Theme tab — handles colour + select fields
+// alongside the regular text inputs ContentSection knows about. Same
+// pattern: drafts in local state, "Save changes" commits to the
+// server, "Reset all" clears every override.
+function ThemeSection({ merged, defaults, overrides, saving, onSave }) {
+  const buildDrafts = () => {
+    const out = {};
+    for (const f of THEME_FIELDS) out[f.key] = merged?.[f.key] ?? '';
+    return out;
+  };
+  const [drafts, setDrafts] = useState(buildDrafts);
+  useEffect(() => { setDrafts(buildDrafts()); }, [merged]); // eslint-disable-line
+
+  const dirty = THEME_FIELDS.some(f => (drafts[f.key] ?? '') !== (merged[f.key] ?? ''));
+  const overriddenCount = Object.keys(overrides || {}).length;
+
+  const handleSave = () => {
+    const updates = {};
+    for (const f of THEME_FIELDS) {
+      const draft = drafts[f.key] ?? '';
+      const live  = merged[f.key] ?? '';
+      if (draft === live) continue;
+      const def = defaults[f.key] ?? '';
+      // Empty string = clear the override → server falls back to default
+      updates[f.key] = (draft.trim?.() === def) ? '' : draft;
+    }
+    if (Object.keys(updates).length === 0) return;
+    onSave(updates);
+  };
+  const handleResetAll = () => {
+    if (!overriddenCount) return;
+    const updates = {};
+    for (const k of Object.keys(overrides)) updates[k] = '';
+    onSave(updates);
+  };
+
+  return (
+    <section style={{
+      background: BRAND.navyRaise,
+      border: `1px solid ${BRAND.navyLineStrong}`,
+      borderTop: `2px solid ${BRAND.boltAmber}`
+    }}>
+      <header className="px-5 py-4 flex items-baseline gap-3 flex-wrap"
+        style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
+        <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '1.4rem', letterSpacing: '0.02em', color: BRAND.textPri }}>
+          Brand colours &amp; fonts
+        </h3>
+        <p className="text-sm flex-1 min-w-[260px]" style={{ color: BRAND.textMuted }}>
+          The amber gradient + headline / body fonts. Saves apply to the
+          live homepage instantly via CSS custom properties.
+        </p>
+        <span className="text-[10px] uppercase tracking-[0.22em]"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+          {overriddenCount === 0 ? 'Showing factory defaults' : `${overriddenCount} field${overriddenCount === 1 ? '' : 's'} edited`}
+        </span>
+      </header>
+
+      <div className="p-5 space-y-4">
+        {THEME_FIELDS.map(f => {
+          const v = drafts[f.key] ?? '';
+          const def = defaults[f.key] ?? '';
+          const isOverridden = (overrides || {})[f.key] !== undefined;
+          return (
+            <div key={f.key}>
+              <div className="flex items-baseline gap-2 mb-1.5 flex-wrap">
+                <label className="text-[10px] uppercase tracking-[0.22em] font-bold"
+                  style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                  {f.label}
+                </label>
+                {isOverridden && (
+                  <span className="text-[9px] uppercase tracking-[0.22em]"
+                    style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                    · edited
+                  </span>
+                )}
+                <span className="text-[10px] ml-auto" style={{ color: BRAND.textFaint, fontStyle: 'italic' }}>
+                  {f.hint}
+                </span>
+              </div>
+
+              {f.type === 'color' ? (
+                /* Native colour input + text mirror. Picker for
+                   visual selection, hex text for paste-from-brand-doc. */
+                <div className="flex items-center gap-3">
+                  <input type="color" value={v || def}
+                    onChange={e => setDrafts(d => ({ ...d, [f.key]: e.target.value }))}
+                    style={{
+                      width: 56, height: 40, padding: 0,
+                      border: `1px solid ${BRAND.navyLineStrong}`,
+                      background: 'rgba(8,21,46,0.6)', cursor: 'pointer',
+                      borderRadius: 4
+                    }} />
+                  <input type="text" value={v}
+                    onChange={e => setDrafts(d => ({ ...d, [f.key]: e.target.value }))}
+                    placeholder={def}
+                    spellCheck={false}
+                    className="flex-1 px-3 py-2 text-sm outline-none"
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      background: 'rgba(8,21,46,0.6)',
+                      border: `1px solid ${BRAND.navyLineStrong}`,
+                      color: BRAND.textPri
+                    }} />
+                </div>
+              ) : f.type === 'select' ? (
+                <select value={v || def}
+                  onChange={e => setDrafts(d => ({ ...d, [f.key]: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm outline-none cursor-pointer"
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    background: 'rgba(8,21,46,0.6)',
+                    border: `1px solid ${BRAND.navyLineStrong}`,
+                    color: BRAND.textPri
+                  }}>
+                  {f.options.map(opt => (
+                    <option key={opt} value={opt}
+                      style={{ fontFamily: `'${opt}', sans-serif` }}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+
+              {def && v !== def && (
+                <button type="button"
+                  onClick={() => setDrafts(d => ({ ...d, [f.key]: def }))}
+                  className="text-[9px] uppercase tracking-[0.22em] mt-1 cursor-pointer"
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    color: BRAND.textFaint,
+                    background: 'transparent', border: 'none', padding: 0
+                  }}>
+                  Reset to default
+                </button>
+              )}
+            </div>
+          );
+        })}
+
+        <div className="flex items-center gap-3 pt-2"
+          style={{ borderTop: `1px solid ${BRAND.navyLine}`, paddingTop: 16 }}>
+          <button onClick={handleSave} disabled={!dirty || saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: BRAND.boltGrad,
+              color: BRAND.navy,
+              fontFamily: 'Anton, sans-serif',
+              letterSpacing: '0.1em',
+              border: 'none'
+            }}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" strokeWidth={2.5} />}
+            <span className="text-sm">{saving ? 'Saving…' : 'Save changes'}</span>
+          </button>
+          {overriddenCount > 0 && (
+            <button onClick={handleResetAll} disabled={saving}
+              className="px-4 py-2 text-[10px] uppercase tracking-[0.22em] cursor-pointer disabled:opacity-40"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                background: 'transparent', color: BRAND.textMuted,
+                border: `1px dashed ${BRAND.navyLineStrong}`
+              }}>
+              Reset all to defaults
+            </button>
+          )}
+          {!dirty && !saving && (
+            <span className="text-[10px] uppercase tracking-[0.22em]"
+              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
+              No changes
+            </span>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Settings tab — site-wide config (browser title, meta description,
+// quote email recipient). All flat text fields, so the existing
+// ContentSection component handles it.
+
+const SETTINGS_FIELDS = [
+  { key: 'siteTitle',       label: 'Site title',       hint: 'Browser tab title + social share preview' },
+  { key: 'metaDescription', label: 'Meta description', hint: 'SEO + social share blurb under the title', multiline: true, rows: 2 },
+  { key: 'quoteEmail',      label: 'Quote email',      hint: 'Where the quote-tool form sends enquiries (must be a verified Resend address)' }
+];
+
+function SettingsTab() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const refresh = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/admin/content', { credentials: 'same-origin', cache: 'no-store' });
+      if (!r.ok) throw new Error(`Load failed (${r.status})`);
+      setData(await r.json());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { refresh(); }, []);
+
+  const save = async (updates) => {
+    setSaving(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/admin/content', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section: 'settings', updates })
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.error || `Save failed (${r.status})`);
+      }
+      setData(await r.json());
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16" style={{ color: BRAND.textDim }}>
+        <Loader2 className="w-5 h-5 animate-spin" />
+        <span className="ml-3 text-xs uppercase tracking-[0.25em]"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+          Loading settings…
+        </span>
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div className="flex items-start gap-2 p-3 text-sm"
+          style={{ background: 'rgba(127,29,29,0.3)', border: '1px solid #7f1d1d', color: '#fca5a5' }}>
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+      <ContentSection
+        title="Site settings"
+        subtitle="Browser title, SEO description, quote-tool email recipient"
+        fields={SETTINGS_FIELDS}
+        merged={data.merged.settings}
+        defaults={data.defaults.settings}
+        overrides={data.overrides.settings}
+        saving={saving}
+        onSave={save}
       />
     </div>
   );

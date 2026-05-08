@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import {
   buildServices, buildHero, buildContact, buildAbout,
   buildServicesIntro, buildContactIntro, buildMaterials,
-  buildMaterialsRows, buildPillars, buildReviews, buildBigCta, buildFooter
+  buildMaterialsRows, buildPillars, buildReviews, buildBigCta, buildFooter,
+  buildTheme, buildSettings
 } from './services-meta.js';
 
 // ════════════════════════════════════════════════════════════════
@@ -73,6 +74,15 @@ const HOME_CSS = `
     --header-bg-scrolled: rgba(8, 21, 46, 0.92);
     --map-filter: grayscale(0.35) contrast(1.05);
     --shadow-card: 0 18px 50px rgba(0,0,0,0.45);
+    /* Font stacks — admin Theme tab can override --font-display and
+       --font-body at runtime by setting them on documentElement. The
+       fallback inside each var() guards against an unloaded webfont
+       (we still get a sensible system fallback while Google Fonts
+       fetches). */
+    --font-display: 'Big Shoulders Display', sans-serif;
+    --font-body:    'Inter Tight', sans-serif;
+    --font-serif:   'Instrument Serif', serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
   }
   [data-theme="light"] {
     --navy: #08152e;
@@ -98,7 +108,7 @@ const HOME_CSS = `
   }
   .strike-page *, .strike-page *::before, .strike-page *::after { box-sizing: border-box; }
   .strike-page {
-    font-family: 'Inter Tight', sans-serif;
+    font-family: var(--font-body);
     font-feature-settings: 'ss01', 'cv11';
     color: var(--text);
     background:
@@ -127,7 +137,7 @@ const HOME_CSS = `
   .sect-num {
     position: absolute;
     top: 16px; right: 28px;
-    font-family: 'Big Shoulders Display', sans-serif;
+    font-family: var(--font-display);
     font-weight: 900; font-style: italic;
     font-size: clamp(80px, 14vw, 200px);
     line-height: 1;
@@ -151,10 +161,10 @@ const HOME_CSS = `
   .service:hover::before { opacity: 1; }
   .service > * { position: relative; z-index: 2; }
 
-  .anton { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-style: italic; letter-spacing: -0.01em; }
-  .bebas { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; }
-  .mono  { font-family: 'JetBrains Mono', monospace; }
-  .serif-i { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
+  .anton { font-family: var(--font-display); font-weight: 900; font-style: italic; letter-spacing: -0.01em; }
+  .bebas { font-family: var(--font-display); font-weight: 800; }
+  .mono  { font-family: var(--font-mono); }
+  .serif-i { font-family: var(--font-serif); font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
   .grad-text {
     background: var(--grad);
     -webkit-background-clip: text; background-clip: text;
@@ -185,7 +195,7 @@ const HOME_CSS = `
   }
   .nav-links { display: flex; align-items: center; gap: 4px; }
   .nav-link {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 11px; text-transform: uppercase;
     letter-spacing: 0.18em;
     color: var(--muted); text-decoration: none;
@@ -199,7 +209,7 @@ const HOME_CSS = `
     padding: 12px 20px;
     background: var(--grad);
     color: var(--navy);
-    font-family: 'Big Shoulders Display', sans-serif;
+    font-family: var(--font-display);
     font-weight: 800; font-style: italic;
     letter-spacing: 0.02em; text-transform: uppercase;
     text-decoration: none;
@@ -268,9 +278,9 @@ const HOME_CSS = `
 
   .eyebrow { display: inline-flex; align-items: center; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; justify-content: center; }
   .eyebrow .line { height: 1px; width: 60px; background: var(--grad); }
-  .eyebrow .label { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3em; font-weight: 700; color: var(--amber); }
+  .eyebrow .label { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.3em; font-weight: 700; color: var(--amber); }
   .hero h1 {
-    font-family: 'Big Shoulders Display', sans-serif;
+    font-family: var(--font-display);
     font-weight: 900; font-style: italic;
     letter-spacing: -0.01em;
     font-size: clamp(3rem, 9vw, 7rem);
@@ -308,7 +318,7 @@ const HOME_CSS = `
     border: 1px solid var(--line-strong);
     border-radius: 999px;
     color: var(--text);
-    font-family: 'JetBrains Mono', monospace; letter-spacing: 0.18em; text-transform: uppercase;
+    font-family: var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase;
     font-weight: 600; font-size: 12px; text-decoration: none;
     transition: border-color .2s, color .2s;
     cursor: pointer;
@@ -349,15 +359,15 @@ const HOME_CSS = `
   }
   .show-card:hover .show-label { transform: translateY(0); opacity: 1; }
   .show-label .tick { width: 16px; height: 1px; background: var(--amber); }
-  .show-label span:last-child { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.22em; font-weight: 700; }
+  .show-label span:last-child { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.22em; font-weight: 700; }
 
   /* Sections */
   .section { max-width: 1280px; margin: 0 auto; padding: 80px 28px; position: relative; }
   .sect-header { text-align: center; }
   .sect-eyebrow { display: inline-flex; align-items: center; gap: 14px; margin-bottom: 14px; }
   .sect-eyebrow .line { height: 1px; width: 50px; background: var(--grad); }
-  .sect-eyebrow .label { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--amber); font-weight: 700; }
-  .sect-title { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-style: italic; font-size: clamp(2.2rem, 6.5vw, 4rem); letter-spacing: -0.005em; line-height: 1.05; padding: 0.04em 0.06em 0.04em 0; margin: 0; text-transform: uppercase; }
+  .sect-eyebrow .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--amber); font-weight: 700; }
+  .sect-title { font-family: var(--font-display); font-weight: 900; font-style: italic; font-size: clamp(2.2rem, 6.5vw, 4rem); letter-spacing: -0.005em; line-height: 1.05; padding: 0.04em 0.06em 0.04em 0; margin: 0; text-transform: uppercase; }
   .sect-intro { max-width: 640px; margin: 16px auto 0; text-align: center; color: var(--muted); font-size: clamp(14px, 1.6vw, 17px); line-height: 1.6; }
 
   /* Pillars */
@@ -369,7 +379,7 @@ const HOME_CSS = `
     transition: transform .3s, border-color .3s;
   }
   .pillar:hover { transform: translateY(-4px); }
-  .pillar .key { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; font-weight: 700; }
+  .pillar .key { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; font-weight: 700; }
   .pillar .body { font-size: 14px; color: var(--muted); line-height: 1.6; }
 
   /* Services */
@@ -416,7 +426,7 @@ const HOME_CSS = `
     background: rgba(8,21,46,0.7);
     border: 1px solid rgba(245,154,16,0.45);
     border-radius: 999px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
     color: #f8fafc; font-weight: 700;
     backdrop-filter: blur(6px);
@@ -426,24 +436,24 @@ const HOME_CSS = `
   .service-cover-count svg { color: var(--amber); flex-shrink: 0; }
   /* Body sits below the cover with its own padding */
   .service-body { padding: 24px 24px 28px; }
-  .service .num { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); margin-bottom: 14px; }
-  .service h3 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: clamp(24px, 3vw, 32px); letter-spacing: 0; line-height: 1.05; margin: 0 0 10px; text-transform: uppercase; }
+  .service .num { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); margin-bottom: 14px; }
+  .service h3 { font-family: var(--font-display); font-weight: 800; font-size: clamp(24px, 3vw, 32px); letter-spacing: 0; line-height: 1.05; margin: 0 0 10px; text-transform: uppercase; }
   .service p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
 
   /* About + materials */
   .about-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: center; margin-top: 48px; }
-  .about h2 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-style: italic; font-size: clamp(2rem, 5.5vw, 3.5rem); letter-spacing: -0.005em; line-height: 1.05; padding: 0.04em 0.06em 0.04em 0; margin: 0 0 20px; text-transform: uppercase; }
+  .about h2 { font-family: var(--font-display); font-weight: 900; font-style: italic; font-size: clamp(2rem, 5.5vw, 3.5rem); letter-spacing: -0.005em; line-height: 1.05; padding: 0.04em 0.06em 0.04em 0; margin: 0 0 20px; text-transform: uppercase; }
   .about p { color: var(--muted); font-size: 16px; line-height: 1.7; margin: 0 0 16px; }
   .materials {
     background: var(--navy-deep); border: 1px solid var(--line-strong);
     border-top: 2px solid var(--amber); border-radius: 14px;
     padding: 32px;
   }
-  .materials .head { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--amber); margin-bottom: 24px; font-weight: 700; }
+  .materials .head { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--amber); margin-bottom: 24px; font-weight: 700; }
   .materials .row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
   .materials .row:last-child { border-bottom: none; }
-  .materials .row strong { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0; color: var(--text); }
-  .materials .row span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; font-family: 'JetBrains Mono', monospace; }
+  .materials .row strong { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: 0; color: var(--text); }
+  .materials .row span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; font-family: var(--font-mono); }
 
   /* Contact */
   .contact-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 40px; }
@@ -454,9 +464,9 @@ const HOME_CSS = `
     display: block; transition: transform .25s, border-color .25s;
   }
   .ct:hover { transform: translateY(-3px); border-color: var(--amber); }
-  .ct .label { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); }
+  .ct .label { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); }
   .ct .label svg { color: var(--amber); }
-  .ct .value { font-family: 'Inter Tight', sans-serif; font-weight: 600; font-size: 16px; line-height: 1.3; letter-spacing: -0.01em; }
+  .ct .value { font-family: var(--font-body); font-weight: 600; font-size: 16px; line-height: 1.3; letter-spacing: -0.01em; }
 
   .map-wrap {
     margin-top: 28px; position: relative; overflow: hidden;
@@ -484,7 +494,7 @@ const HOME_CSS = `
     padding: 9px 16px;
     background: var(--grad);
     color: var(--navy);
-    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    font-family: var(--font-mono); font-size: 10px;
     text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700;
     text-decoration: none;
     border-radius: 12px 12px 12px 2px;
@@ -501,7 +511,7 @@ const HOME_CSS = `
   }
   .stars { display: inline-flex; gap: 4px; color: var(--amber); font-size: 22px; }
   .reviews-strip .copy { flex: 1; min-width: 240px; }
-  .reviews-strip .copy .title { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: 28px; text-transform: uppercase; }
+  .reviews-strip .copy .title { font-family: var(--font-display); font-weight: 800; font-size: 28px; text-transform: uppercase; }
   .reviews-strip .copy .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
 
   .big-cta {
@@ -522,8 +532,8 @@ const HOME_CSS = `
   }
   @keyframes pulseGlow { 0%,100% { opacity: .7 } 50% { opacity: 1 } }
   .big-cta-copy { flex: 1; min-width: 260px; position: relative; z-index: 1; }
-  .big-cta-copy .eb { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; }
-  .big-cta-copy h3 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-style: italic; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1.05; padding: 0.04em 0.06em 0.04em 0; margin: 0 0 14px; text-transform: uppercase; }
+  .big-cta-copy .eb { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; }
+  .big-cta-copy h3 { font-family: var(--font-display); font-weight: 900; font-style: italic; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1.05; padding: 0.04em 0.06em 0.04em 0; margin: 0 0 14px; text-transform: uppercase; }
   .big-cta-copy p { color: var(--muted); font-size: 15px; line-height: 1.6; margin: 0; }
 
   .footer {
@@ -531,7 +541,7 @@ const HOME_CSS = `
     border-top: 1px solid var(--line);
     display: flex; justify-content: space-between; align-items: center;
     gap: 16px; flex-wrap: wrap;
-    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.22em;
     text-transform: uppercase; color: var(--faint);
   }
   .footer a { color: var(--faint); text-decoration: none; transition: color .2s; }
@@ -572,7 +582,7 @@ const HOME_CSS = `
   }
   .lightbox-caption {
     position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
-    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    font-family: var(--font-mono); font-size: 11px;
     text-transform: uppercase; letter-spacing: 0.22em; font-weight: 700;
     color: #f8fafc;
     background: rgba(8, 21, 46, 0.7);
@@ -599,7 +609,7 @@ const HOME_CSS = `
   .lightbox-nav.next { right: 24px; }
   .lightbox-counter {
     position: absolute; top: 32px; left: 50%; transform: translateX(-50%);
-    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    font-family: var(--font-mono); font-size: 11px;
     color: #f8fafc; opacity: 0.7; letter-spacing: 0.18em;
   }
 
@@ -653,14 +663,11 @@ export default function Home() {
   const REVIEWS         = useMemo(() => content?.reviews        || buildReviews(),        [content]);
   const BIG_CTA         = useMemo(() => content?.big_cta        || buildBigCta(),         [content]);
   const FOOTER          = useMemo(() => content?.footer         || buildFooter(),         [content]);
+  const THEME           = useMemo(() => content?.theme          || buildTheme(),          [content]);
+  const SETTINGS        = useMemo(() => content?.settings       || buildSettings(),       [content]);
 
-  // ── Inject fonts + styles on mount ──
+  // ── Inject base styles on mount ──
   useEffect(() => {
-    const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Inter+Tight:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-
     const style = document.createElement('style');
     style.id = 'strikeprint-home-styles';
     style.textContent = HOME_CSS;
@@ -674,10 +681,88 @@ export default function Home() {
     try { localStorage.removeItem('strike-theme'); } catch {}
 
     return () => {
-      try { document.head.removeChild(link); } catch {}
       try { document.head.removeChild(style); } catch {}
     };
   }, []);
+
+  // ── Dynamic Google Fonts loader ──
+  // Builds a Fonts URL that includes the admin-chosen display + body
+  // fonts (plus the always-on serif and mono accents). Re-runs whenever
+  // THEME changes so picking a new font swaps the link in-place — the
+  // browser fetches the new font, CSS vars on :root point at it, the
+  // page re-renders. Weight specs are picked per-font so we only
+  // download the variants the design actually needs.
+  useEffect(() => {
+    // Per-font weight specs — keep variants small so the request stays
+    // cheap. Anything not listed here just loads its default 400.
+    const FONT_WEIGHTS = {
+      'Big Shoulders Display': ':wght@600;700;800;900',
+      'Bebas Neue':             '',
+      'Anton':                  '',
+      'Archivo Black':          '',
+      'Inter Tight':            ':wght@300;400;500;600;700;800',
+      'Inter':                  ':wght@300;400;500;600;700',
+      'DM Sans':                ':wght@300;400;500;600;700',
+      'Manrope':                ':wght@300;400;500;600;700',
+      'Instrument Serif':       ':ital@0;1',
+      'JetBrains Mono':         ':wght@400;500;600'
+    };
+    // Always include the serif + mono accents. Display + body come
+    // from THEME, falling back to the originals on first paint.
+    const families = [
+      THEME.displayFont || 'Big Shoulders Display',
+      THEME.bodyFont    || 'Inter Tight',
+      'Instrument Serif',
+      'JetBrains Mono'
+    ];
+    const params = families
+      .map(f => `family=${f.replace(/ /g, '+')}${FONT_WEIGHTS[f] || ''}`)
+      .join('&');
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?${params}&display=swap`;
+    document.head.appendChild(link);
+    return () => { try { document.head.removeChild(link); } catch {} };
+  }, [THEME.displayFont, THEME.bodyFont]);
+
+  // ── Apply theme colours + font choices to CSS custom properties ──
+  // The homepage's CSS uses var(--amber, --orange, --yellow, --grad,
+  // --font-display, --font-body) everywhere. Setting them on the root
+  // element overrides the :root defaults — admin picks a new colour
+  // or font, the whole page reflows in a single paint.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--amber',  THEME.amber);
+    root.style.setProperty('--orange', THEME.orange);
+    root.style.setProperty('--yellow', THEME.yellow);
+    root.style.setProperty('--grad',   `linear-gradient(135deg, ${THEME.amber}, ${THEME.orange}, ${THEME.yellow})`);
+    if (THEME.displayFont) root.style.setProperty('--font-display', `'${THEME.displayFont}', sans-serif`);
+    if (THEME.bodyFont)    root.style.setProperty('--font-body',    `'${THEME.bodyFont}', sans-serif`);
+    return () => {
+      // No cleanup — leave the override in place so other components
+      // (lightbox, modals) inherit the same theme. They'd flash back to
+      // defaults during unmount otherwise.
+    };
+  }, [THEME.amber, THEME.orange, THEME.yellow, THEME.displayFont, THEME.bodyFont]);
+
+  // ── Apply <head> settings (title, meta description) ──
+  // Vercel serves a static index.html with the original title; we
+  // overwrite at runtime so admin Settings tab edits show on the
+  // browser tab + when the page is shared. Search engines that run
+  // JS will see the updated values; static-HTML scrapers see the
+  // index.html fallback (acceptable trade-off for low-traffic site).
+  useEffect(() => {
+    if (SETTINGS.siteTitle) document.title = SETTINGS.siteTitle;
+    if (SETTINGS.metaDescription) {
+      let meta = document.querySelector('meta[name="description"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'description');
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', SETTINGS.metaDescription);
+    }
+  }, [SETTINGS.siteTitle, SETTINGS.metaDescription]);
 
   // Fetch admin-managed content from /api/photos. The endpoint is
   // CDN-cached (10s s-maxage) so this is cheap and shared across visitors.

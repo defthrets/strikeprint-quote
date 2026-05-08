@@ -277,6 +277,50 @@ export const FOOTER_DEFAULTS = {
 };
 export function buildFooter(overrides) { return shallowMerge(FOOTER_DEFAULTS, overrides); }
 
+// ─── Theme (colours + fonts) ──────────────────────────────────
+// Three brand-accent colours drive the amber→orange→yellow gradient
+// used everywhere on the homepage (CTA buttons, gradient text, etc.).
+// Display + body fonts are picked from a curated list of Google Fonts
+// — see DISPLAY_FONT_OPTIONS / BODY_FONT_OPTIONS below. The homepage
+// uses CSS custom properties (--amber, --font-display, …) so a save
+// here applies instantly without a rebuild.
+export const THEME_DEFAULTS = {
+  amber:       '#f59a10',  // primary brand accent
+  orange:      '#f0601f',  // gradient mid-tone
+  yellow:      '#fad905',  // gradient highlight
+  displayFont: 'Big Shoulders Display',
+  bodyFont:    'Inter Tight'
+};
+// Curated dropdowns for the admin ThemeTab. Adding a new option here
+// also requires the homepage's font loader to know about it (it'll
+// build the Google Fonts URL based on whichever pair is active).
+export const DISPLAY_FONT_OPTIONS = [
+  'Big Shoulders Display',  // default — chunky athletic italic
+  'Bebas Neue',             // tall narrow caps
+  'Anton',                  // condensed sans
+  'Archivo Black'           // heavier extra-bold geometric
+];
+export const BODY_FONT_OPTIONS = [
+  'Inter Tight',            // default — slightly condensed
+  'Inter',                  // flagship neutral sans
+  'DM Sans',                // softer rounded
+  'Manrope'                 // semi-rounded modern
+];
+export function buildTheme(overrides) { return shallowMerge(THEME_DEFAULTS, overrides); }
+
+// ─── Settings ─────────────────────────────────────────────────
+// Site-wide configuration the admin should be able to tweak without
+// touching code. Site title / meta description are applied to the
+// document at runtime (via Home.jsx). Quote email recipient is read
+// by /api/send-quote — overrides QUOTE_RECIPIENT env var so admin
+// can re-route quote enquiries without a deploy.
+export const SETTINGS_DEFAULTS = {
+  siteTitle:       'Strike Print · Sydney Signage Installers',
+  metaDescription: 'Custom signs, banners, decals, lightboxes, vehicle wraps and more. Designed, manufactured and installed Australia-wide from Arndell Park, Sydney.',
+  quoteEmail:      'mick@strikeprint.com.au'
+};
+export function buildSettings(overrides) { return shallowMerge(SETTINGS_DEFAULTS, overrides); }
+
 // Convenience — list of every flat section name + its defaults map. Used
 // by the admin API for validation (and the public API for one-shot merge).
 export const FLAT_SECTIONS = {
@@ -288,7 +332,9 @@ export const FLAT_SECTIONS = {
   materials:      MATERIALS_DEFAULTS,
   reviews:        REVIEWS_DEFAULTS,
   big_cta:        BIG_CTA_DEFAULTS,
-  footer:         FOOTER_DEFAULTS
+  footer:         FOOTER_DEFAULTS,
+  theme:          THEME_DEFAULTS,
+  settings:       SETTINGS_DEFAULTS
 };
 // Array sections — name → { defaults: [], itemKeys: [] } so the API can
 // validate each slot's allowed fields without a schema library.

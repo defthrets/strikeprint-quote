@@ -29,7 +29,9 @@ import {
   buildMaterialsRows,
   buildReviews,
   buildBigCta,
-  buildFooter
+  buildFooter,
+  buildTheme,
+  buildSettings
 } from '../../src/services-meta.js';
 
 // Domain errors thrown by mutators — handler maps them to HTTP codes.
@@ -74,6 +76,8 @@ function buildContentResponse(gallery) {
       reviews:        gallery.reviews        || {},
       big_cta:        gallery.big_cta        || {},
       footer:         gallery.footer         || {},
+      theme:          gallery.theme          || {},
+      settings:       gallery.settings       || {},
       pillars:        Array.isArray(gallery.pillars)        ? gallery.pillars        : [],
       materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : []
     },
@@ -97,6 +101,8 @@ function buildContentResponse(gallery) {
       reviews:        buildReviews(gallery.reviews),
       big_cta:        buildBigCta(gallery.big_cta),
       footer:         buildFooter(gallery.footer),
+      theme:          buildTheme(gallery.theme),
+      settings:       buildSettings(gallery.settings),
       pillars:        buildPillars(gallery.pillars),
       materials_rows: buildMaterialsRows(gallery.materials_rows)
     },

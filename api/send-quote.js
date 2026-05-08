@@ -6,13 +6,23 @@
 //   RESEND_API_KEY    — get from https://resend.com (free 3000/mo)
 // Optional:
 //   QUOTE_FROM        — sender, default 'Strike Print Quotes <onboarding@resend.dev>'
-//   QUOTE_RECIPIENT   — recipient, default 'mick@strikeprint.com.au'
+//   QUOTE_RECIPIENT   — recipient fallback, default 'mick@strikeprint.com.au'
+//
+// Recipient lookup order:
+//   1. settings.quoteEmail from gallery.json (admin Settings tab) — wins
+//   2. QUOTE_RECIPIENT env var
+//   3. hardcoded fallback (mick@strikeprint.com.au)
+// This way admin can re-route quote enquiries from the Settings tab
+// without redeploying or touching env vars.
 //
 // Note on the default sender: 'onboarding@resend.dev' is Resend's sandbox
 // address. It will only deliver to the email address that owns the Resend
 // account — which for Strike Print is mick@strikeprint.com.au, so this works
 // out of the box. To send to other recipients (or to use a custom From),
 // verify a domain at resend.com/domains and set QUOTE_FROM.
+
+import { readGallery } from './admin/_lib/store.js';
+import { buildSettings } from '../src/services-meta.js';
 
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
@@ -35,8 +45,23 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Email service not configured (missing RESEND_API_KEY)' });
   }
 
-  const sender    = process.env.QUOTE_FROM      || 'Strike Print Quotes <onboarding@resend.dev>';
-  const recipient = process.env.QUOTE_RECIPIENT || 'mick@strikeprint.com.au';
+  const sender = process.env.QUOTE_FROM || 'Strike Print Quotes <onboarding@resend.dev>';
+
+  // Recipient: admin's Settings tab override > env var > hardcoded
+  // fallback. Reading gallery.json on every quote send is fine — this
+  // endpoint runs once per submission, not per page view.
+  let recipient = process.env.QUOTE_RECIPIENT || 'mick@strikeprint.com.au';
+  try {
+    const gallery = await readGallery();
+    const settings = buildSettings(gallery.settings);
+    if (settings.quoteEmail && /^\S+@\S+\.\S+$/.test(settings.quoteEmail)) {
+      recipient = settings.quoteEmail;
+    }
+  } catch (e) {
+    // Blob unreachable / parse error → fall through to env var fallback.
+    // Better to deliver to the default recipient than drop the enquiry.
+    console.warn('send-quote: settings lookup failed, using fallback recipient', e?.message);
+  }
 
   const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
   const {

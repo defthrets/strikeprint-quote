@@ -103,6 +103,10 @@ export async function readGallery() {
       reviews:        json.reviews        || {},
       big_cta:        json.big_cta        || {},
       footer:         json.footer         || {},
+      // Brand colours + font choices (driven by Theme tab in admin)
+      theme:          json.theme          || {},
+      // Site-wide config (title, meta description, quote email)
+      settings:       json.settings       || {},
       // Array sections — slot-aligned with their defaults
       pillars:        Array.isArray(json.pillars)        ? json.pillars        : [],
       materials_rows: Array.isArray(json.materials_rows) ? json.materials_rows : [],
@@ -149,6 +153,8 @@ export async function writeGallery(gallery) {
     reviews:        gallery.reviews        || {},
     big_cta:        gallery.big_cta        || {},
     footer:         gallery.footer         || {},
+    theme:          gallery.theme          || {},
+    settings:       gallery.settings       || {},
     pillars:        Array.isArray(gallery.pillars)        ? gallery.pillars        : [],
     materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : [],
     // Audit log — capped to AUDIT_MAX most recent entries
