@@ -163,8 +163,8 @@ export const ABOUT_DEFAULTS = {
   titlePre:  'Custom signage,',
   titleGrad: 'built to last',
   titlePost: '.',
-  intro1:    'Strike Print is an Arndell Park signage installer serving Sydney and beyond. We design, manufacture and install custom signs that get businesses noticed and keep them looking sharp for years.',
-  intro2:    'From a single shopfront fascia to a fleet vehicle rollout, every job runs the same way: clean specs, premium materials, careful install. We work with local trades, retail, hospitality, fitness, healthcare and corporate clients across Western Sydney.'
+  intro1:    'At Strike Print we design, manufacture and install custom signs that get businesses noticed and keep them looking sharp for years.',
+  intro2:    'From a single shopfront fascia to a fleet vehicle rollout, every job runs the same way: clean specs, premium materials, careful install. We work with local trades, retail, hospitality, fitness, healthcare and corporate clients across Western Sydney and beyond.'
 };
 export function buildAbout(overrides) { return shallowMerge(ABOUT_DEFAULTS, overrides); }
 
@@ -198,7 +198,7 @@ export function buildPillars(overrides) {
 export const SERVICES_INTRO_DEFAULTS = {
   eyebrow: 'What we make',
   title:   'What we do',
-  intro:   "We use premium materials on every job — Avery, 3M and Arlon cast vinyl films, ACM, acrylic and aluminium, finished with UV-stable inks rated for years of Australian sun. Every sign we hang is built to last."
+  intro:   "We use premium materials on every job — Avery, 3M and Arlon cast vinyl films, ACM, acrylic and aluminium, finished with UV-stable inks rated for years of Australian sun. Every sign we hang is built to last. Click any service to see the full gallery."
 };
 export function buildServicesIntro(overrides) { return shallowMerge(SERVICES_INTRO_DEFAULTS, overrides); }
 
@@ -219,14 +219,17 @@ export const MATERIALS_DEFAULTS = {
   titlePre:  'Premium materials.',
   titleGrad: 'No shortcuts.',
   titlePost: '',
-  body1:     "We've been at it for two decades because the work has to last. That means only premium products like Avery, 3M and Arlon vinyls, ACM panels, solid acrylic, marine-grade aluminium and UV-stable inks rated for years of Australian sun. We know the right product for the job.",
-  body2:     'Heritage zones, council permits, lift hire, after-hours installs — handled. Licensed, insured, and on time.',
+  body1:     "We've been at it for two decades with work that lasts to show for it. That means only premium products like Avery, 3M and Arlon vinyls, ACM panels, solid acrylic, industrial-grade aluminium and UV-stable inks rated for years of Australian sun. We know the right product suited to your needs.",
+  body2:     '',
   ctaLabel:  'Talk to us →',
   boxTitle:  'Trusted materials'
 };
 export function buildMaterials(overrides) { return shallowMerge(MATERIALS_DEFAULTS, overrides); }
 
 // ─── Materials rows (the 6 brand entries) ──────────────────────
+// Note: ARLON's detail is intentionally lowercase ("Print media") to match
+// the rest of the row captions — older versions had it as "PRINT MEDIA"
+// which broke the visual rhythm. Same story for "UV-stable inks" detail.
 export const MATERIALS_ROWS_DEFAULTS = [
   { name: 'AVERY',          detail: 'Cast vinyl' },
   { name: '3M',             detail: 'Wraps · Decals' },

@@ -376,49 +376,57 @@ const HOME_CSS = `
   .services { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 48px; }
   .service {
     background: var(--navy-raise); border: 1px solid var(--line-strong);
-    border-radius: 14px; padding: 28px 24px;
+    border-radius: 14px;
+    padding: 0; /* cover bleeds to the edges; .service-body adds inner padding */
     position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    cursor: zoom-in;
     transition: transform .3s, border-color .3s, box-shadow .3s;
   }
-  .service-corner { position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(225deg, rgba(245,154,16,0.18), transparent 60%); pointer-events: none; z-index: 1; }
-  .service { cursor: zoom-in; }
   .service:hover { transform: translateY(-4px); border-color: var(--amber); box-shadow: 0 16px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(245,154,16,0.4); }
   .service:focus-visible { outline: 2px solid var(--amber); outline-offset: 4px; }
-  .service .num { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); margin-bottom: 14px; }
-  /* Service cover: category preview image. Click cycles a per-service
-     lightbox of related photos (replaces the old SVG icon box). */
+  /* Service cover: category preview image at the top of each tile. Click
+     opens a per-service lightbox cycling through that category's photos. */
   .service-cover {
     position: relative; overflow: hidden;
-    aspect-ratio: 16 / 10;
-    margin: 0 -24px 18px; /* break out of the card padding */
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
+    aspect-ratio: 4 / 3;
+    border-bottom: 1px solid var(--line-strong);
     background: var(--navy-deep);
   }
   .service-cover img {
     position: absolute; inset: 0;
     width: 100%; height: 100%; object-fit: cover; display: block;
     filter: saturate(0.95) brightness(0.92);
-    transition: transform .9s cubic-bezier(.2,.7,.3,1), filter .4s;
+    transition: transform 1s cubic-bezier(.2,.7,.3,1), filter .5s;
   }
   .service:hover .service-cover img { transform: scale(1.06); filter: saturate(1.05) brightness(1); }
-  .service-cover-shade {
-    position: absolute; inset: 0;
-    background: linear-gradient(180deg, transparent 35%, rgba(8,21,46,0.75) 100%);
+  .service-cover::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 50%, rgba(8,21,46,0.85) 100%);
     pointer-events: none;
   }
-  [data-theme="light"] .service-cover-shade {
-    background: linear-gradient(180deg, transparent 35%, rgba(8,21,46,0.55) 100%);
+  [data-theme="light"] .service-cover::after {
+    background: linear-gradient(180deg, transparent 50%, rgba(8,21,46,0.55) 100%);
   }
+  /* Photo count pill — top-right of cover, blurred backdrop, amber icon */
   .service-cover-count {
-    position: absolute; left: 14px; bottom: 12px;
-    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em;
-    text-transform: uppercase; font-weight: 700;
-    color: #f8fafc;
-    display: flex; align-items: center; gap: 8px;
+    position: absolute; top: 14px; right: 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px;
+    background: rgba(8,21,46,0.7);
+    border: 1px solid rgba(245,154,16,0.45);
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: #f8fafc; font-weight: 700;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     z-index: 2;
   }
-  .service-cover-count .tick { width: 14px; height: 1px; background: var(--amber); }
+  .service-cover-count svg { color: var(--amber); flex-shrink: 0; }
+  /* Body sits below the cover with its own padding */
+  .service-body { padding: 24px 24px 28px; }
+  .service .num { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); margin-bottom: 14px; }
   .service h3 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: clamp(24px, 3vw, 32px); letter-spacing: 0; line-height: 1.05; margin: 0 0 10px; text-transform: uppercase; }
   .service p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
 
@@ -916,30 +924,39 @@ export default function Home() {
 
         <div className="services">
           {SERVICES.map(s => (
-            <div key={s.num}
+            <article key={s.num}
               className="service reveal"
+              data-service={s.num}
               onClick={() => openLightbox(s.gallery, 0)}
               role="button"
               tabIndex={0}
+              aria-label={`View ${s.title} gallery`}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   openLightbox(s.gallery, 0);
                 }
               }}>
-              <div className="service-corner" aria-hidden />
-              <div className="num">Service · {s.num} / 06</div>
               <div className="service-cover">
                 <img src={s.cover} alt={s.title} loading="lazy" decoding="async" />
-                <div className="service-cover-shade" aria-hidden />
-                <div className="service-cover-count">
-                  <span className="tick" />
-                  <span>{String(s.gallery.length).padStart(2, '0')} {s.gallery.length === 1 ? 'photo' : 'photos'}</span>
-                </div>
+                {/* Photo count pill — top-right of cover. Image icon + count.
+                    Subtle backdrop-blur so it sits cleanly over photography. */}
+                <span className="service-cover-count">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <span>{s.gallery.length} {s.gallery.length === 1 ? 'photo' : 'photos'}</span>
+                </span>
               </div>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
-            </div>
+              <div className="service-body">
+                <div className="num">Service · {s.num} / 06</div>
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
+              </div>
+            </article>
           ))}
         </div>
       </section>
