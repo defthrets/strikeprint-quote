@@ -38,11 +38,14 @@ class HttpError extends Error {
 }
 
 export default async function handler(req, res) {
-  if (!(await requireAdmin(req, res))) return;
+  // requireAdmin returns the canonical username on success — passed
+  // to applyMutation so the audit log records who edited what.
+  const user = await requireAdmin(req, res);
+  if (!user) return;
 
   try {
     if (req.method === 'GET')   return await getContent(req, res);
-    if (req.method === 'PATCH') return await patchContent(req, res);
+    if (req.method === 'PATCH') return await patchContent(req, res, user);
 
     res.setHeader('Allow', 'GET, PATCH');
     return res.status(405).json({ error: 'Method not allowed' });
@@ -100,11 +103,15 @@ async function getContent(req, res) {
     defaults: { ...FLAT_SECTIONS,
       pillars:        ARRAY_SECTIONS.pillars.defaults,
       materials_rows: ARRAY_SECTIONS.materials_rows.defaults
-    }
+    },
+    // Most recent edits first. The admin UI renders this as a "Recent
+    // activity" panel so editors can see who's been touching what.
+    audit: Array.isArray(gallery.audit) ? gallery.audit.slice(0, 50) : [],
+    rev: gallery.rev || 0
   });
 }
 
-async function patchContent(req, res) {
+async function patchContent(req, res, user) {
   const body = parseBody(req.body);
   const { section, updates } = body;
   if (!section) throw new HttpError(400, 'section required');
@@ -196,6 +203,16 @@ async function patchContent(req, res) {
       return out;
     });
     return { ...gallery, [section]: normalised };
+  }, {
+    user,
+    // Use 'content.<section>' so the audit log makes the affected
+    // section obvious at a glance (e.g. 'content.hero', 'content.services').
+    action: `content.${section}`,
+    // For services edits, the target is the slug(s) being changed; for
+    // flat sections it's the section itself; for arrays it's a count.
+    target: section === 'services'
+      ? Object.keys(updates).join(',')
+      : (Array.isArray(updates) ? `[${updates.length} slots]` : null)
   });
   return res.status(200).json(updated);
 }

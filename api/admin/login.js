@@ -1,7 +1,7 @@
-// POST /api/admin/login — { password } → 204 + Set-Cookie session token
+// POST /api/admin/login — { username, password } → 204 + Set-Cookie session
 // Rate-limited per-IP via in-memory counter (best-effort; serverless cold
-// starts reset it, which is fine for a single-admin endpoint).
-import { verifyPassword, signSessionToken, buildSessionCookie } from './_lib/auth.js';
+// starts reset it, which is fine for low-traffic admin endpoints).
+import { verifyCredentials, signSessionToken, buildSessionCookie } from './_lib/auth.js';
 
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX_ATTEMPTS = 8;
@@ -33,20 +33,23 @@ export default async function handler(req, res) {
   }
 
   const body = typeof req.body === 'string' ? safeParse(req.body) : (req.body || {});
+  const username = (body.username || '').toString();
   const password = (body.password || '').toString();
 
-  if (!password) {
-    return res.status(400).json({ error: 'Password required' });
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
   }
 
-  const ok = await verifyPassword(password);
-  if (!ok) {
-    return res.status(401).json({ error: 'Wrong password' });
+  // Single error message for "user doesn't exist" vs "wrong password" so a
+  // brute-forcer can't enumerate the valid usernames.
+  const verifiedUsername = await verifyCredentials(username, password);
+  if (!verifiedUsername) {
+    return res.status(401).json({ error: 'Wrong username or password' });
   }
 
-  const token = await signSessionToken();
+  const token = await signSessionToken(verifiedUsername);
   res.setHeader('Set-Cookie', buildSessionCookie(token));
-  return res.status(204).end();
+  return res.status(200).json({ username: verifiedUsername });
 }
 
 function safeParse(s) { try { return JSON.parse(s); } catch { return {}; } }

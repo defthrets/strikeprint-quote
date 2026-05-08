@@ -23,14 +23,26 @@ const BRAND = {
 // 'login' shows the password form. 'authed' shows the dashboard.
 export default function Admin() {
   const [authState, setAuthState] = useState('checking');
+  // Username of the signed-in admin (mick / kelvin / paul / andrew).
+  // Populated from /api/admin/me on session probe and from /api/admin/login
+  // on successful sign-in. Drives the welcome message + audit display.
+  const [user, setUser] = useState(null);
 
   // Probe /api/admin/me on mount to see if the cookie is already valid.
   useEffect(() => {
     let cancelled = false;
     fetch('/api/admin/me', { credentials: 'same-origin' })
-      .then(r => r.ok ? 'authed' : 'login')
-      .catch(() => 'login')
-      .then(state => { if (!cancelled) setAuthState(state); });
+      .then(async r => {
+        if (!r.ok) return { state: 'login', user: null };
+        const body = await r.json().catch(() => ({}));
+        return { state: 'authed', user: body.username || null };
+      })
+      .catch(() => ({ state: 'login', user: null }))
+      .then(({ state, user }) => {
+        if (cancelled) return;
+        setAuthState(state);
+        setUser(user);
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -43,11 +55,15 @@ export default function Admin() {
     return () => { try { document.head.removeChild(link); } catch {} };
   }, []);
 
-  const onLoginSuccess = () => setAuthState('authed');
+  const onLoginSuccess = (loggedInUser) => {
+    setUser(loggedInUser || null);
+    setAuthState('authed');
+  };
   const onLogout = async () => {
     try {
       await fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' });
     } catch {}
+    setUser(null);
     setAuthState('login');
   };
 
@@ -82,6 +98,15 @@ export default function Admin() {
               <ArrowLeft className="w-3.5 h-3.5" strokeWidth={2} />
               Back to site
             </Link>
+            {authState === 'authed' && user && (
+              <span className="hidden md:inline-flex items-center px-3 py-2 text-[11px] uppercase tracking-[0.18em]"
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  color: BRAND.boltAmber
+                }}>
+                Signed in · {capitalise(user)}
+              </span>
+            )}
             {authState === 'authed' && (
               <button onClick={onLogout}
                 className="inline-flex items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-[0.18em] cursor-pointer"
@@ -102,10 +127,16 @@ export default function Admin() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {authState === 'checking' && <CheckingState />}
         {authState === 'login' && <LoginForm onSuccess={onLoginSuccess} />}
-        {authState === 'authed' && <Dashboard />}
+        {authState === 'authed' && <Dashboard user={user} />}
       </main>
     </div>
   );
+}
+
+// Title-case a username for display: 'mick' → 'Mick'.
+function capitalise(s) {
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function CheckingState() {
@@ -120,14 +151,29 @@ function CheckingState() {
   );
 }
 
+// 4 named admin accounts. Usernames are stored lowercase; the dropdown
+// shows them title-cased for display. Adding a new admin = update this
+// list, add the matching env var, and push.
+const ADMIN_USERNAMES = ['mick', 'kelvin', 'paul', 'andrew'];
+
 function LoginForm({ onSuccess }) {
+  // Pre-select the first user; admin can pick another from the dropdown.
+  // Stored in localStorage so each browser remembers who last signed in
+  // (saves a click for the most-frequent editor on a shared workstation).
+  const [username, setUsername] = useState(() => {
+    try {
+      const stored = localStorage.getItem('strikeprint:lastAdmin');
+      if (stored && ADMIN_USERNAMES.includes(stored)) return stored;
+    } catch {}
+    return ADMIN_USERNAMES[0];
+  });
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!password || busy) return;
+    if (!password || !username || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -135,11 +181,14 @@ function LoginForm({ onSuccess }) {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ username, password })
       });
-      if (r.status === 204) {
+      if (r.ok) {
+        const body = await r.json().catch(() => ({}));
+        const verifiedUser = body.username || username;
+        try { localStorage.setItem('strikeprint:lastAdmin', verifiedUser); } catch {}
         setPassword('');
-        onSuccess();
+        onSuccess(verifiedUser);
         return;
       }
       const body = await r.json().catch(() => ({}));
@@ -166,7 +215,7 @@ function LoginForm({ onSuccess }) {
           Admin sign in
         </h1>
         <p className="mt-2 text-sm" style={{ color: BRAND.textMuted }}>
-          Single-admin access. Enter the workshop password.
+          Pick your name and enter your workshop password.
         </p>
       </div>
 
@@ -180,10 +229,30 @@ function LoginForm({ onSuccess }) {
         <div>
           <label className="text-[10px] uppercase tracking-[0.22em] block mb-2"
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+            Username
+          </label>
+          <select value={username} onChange={e => setUsername(e.target.value)}
+            disabled={busy} autoFocus
+            className="w-full px-4 py-3 outline-none text-sm cursor-pointer"
+            style={{
+              fontFamily: "'Outfit', sans-serif",
+              background: 'rgba(8,21,46,0.6)',
+              border: `1px solid ${BRAND.navyLineStrong}`,
+              color: BRAND.textPri
+            }}>
+            {ADMIN_USERNAMES.map(u => (
+              <option key={u} value={u}>{capitalise(u)}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[10px] uppercase tracking-[0.22em] block mb-2"
+            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
             Password
           </label>
           <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-            disabled={busy} autoFocus
+            disabled={busy}
             className="w-full px-4 py-3 outline-none text-sm"
             style={{
               fontFamily: "'Outfit', sans-serif",
@@ -201,7 +270,7 @@ function LoginForm({ onSuccess }) {
           </div>
         )}
 
-        <button type="submit" disabled={busy || !password}
+        <button type="submit" disabled={busy || !password || !username}
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
             background: BRAND.boltGrad,
@@ -211,7 +280,7 @@ function LoginForm({ onSuccess }) {
             border: 'none'
           }}>
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={2.5} />}
-          <span className="text-base">Sign in</span>
+          <span className="text-base">Sign in as {capitalise(username)}</span>
         </button>
       </form>
 
@@ -230,7 +299,7 @@ const TABS = [
   { id: 'settings', label: 'Settings',        icon: Settings,  ready: false, status: 'Phase 4' }
 ];
 
-function Dashboard() {
+function Dashboard({ user }) {
   const [tab, setTab] = useState('photos');
   const active = TABS.find(t => t.id === tab) || TABS[0];
 
@@ -240,7 +309,7 @@ function Dashboard() {
         <span className="h-px w-10" style={{ background: BRAND.boltGrad }} />
         <span className="text-[10px] uppercase tracking-[0.3em] font-bold"
           style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-          Welcome back · Mick
+          Welcome back · {user ? capitalise(user) : 'Admin'}
         </span>
       </div>
 
@@ -292,6 +361,10 @@ function Dashboard() {
           <span className="text-sm">View live site →</span>
         </a>
       </div>
+
+      {/* Recent activity — who edited what, most recent first. Reads
+          from /api/admin/content's audit log. Collapsed by default. */}
+      <AuditPanel />
 
       {/* Tab nav */}
       <div className="flex flex-wrap gap-2 mb-8" style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
@@ -346,6 +419,146 @@ function PlaceholderTab({ tab }) {
         Coming online in the next deploy. Photos tab is live now if you'd like
         to test the editor end-to-end.
       </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Recent activity — collapsible panel showing the last few audit
+// entries (who did what + when). Source: /api/admin/content GET,
+// which reads gallery.audit (server caps it to 200 recent entries).
+//
+// Collapsed by default so the dashboard isn't cluttered; admin can
+// expand to scan the last edits at a glance.
+
+const ACTION_LABELS = {
+  'photo.add':            'added',
+  'photo.delete':         'deleted',
+  'photo.relabel':        'renamed',
+  'photo.recategorise':   'moved group',
+  'photo.setCover':       'set as cover',
+  'photo.unsetCover':     'unset cover',
+  'photo.update':         'updated',
+  'photo.reorder':        'reordered photos',
+  'content.services':     'edited service group',
+  'content.hero':         'edited hero',
+  'content.about':        'edited about',
+  'content.services_intro': 'edited services intro',
+  'content.contact_intro':  'edited contact intro',
+  'content.contact':      'edited contact info',
+  'content.materials':    'edited materials',
+  'content.materials_rows': 'edited materials list',
+  'content.pillars':      'edited pillars',
+  'content.reviews':      'edited reviews CTA',
+  'content.big_cta':      'edited big CTA',
+  'content.footer':       'edited footer'
+};
+
+function describeAction(action) {
+  return ACTION_LABELS[action] || action.replace(/^[^.]+\./, '');
+}
+
+function relativeTime(iso) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (!then) return '';
+  const diff = Date.now() - then;
+  if (diff < 60_000) return 'just now';
+  if (diff < 3_600_000)  return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  if (diff < 7 * 86_400_000) return `${Math.floor(diff / 86_400_000)}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function AuditPanel() {
+  const [audit, setAudit] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/admin/content', { credentials: 'same-origin' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (cancelled || !data) return;
+        setAudit(Array.isArray(data.audit) ? data.audit : []);
+      })
+      .catch(() => { /* silently ignore — panel just stays empty */ })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Hide the panel entirely when there's no data — first deploy will
+  // have an empty audit log and we don't want to show a blank section.
+  if (!loading && audit.length === 0) return null;
+
+  const preview = audit.slice(0, 3);
+  const visible = open ? audit : preview;
+
+  return (
+    <div className="mb-8"
+      style={{
+        background: 'rgba(8,21,46,0.55)',
+        border: `1px solid ${BRAND.navyLineStrong}`,
+        borderLeft: `3px solid ${BRAND.boltAmber}`
+      }}>
+      <button onClick={() => setOpen(o => !o)}
+        className="w-full px-4 py-3 flex items-center justify-between gap-3 cursor-pointer text-left"
+        style={{ background: 'transparent', border: 'none', color: BRAND.textPri }}>
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-[10px] uppercase tracking-[0.25em] font-bold flex-shrink-0"
+            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+            Recent activity
+          </span>
+          {!open && preview[0] && (
+            <span className="text-xs truncate" style={{ color: BRAND.textMuted }}>
+              {capitalise(preview[0].user)} {describeAction(preview[0].action)}
+              {preview[0].target ? ` — ${preview[0].target}` : ''}
+              <span style={{ color: BRAND.textFaint, marginLeft: 6 }}>· {relativeTime(preview[0].at)}</span>
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] uppercase tracking-[0.22em]"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+          {open ? 'Hide' : `Show ${audit.length}`}
+        </span>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-3" style={{ borderTop: `1px solid ${BRAND.navyLine}` }}>
+          {loading ? (
+            <div className="py-4 text-center text-xs" style={{ color: BRAND.textDim }}>Loading…</div>
+          ) : (
+            <ul className="text-xs" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+              {visible.map((entry, i) => (
+                <li key={`${entry.rev}-${i}`}
+                  className="flex items-start gap-3 py-2"
+                  style={{ borderBottom: i < visible.length - 1 ? `1px solid ${BRAND.navyLine}` : 'none' }}>
+                  <span className="flex-shrink-0 px-2 py-0.5 text-[9px] uppercase tracking-[0.18em] font-bold"
+                    style={{
+                      background: `${BRAND.boltAmber}20`,
+                      color: BRAND.boltAmber,
+                      border: `1px solid ${BRAND.boltAmber}40`,
+                      minWidth: 60,
+                      textAlign: 'center'
+                    }}>
+                    {capitalise(entry.user)}
+                  </span>
+                  <span className="flex-1 min-w-0" style={{ color: BRAND.textPri }}>
+                    {describeAction(entry.action)}
+                    {entry.target && (
+                      <span style={{ color: BRAND.textMuted }}> — {entry.target}</span>
+                    )}
+                  </span>
+                  <span className="flex-shrink-0 text-[10px]" style={{ color: BRAND.textFaint }}>
+                    {relativeTime(entry.at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

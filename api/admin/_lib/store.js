@@ -105,7 +105,10 @@ export async function readGallery() {
       footer:         json.footer         || {},
       // Array sections — slot-aligned with their defaults
       pillars:        Array.isArray(json.pillars)        ? json.pillars        : [],
-      materials_rows: Array.isArray(json.materials_rows) ? json.materials_rows : []
+      materials_rows: Array.isArray(json.materials_rows) ? json.materials_rows : [],
+      // Audit log — most recent first, capped to AUDIT_MAX entries.
+      // Each entry: { user, action, target, at, rev }.
+      audit:          Array.isArray(json.audit)          ? json.audit          : []
     };
   } catch (err) {
     // Blob doesn't exist yet — first read seeds it. @vercel/blob throws
@@ -119,11 +122,16 @@ export async function readGallery() {
   }
 }
 
+// Cap on audit log size — keeps gallery.json small. Older entries roll off.
+// Roughly ~100 bytes/entry → 200 entries = 20 KB. Plenty of recent history
+// without bloating reads or the public /api/photos response.
+const AUDIT_MAX = 200;
+
 export async function writeGallery(gallery) {
   const payload = {
     // Schema version — bumped only when we change the shape of the
     // payload (e.g. add a new override section). Drives migrations.
-    schemaVersion: 4,
+    schemaVersion: 5,
     // Data revision — incremented on every write. Used by applyMutation
     // for optimistic concurrency control. Caller should pass the next
     // expected rev; defaults to 1 for the very first write.
@@ -142,7 +150,9 @@ export async function writeGallery(gallery) {
     big_cta:        gallery.big_cta        || {},
     footer:         gallery.footer         || {},
     pillars:        Array.isArray(gallery.pillars)        ? gallery.pillars        : [],
-    materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : []
+    materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : [],
+    // Audit log — capped to AUDIT_MAX most recent entries
+    audit:          Array.isArray(gallery.audit) ? gallery.audit.slice(0, AUDIT_MAX) : []
   };
   await put(GALLERY_KEY, JSON.stringify(payload, null, 2), {
     access: 'public',
@@ -153,20 +163,25 @@ export async function writeGallery(gallery) {
   return payload;
 }
 
-// Read-modify-write helper with optimistic concurrency for multi-admin.
+// Read-modify-write helper with optimistic concurrency + audit logging.
+//
 // Usage:
-//   const updated = await applyMutation(async (gallery) => {
-//     // mutate `gallery` and return the new state, or null/undefined for no-op.
-//     // throw a typed error (e.g. { code: 'NOT_FOUND' }) for non-retryable failure.
-//     return { ...gallery, photos: nextPhotos };
-//   });
+//   const updated = await applyMutation(
+//     async (gallery) => ({ ...gallery, photos: nextPhotos }),
+//     { user: 'mick', action: 'photo.update', target: photoId }
+//   );
+//
+// `meta` controls the audit log entry recorded on every successful write:
+//   user    — canonical username from requireAdmin (or 'system' for seeds)
+//   action  — short verb-noun string ('photo.update', 'content.hero', etc.)
+//   target  — optional id / path of the thing being changed
+// Pass null/omit meta to skip logging (e.g. internal seed writes).
 //
 // On every attempt: read gallery, run mutator, re-read to confirm the
 // rev hasn't moved, then write with rev+1. If a different admin wrote
-// in between, retry from scratch (mutator runs again on the fresh
-// state). After maxAttempts the caller gets a GalleryConflictError
-// which handlers should map to HTTP 409.
-export async function applyMutation(mutator, maxAttempts = 5) {
+// in between, retry from scratch. After maxAttempts the caller gets a
+// GalleryConflictError which handlers should map to HTTP 409.
+export async function applyMutation(mutator, meta = null, maxAttempts = 5) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const gallery = await readGallery();
     const startRev = typeof gallery.rev === 'number' ? gallery.rev : 0;
@@ -184,7 +199,23 @@ export async function applyMutation(mutator, maxAttempts = 5) {
       continue;
     }
 
-    return await writeGallery({ ...updated, rev: startRev + 1 });
+    // Prepend an audit entry so the most recent edit is always at index 0.
+    // writeGallery enforces AUDIT_MAX so older entries roll off the tail.
+    const nextRev = startRev + 1;
+    const existingAudit = Array.isArray(updated.audit) ? updated.audit : [];
+    const auditEntry = meta && meta.user ? [{
+      user:   meta.user,
+      action: meta.action || 'unknown',
+      target: meta.target || null,
+      at:     new Date().toISOString(),
+      rev:    nextRev
+    }] : [];
+
+    return await writeGallery({
+      ...updated,
+      rev: nextRev,
+      audit: [...auditEntry, ...existingAudit]
+    });
   }
   throw new GalleryConflictError(
     'Too many concurrent edits — please refresh and try again'

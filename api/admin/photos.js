@@ -14,13 +14,16 @@ class HttpError extends Error {
 }
 
 export default async function handler(req, res) {
-  if (!(await requireAdmin(req, res))) return;
+  // requireAdmin returns the canonical username on success — we thread
+  // it into each mutator so the audit log records who did it.
+  const user = await requireAdmin(req, res);
+  if (!user) return;
 
   try {
     if (req.method === 'GET')    return await listPhotos(req, res);
-    if (req.method === 'POST')   return await addPhoto(req, res);
-    if (req.method === 'PATCH')  return await patchPhotos(req, res);
-    if (req.method === 'DELETE') return await deletePhoto(req, res);
+    if (req.method === 'POST')   return await addPhoto(req, res, user);
+    if (req.method === 'PATCH')  return await patchPhotos(req, res, user);
+    if (req.method === 'DELETE') return await deletePhoto(req, res, user);
 
     res.setHeader('Allow', 'GET, POST, PATCH, DELETE');
     return res.status(405).json({ error: 'Method not allowed' });
@@ -37,7 +40,7 @@ async function listPhotos(req, res) {
   return res.status(200).json(gallery);
 }
 
-async function addPhoto(req, res) {
+async function addPhoto(req, res, user) {
   const body = parseBody(req.body);
   const { url, label, category } = body;
   if (!url || !label) throw new HttpError(400, 'url + label required');
@@ -59,14 +62,15 @@ async function addPhoto(req, res) {
       featured: false,
       order: gallery.photos.length,
       seed: false,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      createdBy: user
     };
     return { ...gallery, photos: [...gallery.photos, createdPhoto] };
-  });
+  }, { user, action: 'photo.add', target: label });
   return res.status(201).json({ photo: createdPhoto, gallery: updated });
 }
 
-async function patchPhotos(req, res) {
+async function patchPhotos(req, res, user) {
   const body = parseBody(req.body);
 
   // Bulk reorder via { ids: [...] }
@@ -83,7 +87,7 @@ async function patchPhotos(req, res) {
         .filter(p => !includedIds.has(p.id))
         .map((p, i) => ({ ...p, order: reordered.length + i }));
       return { ...gallery, photos: [...reordered, ...tail] };
-    });
+    }, { user, action: 'photo.reorder' });
     return res.status(200).json(updated);
   }
 
@@ -96,6 +100,14 @@ async function patchPhotos(req, res) {
       && !CATEGORY_SLUGS.includes(category)) {
     throw new HttpError(400, `Unknown category: ${category}`);
   }
+
+  // Pick a specific action verb so the audit log is more useful than a
+  // single generic "photo.update". Order matters: featured > category
+  // > label, since featured is the most user-visible event.
+  let action = 'photo.update';
+  if (featured !== undefined)      action = featured ? 'photo.setCover' : 'photo.unsetCover';
+  else if (category !== undefined) action = 'photo.recategorise';
+  else if (label !== undefined)    action = 'photo.relabel';
 
   const updated = await applyMutation(async (gallery) => {
     const target = gallery.photos.find(p => p.id === id);
@@ -115,10 +127,11 @@ async function patchPhotos(req, res) {
     // marked as cover — possibly a duplicate of whatever's already
     // featured there. Admin can re-mark it as cover in the new group.
     const categoryChanged = category !== undefined && nextCategory !== (target.category ?? null);
+    const stamp = { lastEditedBy: user, lastEditedAt: new Date().toISOString() };
 
     const next = gallery.photos.map(p => {
       if (p.id === id) {
-        const updated = { ...p };
+        const updated = { ...p, ...stamp };
         if (label !== undefined)    updated.label    = String(label);
         if (category !== undefined) updated.category = nextCategory;
         if (featured !== undefined) updated.featured = willBeFeatured;
@@ -137,11 +150,11 @@ async function patchPhotos(req, res) {
       return p;
     });
     return { ...gallery, photos: next };
-  });
+  }, { user, action, target: id });
   return res.status(200).json(updated);
 }
 
-async function deletePhoto(req, res) {
+async function deletePhoto(req, res, user) {
   const body = parseBody(req.body);
   const { id } = body;
   if (!id) throw new HttpError(400, 'id required');
@@ -151,6 +164,7 @@ async function deletePhoto(req, res) {
   // succeeds (delete-after-write avoids a half-committed state where the
   // blob is gone but the gallery still references it).
   let blobUrlToDelete = null;
+  let deletedLabel = null;
 
   const updated = await applyMutation(async (gallery) => {
     const target = gallery.photos.find(p => p.id === id);
@@ -161,12 +175,13 @@ async function deletePhoto(req, res) {
     blobUrlToDelete = (target.url && target.url.startsWith('http')
       && target.url.includes('public.blob.vercel-storage'))
       ? target.url : null;
+    deletedLabel = target.label || target.id;
 
     const next = gallery.photos
       .filter(p => p.id !== id)
       .map((p, i) => ({ ...p, order: i }));
     return { ...gallery, photos: next };
-  });
+  }, { user, action: 'photo.delete', target: id });
 
   // Clean up the blob binary after the metadata write committed. If this
   // fails we leave a dangling blob (cheap, ignorable) rather than rolling
