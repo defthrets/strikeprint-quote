@@ -107,6 +107,8 @@ export async function readGallery() {
       theme:          json.theme          || {},
       // Site-wide config (title, meta description, quote email)
       settings:       json.settings       || {},
+      // Per-section show/hide toggles (admin Content tab → Visibility)
+      visibility:     json.visibility     || {},
       // Array sections — slot-aligned with their defaults
       pillars:        Array.isArray(json.pillars)        ? json.pillars        : [],
       materials_rows: Array.isArray(json.materials_rows) ? json.materials_rows : [],
@@ -155,6 +157,7 @@ export async function writeGallery(gallery) {
     footer:         gallery.footer         || {},
     theme:          gallery.theme          || {},
     settings:       gallery.settings       || {},
+    visibility:     gallery.visibility     || {},
     pillars:        Array.isArray(gallery.pillars)        ? gallery.pillars        : [],
     materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : [],
     // Audit log — capped to AUDIT_MAX most recent entries

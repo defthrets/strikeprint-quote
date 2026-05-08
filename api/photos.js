@@ -10,7 +10,7 @@ import { readGallery } from './admin/_lib/store.js';
 import {
   buildHero, buildContact, buildAbout, buildServicesIntro, buildContactIntro,
   buildMaterials, buildMaterialsRows, buildPillars, buildReviews, buildBigCta,
-  buildFooter, buildTheme, buildSettings, SERVICE_CATEGORIES
+  buildFooter, buildTheme, buildSettings, buildVisibility, SERVICE_CATEGORIES
 } from '../src/services-meta.js';
 
 export default async function handler(req, res) {
@@ -76,7 +76,11 @@ export default async function handler(req, res) {
       // Site-wide config — site title + meta description applied to
       // <head> at runtime; quoteEmail is read by /api/send-quote so
       // admin can re-route quote enquiries without a deploy.
-      settings:       buildSettings(gallery.settings)
+      settings:       buildSettings(gallery.settings),
+      // Per-section show/hide toggles. Homepage skips rendering any
+      // section where visibility[key] === false. Defaults all true so
+      // a fresh deploy / no-overrides install renders everything.
+      visibility:     buildVisibility(gallery.visibility)
     });
   } catch (err) {
     console.error('public/photos error', err);

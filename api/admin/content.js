@@ -31,7 +31,8 @@ import {
   buildBigCta,
   buildFooter,
   buildTheme,
-  buildSettings
+  buildSettings,
+  buildVisibility
 } from '../../src/services-meta.js';
 
 // Domain errors thrown by mutators — handler maps them to HTTP codes.
@@ -78,6 +79,7 @@ function buildContentResponse(gallery) {
       footer:         gallery.footer         || {},
       theme:          gallery.theme          || {},
       settings:       gallery.settings       || {},
+      visibility:     gallery.visibility     || {},
       pillars:        Array.isArray(gallery.pillars)        ? gallery.pillars        : [],
       materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : []
     },
@@ -103,6 +105,7 @@ function buildContentResponse(gallery) {
       footer:         buildFooter(gallery.footer),
       theme:          buildTheme(gallery.theme),
       settings:       buildSettings(gallery.settings),
+      visibility:     buildVisibility(gallery.visibility),
       pillars:        buildPillars(gallery.pillars),
       materials_rows: buildMaterialsRows(gallery.materials_rows)
     },

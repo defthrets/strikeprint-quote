@@ -332,6 +332,36 @@ export const SETTINGS_DEFAULTS = {
 };
 export function buildSettings(overrides) { return shallowMerge(SETTINGS_DEFAULTS, overrides); }
 
+// ─── Section visibility ───────────────────────────────────────
+// Per-section show/hide toggles. Default `true` so the homepage looks
+// the same on a fresh deploy; admin flips to `false` from the Content
+// tab to remove a section from the public site without losing its data
+// (re-enable any time and the saved content reappears).
+//
+// PATCH /api/admin/content stores values via String() — booleans come
+// back as 'true' / 'false' strings, so buildVisibility coerces both
+// shapes back to real booleans.
+export const VISIBILITY_DEFAULTS = {
+  hero:     true,
+  about:    true,   // section 01 + the 4 pillars
+  services: true,   // section 02 + the 6 service tiles
+  materials: true,  // the "Premium materials" two-column strip
+  contact:  true,   // section 03 + map + contact cards
+  reviews:  true,   // the "Liked the work?" strip inside contact
+  big_cta:  true,   // the orange-edged "Get a real quote" card
+  footer:   true
+};
+export function buildVisibility(overrides) {
+  const out = { ...VISIBILITY_DEFAULTS };
+  if (!overrides) return out;
+  for (const [k, v] of Object.entries(overrides)) {
+    if (v === false || v === 'false' || v === 0 || v === '0') out[k] = false;
+    else if (v === true || v === 'true' || v === 1 || v === '1') out[k] = true;
+    // anything else (empty, null, garbage) → leave as default
+  }
+  return out;
+}
+
 // Convenience — list of every flat section name + its defaults map. Used
 // by the admin API for validation (and the public API for one-shot merge).
 export const FLAT_SECTIONS = {
@@ -345,7 +375,8 @@ export const FLAT_SECTIONS = {
   big_cta:        BIG_CTA_DEFAULTS,
   footer:         FOOTER_DEFAULTS,
   theme:          THEME_DEFAULTS,
-  settings:       SETTINGS_DEFAULTS
+  settings:       SETTINGS_DEFAULTS,
+  visibility:     VISIBILITY_DEFAULTS
 };
 // Array sections — name → { defaults: [], itemKeys: [] } so the API can
 // validate each slot's allowed fields without a schema library.

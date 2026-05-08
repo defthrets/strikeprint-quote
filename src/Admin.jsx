@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { upload } from '@vercel/blob/client';
-import { Lock, LogOut, AlertTriangle, Loader2, ArrowLeft, Image as ImageIcon, Type, Palette, Settings, Upload, Trash2, Plus, Check, Star } from 'lucide-react';
+import { Lock, LogOut, AlertTriangle, Loader2, ArrowLeft, Image as ImageIcon, Type, Palette, Settings, Upload, Trash2, Plus, Check, Star, Eye, EyeOff } from 'lucide-react';
 import { LOGO_URL } from './logo.js';
 import { SERVICE_CATEGORIES, DISPLAY_FONT_OPTIONS, BODY_FONT_OPTIONS } from './services-meta.js';
 
@@ -1168,6 +1168,16 @@ function ContentTab() {
         </div>
       )}
 
+      {/* Section visibility — show/hide each major homepage block.
+          Goes first so admin sees the panel before scrolling through
+          all the per-section text editors. */}
+      <VisibilityPanel
+        merged={data.merged.visibility}
+        overrides={data.overrides.visibility}
+        saving={savingKey === 'visibility'}
+        onSave={(updates) => saveSection('visibility', updates)}
+      />
+
       <ContentSection
         title="Hero" subtitle="Top of the homepage — eyebrow, headline, lede, CTAs"
         fields={HERO_FIELDS}
@@ -1658,6 +1668,192 @@ function SettingsTab() {
         onSave={save}
       />
     </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Visibility panel — show / hide individual homepage sections.
+//
+// Defaults all sections visible (true). Admin flips a toggle to hide
+// a section from the public homepage; the section's content stays in
+// gallery.json so re-enabling restores it intact. Saves go through
+// the same /api/admin/content PATCH path as the other content sections
+// (section: 'visibility'), so PATCH-then-set-data-from-response works
+// the same way — no separate cache concern.
+
+const VISIBILITY_SECTIONS = [
+  { key: 'hero',      label: 'Hero',            hint: 'Top of the homepage — eyebrow, headline, lede, CTAs, photo marquee' },
+  { key: 'about',     label: 'About + pillars', hint: 'Section 01 + the four cards (Materials / Install / Design / Aftercare)' },
+  { key: 'services',  label: 'Services',        hint: 'Section 02 + the six service tiles with photo galleries' },
+  { key: 'materials', label: 'Materials strip', hint: '"Premium materials. No shortcuts." block + the brand list on the right' },
+  { key: 'contact',   label: 'Contact section', hint: 'Section 03 + map + contact cards. Hides everything below — sub-blocks below are no-op when this is off.' },
+  { key: 'reviews',   label: 'Reviews CTA',     hint: '"Liked the work?" Google review strip (only renders when Contact section is shown)' },
+  { key: 'big_cta',   label: 'Big CTA card',    hint: '"Get a real quote" orange-edged card (only renders when Contact section is shown)' },
+  { key: 'footer',    label: 'Footer',          hint: 'Tagline + contact links + the bolt admin shortcut' }
+];
+
+function VisibilityPanel({ merged, overrides, saving, onSave }) {
+  // Local draft state: copy of the merged booleans. Sync on prop change
+  // so a save from elsewhere doesn't leave us showing stale toggles.
+  const buildDrafts = () => Object.fromEntries(
+    VISIBILITY_SECTIONS.map(s => [s.key, merged?.[s.key] !== false])
+  );
+  const [drafts, setDrafts] = useState(buildDrafts);
+  useEffect(() => { setDrafts(buildDrafts()); }, [merged]); // eslint-disable-line
+
+  const dirty = VISIBILITY_SECTIONS.some(s => !!drafts[s.key] !== (merged?.[s.key] !== false));
+  const hiddenCount = VISIBILITY_SECTIONS.filter(s => merged?.[s.key] === false).length;
+
+  const handleSave = () => {
+    const updates = {};
+    for (const s of VISIBILITY_SECTIONS) {
+      const wantVisible = !!drafts[s.key];
+      const isVisible   = merged?.[s.key] !== false;
+      if (wantVisible === isVisible) continue;
+      // ON → empty string clears the override and the section uses the
+      // default (true). OFF → explicit 'false' string stored.
+      updates[s.key] = wantVisible ? '' : 'false';
+    }
+    if (Object.keys(updates).length === 0) return;
+    onSave(updates);
+  };
+
+  const handleShowAll = () => {
+    if (!Object.keys(overrides || {}).length) return;
+    const updates = {};
+    for (const k of Object.keys(overrides)) updates[k] = '';
+    onSave(updates);
+  };
+
+  return (
+    <section style={{
+      background: BRAND.navyRaise,
+      border: `1px solid ${BRAND.navyLineStrong}`,
+      borderTop: `2px solid ${BRAND.boltAmber}`
+    }}>
+      <header className="px-5 py-4 flex items-baseline gap-3 flex-wrap"
+        style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
+        <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '1.4rem', letterSpacing: '0.02em', color: BRAND.textPri }}>
+          Section visibility
+        </h3>
+        <p className="text-sm flex-1 min-w-[260px]" style={{ color: BRAND.textMuted }}>
+          Hide individual sections from the public homepage without losing
+          their content. Toggle back on any time to restore.
+        </p>
+        <span className="text-[10px] uppercase tracking-[0.22em]"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+          {hiddenCount === 0
+            ? 'All sections visible'
+            : `${hiddenCount} hidden`}
+        </span>
+      </header>
+
+      <div className="p-5">
+        <ul className="space-y-2">
+          {VISIBILITY_SECTIONS.map(s => {
+            const isOn = !!drafts[s.key];
+            const wasOn = merged?.[s.key] !== false;
+            const isPending = isOn !== wasOn;
+            return (
+              <li key={s.key} className="flex items-start gap-3 px-3 py-2.5"
+                style={{
+                  background: isOn ? 'transparent' : 'rgba(127,29,29,0.12)',
+                  border: `1px solid ${isOn ? BRAND.navyLine : '#7f1d1d40'}`
+                }}>
+                <button type="button"
+                  onClick={() => setDrafts(d => ({ ...d, [s.key]: !d[s.key] }))}
+                  disabled={saving}
+                  aria-pressed={isOn}
+                  title={isOn ? `Hide ${s.label}` : `Show ${s.label}`}
+                  className="flex-shrink-0 inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
+                  style={{
+                    width: 44, height: 24,
+                    background: isOn ? BRAND.boltAmber : 'rgba(8,21,46,0.6)',
+                    border: `1px solid ${isOn ? BRAND.boltAmber : BRAND.navyLineStrong}`,
+                    borderRadius: 999,
+                    position: 'relative',
+                    transition: 'background-color .2s, border-color .2s'
+                  }}>
+                  {/* Thumb — slides between left (off) and right (on) */}
+                  <span style={{
+                    position: 'absolute',
+                    top: 2, left: isOn ? 'auto' : 2, right: isOn ? 2 : 'auto',
+                    width: 18, height: 18,
+                    background: isOn ? BRAND.navy : BRAND.textMuted,
+                    borderRadius: 999,
+                    transition: 'left .15s, right .15s'
+                  }} />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {isOn
+                      ? <Eye className="w-3.5 h-3.5" style={{ color: BRAND.boltAmber }} strokeWidth={2} />
+                      : <EyeOff className="w-3.5 h-3.5" style={{ color: BRAND.textFaint }} strokeWidth={2} />}
+                    <span className="text-sm font-bold" style={{ color: BRAND.textPri }}>
+                      {s.label}
+                    </span>
+                    {!isOn && (
+                      <span className="text-[9px] uppercase tracking-[0.22em] px-1.5 py-0.5"
+                        style={{
+                          fontFamily: "'JetBrains Mono', monospace",
+                          color: '#fca5a5',
+                          background: 'rgba(127,29,29,0.3)',
+                          border: '1px solid #7f1d1d'
+                        }}>
+                        Hidden
+                      </span>
+                    )}
+                    {isPending && (
+                      <span className="text-[9px] uppercase tracking-[0.22em]"
+                        style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                        · pending
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: BRAND.textFaint, lineHeight: 1.4 }}>
+                    {s.hint}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="flex items-center gap-3 pt-4 mt-4"
+          style={{ borderTop: `1px solid ${BRAND.navyLine}` }}>
+          <button onClick={handleSave} disabled={!dirty || saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: BRAND.boltGrad,
+              color: BRAND.navy,
+              fontFamily: 'Anton, sans-serif',
+              letterSpacing: '0.1em',
+              border: 'none'
+            }}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" strokeWidth={2.5} />}
+            <span className="text-sm">{saving ? 'Saving…' : 'Save changes'}</span>
+          </button>
+          {hiddenCount > 0 && (
+            <button onClick={handleShowAll} disabled={saving}
+              className="px-4 py-2 text-[10px] uppercase tracking-[0.22em] cursor-pointer disabled:opacity-40"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                background: 'transparent',
+                color: BRAND.textMuted,
+                border: `1px dashed ${BRAND.navyLineStrong}`
+              }}>
+              Show all sections
+            </button>
+          )}
+          {!dirty && !saving && (
+            <span className="text-[10px] uppercase tracking-[0.22em]"
+              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
+              No changes
+            </span>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

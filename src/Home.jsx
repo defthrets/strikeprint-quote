@@ -5,7 +5,7 @@ import {
   buildServices, buildHero, buildContact, buildAbout,
   buildServicesIntro, buildContactIntro, buildMaterials,
   buildMaterialsRows, buildPillars, buildReviews, buildBigCta, buildFooter,
-  buildTheme, buildSettings
+  buildTheme, buildSettings, buildVisibility
 } from './services-meta.js';
 
 // ════════════════════════════════════════════════════════════════
@@ -678,6 +678,10 @@ export default function Home() {
   const FOOTER          = useMemo(() => content?.footer         || buildFooter(),         [content]);
   const THEME           = useMemo(() => content?.theme          || buildTheme(),          [content]);
   const SETTINGS        = useMemo(() => content?.settings       || buildSettings(),       [content]);
+  // Per-section show/hide map. Defaults all-true so the homepage looks
+  // the same on first paint while content is hydrating; admin can flip
+  // any section to false from the Content tab → Section visibility panel.
+  const VISIBILITY      = useMemo(() => content?.visibility     || buildVisibility(),     [content]);
 
   // ── Inject base styles on mount ──
   useEffect(() => {
@@ -941,7 +945,8 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero */}
+      {/* Hero — admin can hide via Content → Section visibility */}
+      {VISIBILITY.hero !== false && (
       <section id="top" ref={heroRef} className="hero">
         <div ref={heroGridRef} className="hero-grid" />
         <div ref={heroBoltRef} className="hero-bolt" />
@@ -982,8 +987,10 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* About */}
+      {/* About + 4 pillars — admin can hide via Section visibility */}
+      {VISIBILITY.about !== false && (
       <section id="about" className="section">
         <span className="sect-num">01</span>
         <div className="sect-header">
@@ -1008,8 +1015,10 @@ export default function Home() {
           ))}
         </div>
       </section>
+      )}
 
-      {/* Services */}
+      {/* Services + 6 service tiles — admin can hide via Section visibility */}
+      {VISIBILITY.services !== false && (
       <section id="services" className="section">
         <span className="sect-num">02</span>
         <div className="sect-header">
@@ -1058,8 +1067,10 @@ export default function Home() {
           ))}
         </div>
       </section>
+      )}
 
-      {/* Materials / Quality strip */}
+      {/* Materials / Quality strip — admin can hide via Section visibility */}
+      {VISIBILITY.materials !== false && (
       <section className="section about" style={{ paddingTop: 0 }}>
         <div className="about-grid">
           <div className="reveal">
@@ -1091,8 +1102,11 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* Contact */}
+      {/* Contact section — wraps map + reviews CTA + big CTA. Admin can
+          hide the whole thing, or just the reviews / big-CTA sub-blocks. */}
+      {VISIBILITY.contact !== false && (
       <section id="contact" className="section">
         <span className="sect-num">03</span>
         <div className="sect-header">
@@ -1138,6 +1152,9 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Reviews CTA — sub-block, admin can hide independently
+            of the rest of the contact section. */}
+        {VISIBILITY.reviews !== false && (
         <div className="reviews-strip reveal">
           <div className="copy">
             <div className="title">{REVIEWS.title}</div>
@@ -1147,7 +1164,10 @@ export default function Home() {
           <a className="cta" href={REVIEWS.ctaUrl}
             target="_blank" rel="noopener noreferrer">{REVIEWS.ctaLabel}</a>
         </div>
+        )}
 
+        {/* Big "Get a real quote" card — sub-block, hideable via Section visibility */}
+        {VISIBILITY.big_cta !== false && (
         <div className="big-cta reveal">
           <div className="big-cta-glow" aria-hidden />
           <div className="big-cta-copy">
@@ -1160,8 +1180,14 @@ export default function Home() {
             {BIG_CTA.ctaLabel} {CONTACT.phone}
           </a>
         </div>
+        )}
       </section>
+      )}
 
+      {/* Footer — admin can hide via Section visibility (the bolt admin
+          shortcut also lives here, so hiding it removes the admin link
+          from the public homepage too). */}
+      {VISIBILITY.footer !== false && (
       <footer className="footer">
         <div>
           {FOOTER.tagline} · {year}
@@ -1179,6 +1205,7 @@ export default function Home() {
           <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
         </div>
       </footer>
+      )}
 
       {/* Lightbox */}
       {lightbox && lightbox.items[lightbox.idx] && (
