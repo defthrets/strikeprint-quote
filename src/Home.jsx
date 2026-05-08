@@ -529,19 +529,18 @@ const HOME_CSS = `
   .footer a { color: var(--faint); text-decoration: none; transition: color .2s; }
   .footer a:hover { color: var(--amber); }
   .footer .right { display: flex; gap: 24px; align-items: center; }
-  /* Tiny admin shortcut — bolt icon next to the tagline. Faint by
-     default so it doesn't draw eyes; amber on hover matches the
-     header logo's amber drop-shadow. */
+  /* Tiny admin shortcut — bolt outline next to the tagline. Inherits
+     the same gray tone as the surrounding footer text so it reads
+     as part of the line, not as decoration. Amber on hover so it
+     reveals itself when you go looking for it. */
   .admin-bolt {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 18px; height: 18px;
-    margin-left: 10px;
+    margin-left: 8px;
     vertical-align: middle;
-    color: var(--faint);
-    opacity: 0.4;
-    transition: opacity .2s, color .2s, transform .2s;
+    color: inherit; /* matches .footer color (var(--faint)) */
+    transition: color .2s;
   }
-  .admin-bolt:hover { opacity: 1; color: var(--amber); transform: scale(1.1); }
+  .admin-bolt:hover { color: var(--amber); }
 
   /* Reveal */
   .reveal { opacity: 0; transform: translateY(20px); transition: opacity .8s cubic-bezier(.2,.7,.3,1), transform .8s cubic-bezier(.2,.7,.3,1); }
@@ -1044,9 +1043,11 @@ export default function Home() {
         <div>
           {FOOTER.tagline} · {year}
           {/* Subtle admin shortcut — Link does client-side routing so the
-              lazy /admin chunk loads in-place without a full page reload. */}
+              lazy /admin chunk loads in-place without a full page reload.
+              Outline-only stroke + currentColor so it reads as part of
+              the footer text, not as a filled emoji-style icon. */}
           <Link to="/admin" className="admin-bolt" aria-label="Admin" title="Admin">
-            <Zap width={11} height={11} strokeWidth={2.5} fill="currentColor" />
+            <Zap width={11} height={11} strokeWidth={1.75} />
           </Link>
         </div>
         <div className="right">
