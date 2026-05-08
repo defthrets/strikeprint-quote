@@ -1,10 +1,28 @@
 // Content store — single gallery.json file in Vercel Blob holds the
-// admin-managed photo list. Read on every API call (cheap; tiny file),
-// re-uploaded on every write. Single-admin so no concurrency concerns.
+// admin-managed photo list + content overrides. Read on every API call
+// (cheap; tiny file), re-uploaded on every write.
+//
+// Multi-admin (4 editors): writes go through `applyMutation()` which
+// implements optimistic concurrency control via a `rev` counter. Each
+// write increments rev; before persisting, we re-read and confirm the
+// rev hasn't moved since our initial read. If it has, another admin
+// wrote in the meantime — we discard our work and retry on top of the
+// fresh state (with jittered backoff). Vercel Blob doesn't expose
+// atomic CAS so a tiny TOCTTOU window remains between the re-check
+// and the write, but it's milliseconds and acceptable for 4 editors.
 import { put, head, list } from '@vercel/blob';
 import { SEED_PHOTOS } from './seeds.js';
 
 const GALLERY_KEY = 'gallery.json';
+
+// Thrown by applyMutation after exhausting retries — handlers should
+// map this to a 409 response so the client can show a "retry" message.
+export class GalleryConflictError extends Error {
+  constructor(message = 'Concurrent edit conflict') {
+    super(message);
+    this.code = 'CONFLICT';
+  }
+}
 
 function newId() {
   return 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -103,7 +121,13 @@ export async function readGallery() {
 
 export async function writeGallery(gallery) {
   const payload = {
-    version: 3, // bumped each time the schema gains new override keys
+    // Schema version — bumped only when we change the shape of the
+    // payload (e.g. add a new override section). Drives migrations.
+    schemaVersion: 4,
+    // Data revision — incremented on every write. Used by applyMutation
+    // for optimistic concurrency control. Caller should pass the next
+    // expected rev; defaults to 1 for the very first write.
+    rev: typeof gallery.rev === 'number' ? gallery.rev : 1,
     updatedAt: new Date().toISOString(),
     photos:         gallery.photos         || [],
     // Sparse override maps. Empty objects/arrays when untouched.
@@ -127,6 +151,44 @@ export async function writeGallery(gallery) {
     allowOverwrite: true
   });
   return payload;
+}
+
+// Read-modify-write helper with optimistic concurrency for multi-admin.
+// Usage:
+//   const updated = await applyMutation(async (gallery) => {
+//     // mutate `gallery` and return the new state, or null/undefined for no-op.
+//     // throw a typed error (e.g. { code: 'NOT_FOUND' }) for non-retryable failure.
+//     return { ...gallery, photos: nextPhotos };
+//   });
+//
+// On every attempt: read gallery, run mutator, re-read to confirm the
+// rev hasn't moved, then write with rev+1. If a different admin wrote
+// in between, retry from scratch (mutator runs again on the fresh
+// state). After maxAttempts the caller gets a GalleryConflictError
+// which handlers should map to HTTP 409.
+export async function applyMutation(mutator, maxAttempts = 5) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const gallery = await readGallery();
+    const startRev = typeof gallery.rev === 'number' ? gallery.rev : 0;
+
+    const updated = await mutator(gallery);
+    if (!updated) return gallery; // mutator opted out — return current state
+
+    // Re-read just before write. If rev moved, another admin wrote and
+    // we'd clobber their change. Discard, jittered backoff, retry.
+    const fresh = await readGallery();
+    const freshRev = typeof fresh.rev === 'number' ? fresh.rev : 0;
+    if (freshRev !== startRev) {
+      const backoff = 50 + Math.random() * 100;
+      await new Promise(r => setTimeout(r, backoff));
+      continue;
+    }
+
+    return await writeGallery({ ...updated, rev: startRev + 1 });
+  }
+  throw new GalleryConflictError(
+    'Too many concurrent edits — please refresh and try again'
+  );
 }
 
 async function seedGallery() {

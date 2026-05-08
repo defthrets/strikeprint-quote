@@ -11,7 +11,7 @@
 // and the public API can hand the homepage everything in one fetch.
 
 import { requireAdmin } from './_lib/auth.js';
-import { readGallery, writeGallery } from './_lib/store.js';
+import { readGallery, applyMutation, GalleryConflictError } from './_lib/store.js';
 import {
   CATEGORY_SLUGS,
   HERO_DEFAULTS,
@@ -32,6 +32,11 @@ import {
   buildFooter
 } from '../../src/services-meta.js';
 
+// Domain errors thrown by mutators — handler maps them to HTTP codes.
+class HttpError extends Error {
+  constructor(status, message) { super(message); this.status = status; }
+}
+
 export default async function handler(req, res) {
   if (!(await requireAdmin(req, res))) return;
 
@@ -42,6 +47,8 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, PATCH');
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
+    if (err instanceof HttpError) return res.status(err.status).json({ error: err.message });
+    if (err instanceof GalleryConflictError) return res.status(409).json({ error: err.message });
     console.error('admin/content error', err);
     return res.status(500).json({ error: err.message || 'Server error' });
   }
@@ -100,89 +107,83 @@ async function getContent(req, res) {
 async function patchContent(req, res) {
   const body = parseBody(req.body);
   const { section, updates } = body;
-  if (!section) return res.status(400).json({ error: 'section required' });
+  if (!section) throw new HttpError(400, 'section required');
   if (!updates || typeof updates !== 'object') {
-    return res.status(400).json({ error: 'updates must be an object' });
+    throw new HttpError(400, 'updates must be an object');
   }
 
-  const gallery = await readGallery();
-
+  // Validate up-front — fast-fail before any blob IO and before
+  // applyMutation kicks off any retry attempts.
   if (section === 'services') {
-    // updates: { [slug]: { title?: string, body?: string } }
-    const next = { ...(gallery.services || {}) };
-    for (const [slug, fields] of Object.entries(updates)) {
+    for (const slug of Object.keys(updates)) {
       if (!CATEGORY_SLUGS.includes(slug)) {
-        return res.status(400).json({ error: `Unknown service slug: ${slug}` });
+        throw new HttpError(400, `Unknown service slug: ${slug}`);
       }
-      if (!fields || typeof fields !== 'object') continue;
-      const current = next[slug] || {};
-      const merged = { ...current };
-      // Empty string clears (so admin can reset to default by emptying the
-      // input). null also clears. Anything else is stored as-is.
-      if (fields.title !== undefined) {
-        const v = String(fields.title);
-        if (v === '' || fields.title === null) delete merged.title;
-        else merged.title = v;
-      }
-      if (fields.body !== undefined) {
-        const v = String(fields.body);
-        if (v === '' || fields.body === null) delete merged.body;
-        else merged.body = v;
-      }
-      // If the override object is now empty, drop the key entirely
-      if (Object.keys(merged).length === 0) delete next[slug];
-      else next[slug] = merged;
     }
-    const updated = await writeGallery({ ...gallery, services: next });
-    return res.status(200).json(updated);
-  }
-
-  // Flat sections (hero, contact, about, services_intro, contact_intro,
-  // materials, reviews, big_cta, footer). Updates is { [field]: string|null };
-  // empty/null clears the override → falls through to default on read.
-  if (FLAT_SECTIONS[section]) {
+  } else if (FLAT_SECTIONS[section]) {
     const allowed = Object.keys(FLAT_SECTIONS[section]);
-    const current = gallery[section] || {};
-    const next = { ...current };
-    for (const [field, val] of Object.entries(updates)) {
+    for (const field of Object.keys(updates)) {
       if (!allowed.includes(field)) {
-        return res.status(400).json({ error: `Unknown ${section} field: ${field}` });
-      }
-      if (val === null || val === '' || val === undefined) {
-        delete next[field];
-      } else {
-        next[field] = String(val);
+        throw new HttpError(400, `Unknown ${section} field: ${field}`);
       }
     }
-    const updated = await writeGallery({ ...gallery, [section]: next });
-    return res.status(200).json(updated);
+  } else if (ARRAY_SECTIONS[section]) {
+    if (!Array.isArray(updates)) {
+      throw new HttpError(400, `${section} updates must be an array`);
+    }
+    const expected = ARRAY_SECTIONS[section].defaults.length;
+    if (updates.length !== 0 && updates.length !== expected) {
+      throw new HttpError(400, `${section} expects ${expected} slots, got ${updates.length}`);
+    }
+  } else {
+    throw new HttpError(400, `Unknown section: ${section}`);
   }
 
-  // Array sections (pillars, materials_rows). Body shape:
-  //   { section: 'pillars', updates: [{ key, body }, …] }   (full replace)
-  // Slot count must match the defaults exactly. To "reset" a slot, send
-  // an empty object {} — the homepage will fall back to the default for
-  // that index. To reset the whole section, send updates: [].
-  if (ARRAY_SECTIONS[section]) {
+  const updated = await applyMutation(async (gallery) => {
+    if (section === 'services') {
+      // updates: { [slug]: { title?: string, body?: string } }
+      const next = { ...(gallery.services || {}) };
+      for (const [slug, fields] of Object.entries(updates)) {
+        if (!fields || typeof fields !== 'object') continue;
+        const current = next[slug] || {};
+        const merged = { ...current };
+        // Empty string clears (so admin can reset to default by emptying
+        // the input). null also clears. Anything else is stored as-is.
+        if (fields.title !== undefined) {
+          const v = String(fields.title);
+          if (v === '' || fields.title === null) delete merged.title;
+          else merged.title = v;
+        }
+        if (fields.body !== undefined) {
+          const v = String(fields.body);
+          if (v === '' || fields.body === null) delete merged.body;
+          else merged.body = v;
+        }
+        // If the override object is now empty, drop the key entirely
+        if (Object.keys(merged).length === 0) delete next[slug];
+        else next[slug] = merged;
+      }
+      return { ...gallery, services: next };
+    }
+
+    if (FLAT_SECTIONS[section]) {
+      const current = gallery[section] || {};
+      const next = { ...current };
+      for (const [field, val] of Object.entries(updates)) {
+        if (val === null || val === '' || val === undefined) {
+          delete next[field];
+        } else {
+          next[field] = String(val);
+        }
+      }
+      return { ...gallery, [section]: next };
+    }
+
+    // ARRAY_SECTIONS — already validated above
     const meta = ARRAY_SECTIONS[section];
-    if (!Array.isArray(updates)) {
-      return res.status(400).json({ error: `${section} updates must be an array` });
-    }
-    // Empty array = clear all overrides (homepage uses defaults)
     if (updates.length === 0) {
-      const updated = await writeGallery({ ...gallery, [section]: [] });
-      return res.status(200).json(updated);
+      return { ...gallery, [section]: [] };
     }
-    // Otherwise must exactly match the slot count
-    if (updates.length !== meta.defaults.length) {
-      return res.status(400).json({
-        error: `${section} expects ${meta.defaults.length} slots, got ${updates.length}`
-      });
-    }
-    // Validate + normalise each slot. Allowed keys are the itemKeys for
-    // that section (e.g. ['key', 'body'] for pillars). Empty fields stay
-    // empty in the stored value — buildPillars/buildMaterialsRows will
-    // fall back to the default per-field on read.
     const normalised = updates.map(item => {
       if (!item || typeof item !== 'object') return {};
       const out = {};
@@ -194,11 +195,9 @@ async function patchContent(req, res) {
       }
       return out;
     });
-    const updated = await writeGallery({ ...gallery, [section]: normalised });
-    return res.status(200).json(updated);
-  }
-
-  return res.status(400).json({ error: `Unknown section: ${section}` });
+    return { ...gallery, [section]: normalised };
+  });
+  return res.status(200).json(updated);
 }
 
 function parseBody(body) {
