@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import {
   buildServices, buildHero, buildContact, buildAbout,
   buildServicesIntro, buildContactIntro, buildMaterials,
-  buildMaterialsRows, buildPillars, buildReviews, buildBigCta, buildFooter,
+  buildMaterialsRows, buildPillars, buildReviews, buildReviewsList,
+  buildBigCta, buildFooter,
   buildTheme, buildSettings, buildVisibility
 } from './services-meta.js';
 
@@ -515,17 +516,56 @@ const HOME_CSS = `
   }
   .map-overlay a:hover { transform: translateY(-2px); }
 
-  .reviews-strip {
+  /* Customer reviews — header + 3 cards + CTA, all stacked.
+     Cards only render when admin has filled in at least one review;
+     before that the block looks like the old "Liked the work?" strip
+     (just title + sub + CTA). */
+  .reviews-block {
     margin-top: 28px;
     background: var(--navy-raise); border: 1px solid var(--line-strong);
-    border-radius: 14px; padding: 28px;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 24px; flex-wrap: wrap;
+    border-radius: 14px;
+    padding: 32px 28px;
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center; gap: 22px;
+  }
+  .reviews-block .reviews-header { max-width: 560px; }
+  .reviews-block .reviews-header .title {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: 28px; text-transform: uppercase; color: var(--text);
+    line-height: 1.05;
+  }
+  .reviews-block .reviews-header .sub {
+    color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.5;
   }
   .stars { display: inline-flex; gap: 4px; color: var(--amber); font-size: 22px; }
-  .reviews-strip .copy { flex: 1; min-width: 240px; }
-  .reviews-strip .copy .title { font-family: var(--font-display); font-weight: 800; font-size: 28px; text-transform: uppercase; }
-  .reviews-strip .copy .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .reviews-cards {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 14px; width: 100%;
+  }
+  .review-card {
+    background: var(--navy-deep); border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px 20px;
+    text-align: left;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .review-card .rating { display: inline-flex; gap: 2px; font-size: 16px; letter-spacing: 1px; }
+  .review-card .rating .on  { color: var(--amber); }
+  .review-card .rating .off { color: var(--faint); opacity: 0.4; }
+  .review-card .quote {
+    color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0;
+    font-family: var(--font-serif); font-style: italic;
+  }
+  .review-card .quote::before { content: '“'; }
+  .review-card .quote::after  { content: '”'; }
+  .review-card .attribution {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--dim); margin-top: auto;
+  }
+  @media (max-width: 800px) {
+    .reviews-cards { grid-template-columns: 1fr; }
+  }
 
   .big-cta {
     margin-top: 48px;
@@ -674,6 +714,7 @@ export default function Home() {
   const MATERIALS_ROWS  = useMemo(() => content?.materials_rows || buildMaterialsRows(),  [content]);
   const PILLARS         = useMemo(() => content?.pillars        || buildPillars(),        [content]);
   const REVIEWS         = useMemo(() => content?.reviews        || buildReviews(),        [content]);
+  const REVIEWS_LIST    = useMemo(() => content?.reviews_list   || buildReviewsList(),    [content]);
   const BIG_CTA         = useMemo(() => content?.big_cta        || buildBigCta(),         [content]);
   const FOOTER          = useMemo(() => content?.footer         || buildFooter(),         [content]);
   const THEME           = useMemo(() => content?.theme          || buildTheme(),          [content]);
@@ -682,6 +723,20 @@ export default function Home() {
   // the same on first paint while content is hydrating; admin can flip
   // any section to false from the Content tab → Section visibility panel.
   const VISIBILITY      = useMemo(() => content?.visibility     || buildVisibility(),     [content]);
+
+  // Marquee feed — every uploaded photo, sorted by admin-curated order.
+  // Falls back to the compiled-in PHOTOS array on first paint (before
+  // /api/photos resolves) so the band isn't blank. Once admin uploads
+  // new photos in the Photos tab, they appear here automatically on
+  // the next CDN refresh (~10s).
+  const marqueeItems    = useMemo(() => {
+    if (Array.isArray(photos) && photos.length > 0) {
+      return [...photos]
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map(p => ({ src: p.src, label: p.label }));
+    }
+    return PHOTOS.map(([src, label]) => ({ src, label }));
+  }, [photos]);
 
   // ── Inject base styles on mount ──
   useEffect(() => {
@@ -970,16 +1025,25 @@ export default function Home() {
           <a href="#contact" className="btn-secondary">{HERO.ctaSecondary}</a>
         </div>
 
+        {/* Photo marquee — pulls from the live photo list so newly
+            uploaded photos appear automatically. Falls back to the
+            compiled PHOTOS array on first paint (before /api/photos
+            resolves) and on hard fetch failures, so the band is never
+            empty. Animation duration scales with photo count so the
+            per-card scroll speed stays constant — more photos = longer
+            cycle, not faster scroll. */}
         <div className="marquee-section">
           <div className="marquee-mask">
-            <div className="marquee-track">
-              {[...PHOTOS, ...PHOTOS].map(([src, label], i) => (
-                <div key={i} className="show-card"
-                  onClick={() => openLightbox(PHOTOS.map(([s, l]) => ({ src: s, label: l })), i % PHOTOS.length)}>
-                  <img src={src} alt={label} loading="lazy" decoding="async" />
+            <div className="marquee-track" style={{
+              animationDuration: `${Math.max(60, marqueeItems.length * 7)}s`
+            }}>
+              {[...marqueeItems, ...marqueeItems].map((p, i) => (
+                <div key={`${p.src}-${i}`} className="show-card"
+                  onClick={() => openLightbox(marqueeItems, i % marqueeItems.length)}>
+                  <img src={p.src} alt={p.label} loading="lazy" decoding="async" />
                   <div className="show-label">
                     <span className="tick" />
-                    <span>{label}</span>
+                    <span>{p.label}</span>
                   </div>
                 </div>
               ))}
@@ -1152,21 +1216,52 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Reviews CTA — sub-block, admin can hide independently
-            of the rest of the contact section. */}
+        {/* Reviews block — header + customer review cards + CTA.
+            Admin fills in 3 slots via Content tab → Reviews list.
+            Cards render only when at least one slot has text;
+            otherwise the block falls back to the old "title + CTA"
+            shape so it doesn't look broken before reviews are added. */}
         {VISIBILITY.reviews !== false && (
-        <div className="reviews-strip reveal">
-          <div className="copy">
+        <div className="reviews-block reveal">
+          <div className="reviews-header">
             <div className="title">{REVIEWS.title}</div>
-            <div className="sub" style={{ whiteSpace: 'pre-line' }}>{REVIEWS.sub}</div>
+            {REVIEWS.sub && (
+              <div className="sub" style={{ whiteSpace: 'pre-line' }}>{REVIEWS.sub}</div>
+            )}
           </div>
-          <div className="stars">★ ★ ★ ★ ★</div>
+
+          {/* Only render the cards row if any slot has actual text */}
+          {REVIEWS_LIST.some(r => r.text && r.text.trim()) && (
+            <div className="reviews-cards">
+              {REVIEWS_LIST
+                .filter(r => r.text && r.text.trim())
+                .map((r, i) => (
+                  <article key={i} className="review-card">
+                    <div className="rating" aria-label={`${r.rating} out of 5 stars`}>
+                      {Array.from({ length: 5 }, (_, j) => (
+                        <span key={j} className={j < r.rating ? 'on' : 'off'}>★</span>
+                      ))}
+                    </div>
+                    <p className="quote" style={{ whiteSpace: 'pre-line' }}>{r.text}</p>
+                    {(r.name || r.source) && (
+                      <div className="attribution">
+                        {r.name}{r.name && r.source ? ' · ' : ''}{r.source}
+                      </div>
+                    )}
+                  </article>
+                ))}
+            </div>
+          )}
+
           <a className="cta" href={REVIEWS.ctaUrl}
             target="_blank" rel="noopener noreferrer">{REVIEWS.ctaLabel}</a>
         </div>
         )}
 
-        {/* Big "Get a real quote" card — sub-block, hideable via Section visibility */}
+        {/* Big "Get a real quote" card — points at the in-house quote
+            tool by default. ctaUrl can be any internal route or external
+            URL; we route internal paths via react-router's Link for SPA
+            navigation, external (http(s)://) via a normal anchor. */}
         {VISIBILITY.big_cta !== false && (
         <div className="big-cta reveal">
           <div className="big-cta-glow" aria-hidden />
@@ -1175,10 +1270,28 @@ export default function Home() {
             <h3>{BIG_CTA.title}</h3>
             <p style={{ whiteSpace: 'pre-line' }}>{BIG_CTA.body}</p>
           </div>
-          <a className="cta" style={{ fontSize: 18, padding: '18px 28px' }}
-            href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>
-            {BIG_CTA.ctaLabel} {CONTACT.phone}
-          </a>
+          {(() => {
+            const url = (BIG_CTA.ctaUrl || '/quote').trim() || '/quote';
+            const isExternal = /^https?:\/\//i.test(url);
+            const isMailtoTel = /^(mailto:|tel:)/i.test(url);
+            const ctaStyle = { fontSize: 18, padding: '18px 28px' };
+            // External / mailto / tel — plain anchor, opens externally.
+            if (isExternal || isMailtoTel) {
+              return (
+                <a className="cta" style={ctaStyle}
+                  href={url}
+                  {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+                  {BIG_CTA.ctaLabel}
+                </a>
+              );
+            }
+            // Internal route (e.g. /quote) — Link for client-side routing.
+            return (
+              <Link className="cta" style={ctaStyle} to={url}>
+                {BIG_CTA.ctaLabel}
+              </Link>
+            );
+          })()}
         </div>
         )}
       </section>

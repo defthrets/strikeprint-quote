@@ -112,6 +112,7 @@ export async function readGallery() {
       // Array sections — slot-aligned with their defaults
       pillars:        Array.isArray(json.pillars)        ? json.pillars        : [],
       materials_rows: Array.isArray(json.materials_rows) ? json.materials_rows : [],
+      reviews_list:   Array.isArray(json.reviews_list)   ? json.reviews_list   : [],
       // Audit log — most recent first, capped to AUDIT_MAX entries.
       // Each entry: { user, action, target, at, rev }.
       audit:          Array.isArray(json.audit)          ? json.audit          : []
@@ -160,6 +161,7 @@ export async function writeGallery(gallery) {
     visibility:     gallery.visibility     || {},
     pillars:        Array.isArray(gallery.pillars)        ? gallery.pillars        : [],
     materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : [],
+    reviews_list:   Array.isArray(gallery.reviews_list)   ? gallery.reviews_list   : [],
     // Audit log — capped to AUDIT_MAX most recent entries
     audit:          Array.isArray(gallery.audit) ? gallery.audit.slice(0, AUDIT_MAX) : []
   };

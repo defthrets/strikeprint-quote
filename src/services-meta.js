@@ -262,22 +262,62 @@ export function buildMaterialsRows(overrides) {
 }
 
 // ─── Reviews CTA strip ─────────────────────────────────────────
+// Sits below the customer-review cards (REVIEWS_LIST below). Header
+// + sub act as the section title; CTA links out to Google so visitors
+// can read the full set or leave their own.
 export const REVIEWS_DEFAULTS = {
-  title:    'Liked the work?',
-  sub:      'Leave us a Google review — it helps a small workshop go a long way.',
+  title:    'What our customers say',
+  sub:      'Real feedback from real signs in the wild.',
   ctaLabel: 'See us on Google →',
   ctaUrl:   'https://www.google.com/search?q=strike+print+arndell+park'
 };
 export function buildReviews(overrides) { return shallowMerge(REVIEWS_DEFAULTS, overrides); }
 
+// ─── Customer review cards ────────────────────────────────────
+// 3 fixed slots — admin pastes real reviews from Google / email /
+// elsewhere into each. A card only renders on the homepage if its
+// `text` field is non-empty (so before admin fills any in, the
+// section just shows the title + CTA strip and looks clean).
+//
+// Each entry:
+//   text   — the review quote (what the customer wrote)
+//   name   — attribution (e.g. "Sarah K.", "Pete @ Acme Auto")
+//   rating — 1-5; renders as filled amber stars (default 5)
+//   source — optional ("Google", "Word of mouth", etc.)
+export const REVIEWS_LIST_DEFAULTS = [
+  { text: '', name: '', rating: '5', source: 'Google' },
+  { text: '', name: '', rating: '5', source: 'Google' },
+  { text: '', name: '', rating: '5', source: 'Google' }
+];
+// Keeps text/name/source as strings (admin types them) and clamps
+// rating to 1..5. Empty text is preserved (homepage hides the card).
+export function buildReviewsList(overrides) {
+  const arr = Array.isArray(overrides) ? overrides : [];
+  return REVIEWS_LIST_DEFAULTS.map((def, i) => {
+    const o = arr[i] || {};
+    let rating = parseInt(o.rating ?? def.rating, 10);
+    if (!Number.isFinite(rating) || rating < 1) rating = parseInt(def.rating, 10) || 5;
+    if (rating > 5) rating = 5;
+    return {
+      text:   (o.text   != null ? String(o.text)   : def.text)   || '',
+      name:   (o.name   != null ? String(o.name)   : def.name)   || '',
+      rating: rating,
+      source: (o.source != null ? String(o.source) : def.source) || ''
+    };
+  });
+}
+
 // ─── Big CTA card (bottom of contact section) ─────────────────
-// ctaLabel deliberately doesn't include the phone — homepage appends
-// CONTACT.phone so the call button always matches the contact info.
+// Points at the in-house quote tool by default. ctaUrl can be any
+// internal route (/quote) or an external URL — the homepage routes
+// internal paths via react-router's Link for snappier navigation,
+// external (http(s)://) via a normal anchor that opens in a new tab.
 export const BIG_CTA_DEFAULTS = {
   eyebrow:  'Skip the back-and-forth',
   title:    'Get a real quote. Right now.',
-  body:     'Give Paul a call today and discuss your next sign.',
-  ctaLabel: '→ Call'
+  body:     'Try the online quote tool — pick a sign, drop in a photo, see how it’ll look on the wall and get a price in 60 seconds.',
+  ctaLabel: 'Try the quote tool →',
+  ctaUrl:   '/quote'
 };
 export function buildBigCta(overrides) { return shallowMerge(BIG_CTA_DEFAULTS, overrides); }
 
@@ -382,7 +422,8 @@ export const FLAT_SECTIONS = {
 // validate each slot's allowed fields without a schema library.
 export const ARRAY_SECTIONS = {
   pillars:        { defaults: PILLARS_DEFAULTS,        itemKeys: ['key', 'body'] },
-  materials_rows: { defaults: MATERIALS_ROWS_DEFAULTS, itemKeys: ['name', 'detail', 'logo'] }
+  materials_rows: { defaults: MATERIALS_ROWS_DEFAULTS, itemKeys: ['name', 'detail', 'logo'] },
+  reviews_list:   { defaults: REVIEWS_LIST_DEFAULTS,   itemKeys: ['text', 'name', 'rating', 'source'] }
 };
 
 // Helper: takes the photo list from /api/photos and the SERVICE_CATEGORIES

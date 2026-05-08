@@ -151,29 +151,22 @@ function CheckingState() {
   );
 }
 
-// 4 named admin accounts. Usernames are stored lowercase; the dropdown
-// shows them title-cased for display. Adding a new admin = update this
-// list, add the matching env var, and push.
-const ADMIN_USERNAMES = ['mick', 'kelvin', 'paul', 'andrew'];
-
 function LoginForm({ onSuccess }) {
-  // Pre-select the first user; admin can pick another from the dropdown.
-  // Stored in localStorage so each browser remembers who last signed in
-  // (saves a click for the most-frequent editor on a shared workstation).
-  const [username, setUsername] = useState(() => {
-    try {
-      const stored = localStorage.getItem('strikeprint:lastAdmin');
-      if (stored && ADMIN_USERNAMES.includes(stored)) return stored;
-    } catch {}
-    return ADMIN_USERNAMES[0];
-  });
+  // Free-text username input — no dropdown, no localStorage pre-fill.
+  // Admins type their name fresh each time. Server normaliseUsername
+  // does .trim().toLowerCase() so "Mick" / "MICK" / " mick " all
+  // resolve to "mick" — case + whitespace insensitive on the wire.
+  // The browser's saved-password manager can still autofill via the
+  // autoComplete="username" hint below.
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!password || !username || busy) return;
+    const cleanUsername = username.trim().toLowerCase();
+    if (!cleanUsername || !password || busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -181,12 +174,11 @@ function LoginForm({ onSuccess }) {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username: cleanUsername, password })
       });
       if (r.ok) {
         const body = await r.json().catch(() => ({}));
-        const verifiedUser = body.username || username;
-        try { localStorage.setItem('strikeprint:lastAdmin', verifiedUser); } catch {}
+        const verifiedUser = body.username || cleanUsername;
         setPassword('');
         onSuccess(verifiedUser);
         return;
@@ -215,7 +207,7 @@ function LoginForm({ onSuccess }) {
           Admin sign in
         </h1>
         <p className="mt-2 text-sm" style={{ color: BRAND.textMuted }}>
-          Pick your name and enter your workshop password.
+          Type your name and workshop password.
         </p>
       </div>
 
@@ -227,23 +219,32 @@ function LoginForm({ onSuccess }) {
           backdropFilter: 'blur(8px)'
         }}>
         <div>
-          <label className="text-[10px] uppercase tracking-[0.22em] block mb-2"
+          <label htmlFor="admin-username"
+            className="text-[10px] uppercase tracking-[0.22em] block mb-2"
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
             Username
           </label>
-          <select value={username} onChange={e => setUsername(e.target.value)}
+          {/* Free-text input — no dropdown, no pre-fill. autoComplete +
+              name="username" hint lets the browser's password manager
+              autofill if the admin's saved this site. spellCheck off so
+              "Mick" doesn't get red-underlined as a typo. The server
+              lowercases on receive, so any caps work. */}
+          <input id="admin-username" type="text" value={username}
+            onChange={e => setUsername(e.target.value)}
             disabled={busy} autoFocus
-            className="w-full px-4 py-3 outline-none text-sm cursor-pointer"
+            autoComplete="username"
+            name="username"
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            placeholder="e.g. mick"
+            className="w-full px-4 py-3 outline-none text-sm"
             style={{
               fontFamily: "'Outfit', sans-serif",
               background: 'rgba(8,21,46,0.6)',
               border: `1px solid ${BRAND.navyLineStrong}`,
               color: BRAND.textPri
-            }}>
-            {ADMIN_USERNAMES.map(u => (
-              <option key={u} value={u}>{capitalise(u)}</option>
-            ))}
-          </select>
+            }} />
         </div>
 
         <div>
@@ -270,7 +271,7 @@ function LoginForm({ onSuccess }) {
           </div>
         )}
 
-        <button type="submit" disabled={busy || !password || !username}
+        <button type="submit" disabled={busy || !password || !username.trim()}
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
             background: BRAND.boltGrad,
@@ -280,7 +281,11 @@ function LoginForm({ onSuccess }) {
             border: 'none'
           }}>
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" strokeWidth={2.5} />}
-          <span className="text-base">Sign in as {capitalise(username)}</span>
+          <span className="text-base">
+            {username.trim()
+              ? `Sign in as ${capitalise(username.trim().toLowerCase())}`
+              : 'Sign in'}
+          </span>
         </button>
       </form>
 
@@ -1068,10 +1073,11 @@ const REVIEWS_FIELDS = [
 ];
 
 const BIG_CTA_FIELDS = [
-  { key: 'eyebrow',  label: 'Eyebrow',          hint: 'Small label above the heading' },
-  { key: 'title',    label: 'Heading',          hint: 'Big italic heading on the orange-edged card' },
-  { key: 'body',     label: 'Body',             hint: 'One-line description under the heading', multiline: true, rows: 2 },
-  { key: 'ctaLabel', label: 'CTA label prefix', hint: 'Phone number is auto-appended (e.g. "→ Call" becomes "→ Call 0422 626 286")' }
+  { key: 'eyebrow',  label: 'Eyebrow',  hint: 'Small label above the heading' },
+  { key: 'title',    label: 'Heading',  hint: 'Big italic heading on the orange-edged card' },
+  { key: 'body',     label: 'Body',     hint: 'One-line description under the heading', multiline: true, rows: 2 },
+  { key: 'ctaLabel', label: 'CTA label', hint: 'Button text (e.g. "Try the quote tool →")' },
+  { key: 'ctaUrl',   label: 'CTA link',  hint: 'Where the button goes. Default /quote (in-house quote tool). Use any internal route or external URL (https:// opens in a new tab; tel: / mailto: also work).' }
 ];
 
 const FOOTER_FIELDS = [
@@ -1089,6 +1095,16 @@ const MATERIALS_ROWS_FIELDS = [
   { key: 'name',   label: 'Brand',     hint: 'Bold text shown when no logo is set (e.g. "AVERY")' },
   { key: 'detail', label: 'Detail',    hint: 'Small caption (e.g. "Cast vinyl")' },
   { key: 'logo',   label: 'Logo URL',  hint: 'Optional. Paste an image URL — homepage shows the logo (white-tinted) instead of the brand text. Source from each company’s press/brand-assets page; drop into /public/materials/ or upload via Photos and copy the blob URL.' }
+];
+
+// Per-slot fields for the customer review cards. Empty `text` →
+// the slot is hidden on the homepage (the card just doesn't render),
+// so admin can fill in 1, 2, or 3 reviews and the layout adapts.
+const REVIEWS_LIST_FIELDS = [
+  { key: 'text',   label: 'Quote',  hint: 'What the customer wrote. Leave blank to hide this slot from the homepage.', multiline: true, rows: 3 },
+  { key: 'name',   label: 'Name',   hint: 'Attribution (e.g. "Sarah K." or "Pete @ Acme Auto")' },
+  { key: 'rating', label: 'Rating', hint: '1–5. Renders as filled amber stars on the card.' },
+  { key: 'source', label: 'Source', hint: 'Optional — "Google", "Word of mouth", etc.' }
 ];
 
 function ContentTab() {
@@ -1245,11 +1261,22 @@ function ContentTab() {
       />
 
       <ContentSection
-        title="Reviews CTA" subtitle="The 'Liked the work?' strip with the Google review link"
+        title="Reviews — header + CTA"
+        subtitle="Header text and Google CTA shown around the customer review cards"
         fields={REVIEWS_FIELDS}
         merged={data.merged.reviews}     defaults={data.defaults.reviews}
         overrides={data.overrides.reviews}
         saving={savingKey === 'reviews'} onSave={(u) => saveSection('reviews', u)}
+      />
+
+      <ListContentSection
+        title="Reviews — customer cards"
+        subtitle="3 slots for real customer reviews. Empty slots are hidden on the homepage; fill in 1, 2, or 3 and the layout adapts."
+        section="reviews_list"
+        itemFields={REVIEWS_LIST_FIELDS}
+        merged={data.merged.reviews_list}     defaults={data.defaults.reviews_list}
+        overrides={data.overrides.reviews_list}
+        saving={savingKey === 'reviews_list'} onSave={(u) => saveSection('reviews_list', u)}
       />
 
       <ContentSection

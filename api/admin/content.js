@@ -32,7 +32,8 @@ import {
   buildFooter,
   buildTheme,
   buildSettings,
-  buildVisibility
+  buildVisibility,
+  buildReviewsList
 } from '../../src/services-meta.js';
 
 // Domain errors thrown by mutators — handler maps them to HTTP codes.
@@ -81,7 +82,8 @@ function buildContentResponse(gallery) {
       settings:       gallery.settings       || {},
       visibility:     gallery.visibility     || {},
       pillars:        Array.isArray(gallery.pillars)        ? gallery.pillars        : [],
-      materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : []
+      materials_rows: Array.isArray(gallery.materials_rows) ? gallery.materials_rows : [],
+      reviews_list:   Array.isArray(gallery.reviews_list)   ? gallery.reviews_list   : []
     },
     merged: {
       services: SERVICE_CATEGORIES.map(cat => {
@@ -107,11 +109,13 @@ function buildContentResponse(gallery) {
       settings:       buildSettings(gallery.settings),
       visibility:     buildVisibility(gallery.visibility),
       pillars:        buildPillars(gallery.pillars),
-      materials_rows: buildMaterialsRows(gallery.materials_rows)
+      materials_rows: buildMaterialsRows(gallery.materials_rows),
+      reviews_list:   buildReviewsList(gallery.reviews_list)
     },
     defaults: { ...FLAT_SECTIONS,
       pillars:        ARRAY_SECTIONS.pillars.defaults,
-      materials_rows: ARRAY_SECTIONS.materials_rows.defaults
+      materials_rows: ARRAY_SECTIONS.materials_rows.defaults,
+      reviews_list:   ARRAY_SECTIONS.reviews_list.defaults
     },
     // Most recent edits first. The admin UI renders this as a "Recent
     // activity" panel so editors can see who's been touching what.

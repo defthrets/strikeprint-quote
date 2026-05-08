@@ -10,7 +10,8 @@ import { readGallery } from './admin/_lib/store.js';
 import {
   buildHero, buildContact, buildAbout, buildServicesIntro, buildContactIntro,
   buildMaterials, buildMaterialsRows, buildPillars, buildReviews, buildBigCta,
-  buildFooter, buildTheme, buildSettings, buildVisibility, SERVICE_CATEGORIES
+  buildFooter, buildTheme, buildSettings, buildVisibility, buildReviewsList,
+  SERVICE_CATEGORIES
 } from '../src/services-meta.js';
 
 export default async function handler(req, res) {
@@ -69,6 +70,7 @@ export default async function handler(req, res) {
       reviews:        buildReviews(gallery.reviews),
       big_cta:        buildBigCta(gallery.big_cta),
       footer:         buildFooter(gallery.footer),
+      reviews_list:   buildReviewsList(gallery.reviews_list),
       // Brand colours + font choices — homepage applies these via CSS
       // custom properties so a save in admin updates live within the
       // CDN window. Defaults match what the design originally shipped.
