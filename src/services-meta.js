@@ -230,22 +230,33 @@ export function buildMaterials(overrides) { return shallowMerge(MATERIALS_DEFAUL
 // Note: ARLON's detail is intentionally lowercase ("Print media") to match
 // the rest of the row captions — older versions had it as "PRINT MEDIA"
 // which broke the visual rhythm. Same story for "UV-stable inks" detail.
+//
+// `logo` is an optional URL — when set, the homepage renders the logo
+// image in place of the bold name text. Source the actual brand logos
+// from each company's official brand-assets / press-kit page (e.g.
+// avery.com / 3m.com / arlon-graphics.com), drop the SVG into
+// /public/materials/, and reference it as e.g. '/materials/avery.svg'.
+// You can also upload via the Photos tab and paste the resulting blob
+// URL. Empty = falls back to the bold name text.
 export const MATERIALS_ROWS_DEFAULTS = [
-  { name: 'AVERY',          detail: 'Cast vinyl' },
-  { name: '3M',             detail: 'Wraps · Decals' },
-  { name: 'ARLON',          detail: 'Print media' },
-  { name: 'ACM + Acrylic',  detail: 'Panels · Letters' },
-  { name: 'LED',            detail: 'Halo · Channel' },
-  { name: 'UV-stable inks', detail: 'Australian outdoor rated' }
+  { name: 'AVERY',          detail: 'Cast vinyl',                logo: '' },
+  { name: '3M',             detail: 'Wraps · Decals',            logo: '' },
+  { name: 'ARLON',          detail: 'Print media',               logo: '' },
+  { name: 'ACM + Acrylic',  detail: 'Panels · Letters',          logo: '' },
+  { name: 'LED',            detail: 'Halo · Channel',            logo: '' },
+  { name: 'UV-stable inks', detail: 'Australian outdoor rated',  logo: '' }
 ];
 // Returns exactly 6 entries; per-slot fallback to default like buildPillars.
+// Logo is passed through as-is when set (no default fallback — empty
+// string means "render the name text instead of an image").
 export function buildMaterialsRows(overrides) {
   const arr = Array.isArray(overrides) ? overrides : [];
   return MATERIALS_ROWS_DEFAULTS.map((def, i) => {
     const o = arr[i] || {};
     return {
       name:   (o.name   && String(o.name).trim())   || def.name,
-      detail: (o.detail && String(o.detail).trim()) || def.detail
+      detail: (o.detail && String(o.detail).trim()) || def.detail,
+      logo:   (o.logo   && String(o.logo).trim())   || def.logo || ''
     };
   });
 }
@@ -340,7 +351,7 @@ export const FLAT_SECTIONS = {
 // validate each slot's allowed fields without a schema library.
 export const ARRAY_SECTIONS = {
   pillars:        { defaults: PILLARS_DEFAULTS,        itemKeys: ['key', 'body'] },
-  materials_rows: { defaults: MATERIALS_ROWS_DEFAULTS, itemKeys: ['name', 'detail'] }
+  materials_rows: { defaults: MATERIALS_ROWS_DEFAULTS, itemKeys: ['name', 'detail', 'logo'] }
 };
 
 // Helper: takes the photo list from /api/photos and the SERVICE_CATEGORIES

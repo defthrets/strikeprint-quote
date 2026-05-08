@@ -1086,8 +1086,9 @@ const PILLARS_FIELDS = [
 ];
 
 const MATERIALS_ROWS_FIELDS = [
-  { key: 'name',   label: 'Brand',  hint: 'Big text in the row (e.g. "AVERY")' },
-  { key: 'detail', label: 'Detail', hint: 'Small caption (e.g. "Cast vinyl")' }
+  { key: 'name',   label: 'Brand',     hint: 'Bold text shown when no logo is set (e.g. "AVERY")' },
+  { key: 'detail', label: 'Detail',    hint: 'Small caption (e.g. "Cast vinyl")' },
+  { key: 'logo',   label: 'Logo URL',  hint: 'Optional. Paste an image URL — homepage shows the logo (white-tinted) instead of the brand text. Source from each company’s press/brand-assets page; drop into /public/materials/ or upload via Photos and copy the blob URL.' }
 ];
 
 function ContentTab() {

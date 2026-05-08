@@ -454,6 +454,19 @@ const HOME_CSS = `
   .materials .row:last-child { border-bottom: none; }
   .materials .row strong { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: 0; color: var(--text); }
   .materials .row span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; font-family: var(--font-mono); }
+  /* Brand logo image — admin pastes a URL per row in the Materials
+     editor. brightness(0) invert(1) flattens any colour source to a
+     white silhouette so coloured logos still match the dark panel.
+     If a logo loses detail under the filter, source a pre-white SVG
+     (most companies provide one in their press / brand-asset page)
+     and the filter will leave it untouched. */
+  .materials .row .row-logo {
+    height: 24px; max-width: 110px;
+    width: auto; object-fit: contain;
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
+  }
+  [data-theme="light"] .materials .row .row-logo { filter: none; opacity: 1; }
 
   /* Contact */
   .contact-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 40px; }
@@ -1063,7 +1076,15 @@ export default function Home() {
             <div className="head">{MATERIALS.boxTitle}</div>
             {MATERIALS_ROWS.map((m, i) => (
               <div key={i} className="row">
-                <strong>{m.name}</strong>
+                {/* Render the logo when admin has set a URL; fall back to
+                    the bold name text otherwise. The white tint comes from
+                    a CSS filter so any colour source still looks right —
+                    swap to a pre-white SVG if the auto-tint loses detail. */}
+                {m.logo ? (
+                  <img src={m.logo} alt={m.name} className="row-logo" loading="lazy" />
+                ) : (
+                  <strong>{m.name}</strong>
+                )}
                 <span>{m.detail}</span>
               </div>
             ))}
