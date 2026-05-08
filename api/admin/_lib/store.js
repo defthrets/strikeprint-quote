@@ -10,6 +10,46 @@ function newId() {
   return 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+// Backfill mapping: human-readable label → service-category slug.
+// Used to migrate gallery entries that pre-date the category/featured
+// schema (i.e. were seeded before this change shipped). On read, any
+// entry missing a `category` field gets one inferred from its label
+// — keeps the homepage populated without forcing the admin to retag
+// every photo manually.
+const LABEL_TO_CATEGORY = {
+  'Storefront signage':      'shopfront',
+  'Tradie signage':          'shopfront',
+  'Bar graphics':            'illuminated',
+  'Illuminated bar graphics':'illuminated',
+  'Illuminated storefront':  'illuminated',
+  'Lightbox':                'illuminated',
+  'Vehicle wrap':            'vehicle',
+  'Vending wrap':            'vehicle',
+  'Banners':                 'banners',
+  'Hanging fabric banners':  'banners',
+  'Panels & promotional':    'banners',
+  'Panels and promotional':  'banners',
+  'Panels & acrylics':       'banners',
+  'Wall mural':              'graphics',
+  'Wall graphics':           'graphics',
+  'Privacy film':            'graphics',
+  'Custom privacy frosting': 'graphics',
+  'Window vinyl graphics':   'graphics',
+  'Custom vinyl':            'graphics',
+  'Inhouse production':      'pylons'
+};
+
+function migratePhoto(p) {
+  // Already migrated? leave it alone.
+  if (p.category !== undefined) return p;
+  const inferred = LABEL_TO_CATEGORY[p.label] || null;
+  return {
+    ...p,
+    category: inferred,
+    featured: !!p.featured  // default false; admin picks the cover via UI
+  };
+}
+
 export async function readGallery() {
   // Look up the blob by pathname — head() returns metadata + URL
   try {
@@ -19,7 +59,10 @@ export async function readGallery() {
     if (!r.ok) return await seedGallery();
     const json = await r.json();
     if (!json || !Array.isArray(json.photos)) return await seedGallery();
-    return json;
+    // Inline migration: any photos without a `category` field get one
+    // inferred from their label. The migration runs on read (cheap;
+    // pure JS) — the next write to gallery.json persists it for good.
+    return { ...json, photos: json.photos.map(migratePhoto) };
   } catch (err) {
     // Blob doesn't exist yet — first read seeds it. @vercel/blob throws
     // BlobNotFoundError; check that, plus a couple of fallbacks for safety.
@@ -52,6 +95,8 @@ async function seedGallery() {
     id: newId(),
     url: p.src,
     label: p.label,
+    category: p.category || null,
+    featured: !!p.featured,
     order: i,
     seed: true,
     createdAt: new Date().toISOString()

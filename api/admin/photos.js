@@ -6,6 +6,7 @@
 import { del } from '@vercel/blob';
 import { requireAdmin } from './_lib/auth.js';
 import { readGallery, writeGallery, makeId } from './_lib/store.js';
+import { CATEGORY_SLUGS } from '../../src/services-meta.js';
 
 export default async function handler(req, res) {
   if (!(await requireAdmin(req, res))) return;
@@ -31,14 +32,20 @@ async function listPhotos(req, res) {
 
 async function addPhoto(req, res) {
   const body = parseBody(req.body);
-  const { url, label } = body;
+  const { url, label, category } = body;
   if (!url || !label) return res.status(400).json({ error: 'url + label required' });
+
+  // Validate category if supplied — silently drop unknown values rather
+  // than 400 so a typo in admin doesn't reject the upload entirely.
+  const cat = (category && CATEGORY_SLUGS.includes(category)) ? category : null;
 
   const gallery = await readGallery();
   const newPhoto = {
     id: makeId(),
     url: String(url),
     label: String(label),
+    category: cat,
+    featured: false,
     order: gallery.photos.length,
     seed: false,
     createdAt: new Date().toISOString()
@@ -67,15 +74,50 @@ async function patchPhotos(req, res) {
     return res.status(200).json(updated);
   }
 
-  // Single edit via { id, label }
-  const { id, label } = body;
+  // Single edit via { id, label?, category?, featured? }
+  const { id, label, category, featured } = body;
   if (!id) return res.status(400).json({ error: 'id required' });
 
   const gallery = await readGallery();
-  const next = gallery.photos.map(p => p.id === id
-    ? { ...p, ...(label !== undefined ? { label: String(label) } : {}) }
-    : p
-  );
+  const target = gallery.photos.find(p => p.id === id);
+  if (!target) return res.status(404).json({ error: 'Photo not found' });
+
+  // Validate category — null/empty clears it; invalid slug is rejected.
+  let nextCategory = target.category ?? null;
+  if (category !== undefined) {
+    if (category === null || category === '') {
+      nextCategory = null;
+    } else if (CATEGORY_SLUGS.includes(category)) {
+      nextCategory = category;
+    } else {
+      return res.status(400).json({ error: `Unknown category: ${category}` });
+    }
+  }
+
+  // Featured toggle. If we're marking this photo as featured, atomically
+  // un-feature every other photo in the same category — only one cover
+  // per service. The category is whichever value we're settling on for
+  // *this* photo (could be the existing one, could be the new one).
+  const willBeFeatured = featured === true;
+  const effectiveCategory = nextCategory; // already resolved above
+
+  const next = gallery.photos.map(p => {
+    if (p.id === id) {
+      return {
+        ...p,
+        ...(label !== undefined    ? { label: String(label) } : {}),
+        ...(category !== undefined ? { category: nextCategory } : {}),
+        ...(featured !== undefined ? { featured: willBeFeatured } : {})
+      };
+    }
+    // Auto-clear featured on siblings in the same category when this one
+    // becomes the cover. No-op if we're un-featuring or not in that category.
+    if (willBeFeatured && p.featured && p.category === effectiveCategory) {
+      return { ...p, featured: false };
+    }
+    return p;
+  });
+
   const updated = await writeGallery({ photos: next });
   return res.status(200).json(updated);
 }

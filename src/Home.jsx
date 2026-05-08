@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Sun, Moon, Phone, Mail, MapPin, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { buildServices } from './services-meta.js';
 
 // ════════════════════════════════════════════════════════════════
 //   STRIKE PRINT — full single-page redesign
@@ -29,79 +30,10 @@ const PHOTOS = [
   ['/portfolio/install-36.webp',   'Storefront signage']
 ];
 
-// Each service has a cover image (the preview shown on the tile) and a
-// `gallery` of related photos. Click the tile → lightbox cycles through
-// just that category. Per the latest design pass: the standalone "Selected
-// installs" masonry section is gone; the click-through galleries on each
-// service tile have replaced it.
-const SERVICES = [
-  {
-    num: '01',
-    title: 'Shopfront & Building Signs',
-    body: 'ACM panels, fascias and storefront signage. Custom digital print on aluminium composite — engineered for kerb appeal that holds up under sun and weather.',
-    cover: '/portfolio/install-19.webp',
-    gallery: [
-      { src: '/portfolio/install-19.webp', label: 'Storefront signage' },
-      { src: '/portfolio/install-17.webp', label: 'Storefront signage' },
-      { src: '/portfolio/install-34.webp', label: 'Storefront signage' },
-      { src: '/portfolio/install-36.webp', label: 'Storefront signage' },
-      { src: '/portfolio/install-07.webp', label: 'Storefront signage' },
-      { src: '/portfolio/install-01.webp', label: 'Panels & promotional' }
-    ]
-  },
-  {
-    num: '02',
-    title: 'Illuminated Signs',
-    body: 'Lightboxes, channel letters and halo-lit cabinets. Internally LED-lit so your sign reads as clearly at midnight as it does at noon.',
-    cover: '/portfolio/install-23.webp',
-    gallery: [
-      { src: '/portfolio/install-23.webp', label: 'Illuminated bar graphics' },
-      { src: '/portfolio/install-34.webp', label: 'Illuminated storefront' }
-    ]
-  },
-  {
-    num: '03',
-    title: 'Vehicle Wraps & Decals',
-    body: 'Door logos, panel decals, full wraps. Vans, trucks, fleet — turn the asset you already own into a mobile billboard.',
-    cover: '/portfolio/install-32.webp',
-    gallery: [
-      { src: '/portfolio/install-32.webp', label: 'Vehicle wrap' },
-      { src: '/portfolio/install-38.webp', label: 'Vehicle wrap' }
-    ]
-  },
-  {
-    num: '04',
-    title: 'Banners, Flags & A-Frames',
-    body: 'Heavy-duty PVC banners, feather flags and footpath A-frames. Quick-turn marketing for events, sales and seasonal campaigns.',
-    cover: '/portfolio/install-26.webp',
-    gallery: [
-      { src: '/portfolio/install-26.webp', label: 'Banners' },
-      { src: '/portfolio/install-27.webp', label: 'Hanging fabric banners' },
-      { src: '/portfolio/install-01.webp', label: 'Panels & promotional' }
-    ]
-  },
-  {
-    num: '05',
-    title: 'Windows & Wall Graphics',
-    body: 'Vinyl window graphics, frosted privacy film, large-format wall murals. Brand presence and privacy in equal measure.',
-    cover: '/portfolio/install-08.webp',
-    gallery: [
-      { src: '/portfolio/install-08.webp', label: 'Wall mural' },
-      { src: '/portfolio/install-04.webp', label: 'Wall graphics' },
-      { src: '/portfolio/install-13.webp', label: 'Wall graphics' }
-    ]
-  },
-  {
-    num: '06',
-    title: 'Pylons & Wayfinding',
-    body: 'Free-standing roadside pylons and compact directional signs. Premium road-facing signage for centres, car parks and campus navigation.',
-    cover: '/portfolio/hero.webp',
-    gallery: [
-      { src: '/portfolio/hero.webp',       label: 'Inhouse production' },
-      { src: '/portfolio/install-19.webp', label: 'Storefront signage' }
-    ]
-  }
-];
+// Per-service gallery is now derived from /api/photos at runtime — admin can
+// re-tag photos via the /admin panel and the homepage updates after the next
+// load. See src/services-meta.js for the slug + title + fallback definitions
+// (used when no admin photos are tagged for a category yet).
 
 const PILLARS = [
   { key: 'Materials', body: 'ACM, acrylic, vinyl, fabric, LEDs — only what we trust on a real install.' },
@@ -681,10 +613,19 @@ const HOME_CSS = `
 export default function Home() {
   const [theme, setTheme] = useState('dark');
   const [lightbox, setLightbox] = useState(null); // { items: [...], idx: number } | null
+  // Photos from the admin-managed gallery. Empty array initially so the page
+  // renders fallback covers/galleries from services-meta.js until the fetch
+  // completes — keeps the homepage instant while admin data hydrates.
+  const [photos, setPhotos] = useState([]);
   const heroRef = useRef(null);
   const heroBoltRef = useRef(null);
   const heroGridRef = useRef(null);
   const headerRef = useRef(null);
+
+  // Derive the SERVICES array from fetched photos. Memoised so the lightbox
+  // gallery references stay stable across renders (otherwise a click would
+  // re-open with a brand-new array each time).
+  const SERVICES = useMemo(() => buildServices(photos), [photos]);
 
   // ── Inject fonts + styles + theme on mount ──
   useEffect(() => {
@@ -716,6 +657,23 @@ export default function Home() {
     document.documentElement.setAttribute('data-theme', theme);
     try { localStorage.setItem('strike-theme', theme); } catch {}
   }, [theme]);
+
+  // Fetch admin-managed photos from /api/photos. The endpoint is
+  // CDN-cached (60s s-maxage) so this is cheap and shared across visitors.
+  // If it fails, photos stays [] and SERVICES uses the compiled-in fallback
+  // — the page never blanks out on a network blip.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/photos', { credentials: 'omit' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!cancelled && data && Array.isArray(data.photos)) {
+          setPhotos(data.photos);
+        }
+      })
+      .catch(() => { /* fallback to compiled defaults */ });
+    return () => { cancelled = true; };
+  }, []);
 
   // ── Hero parallax: drift grid + ghost bolt with cursor ──
   useEffect(() => {

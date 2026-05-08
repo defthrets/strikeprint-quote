@@ -17,7 +17,17 @@ export default async function handler(req, res) {
     const gallery = await readGallery();
     const sorted = [...(gallery.photos || [])]
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .map(p => ({ id: p.id, src: p.url, label: p.label }));
+      .map(p => ({
+        id: p.id,
+        src: p.url,
+        label: p.label,
+        // Service-category metadata: empty/null when uncategorised.
+        // Homepage uses these to group photos into per-service galleries
+        // and pick a featured photo as the tile cover.
+        category: p.category || null,
+        featured: !!p.featured,
+        order: p.order ?? 0
+      }));
 
     // Cache at the edge for 60s — admin edits become visible after that
     // without forcing every public hit to read Blob fresh.

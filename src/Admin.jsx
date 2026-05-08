@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { upload } from '@vercel/blob/client';
-import { Lock, LogOut, AlertTriangle, Loader2, ArrowLeft, Image as ImageIcon, Type, Palette, Settings, Upload, Trash2, Plus, Check } from 'lucide-react';
+import { Lock, LogOut, AlertTriangle, Loader2, ArrowLeft, Image as ImageIcon, Type, Palette, Settings, Upload, Trash2, Plus, Check, Star } from 'lucide-react';
 import { LOGO_URL } from './logo.js';
+import { SERVICE_CATEGORIES } from './services-meta.js';
 
 const BRAND = {
   navy:           '#012659',
@@ -312,17 +313,30 @@ function PlaceholderTab({ tab }) {
   );
 }
 
-// Distinct categories shown in the label dropdown when adding/editing photos.
-// 'Other…' opens a free-text input so admin can add a brand-new category
-// on the fly — anything typed becomes the photo's label and joins the list
-// next time the page renders (computed from the live photos array).
-const SEED_CATEGORIES = [
+// Caption text shown over the photo in the lightbox. Suggested via a
+// <datalist> on the upload form and the per-photo edit field — admin can
+// pick from these or type anything new. The service-category dropdown is
+// separate (see SERVICE_CATEGORIES from services-meta.js).
+const SEED_LABEL_SUGGESTIONS = [
   'Storefront signage', 'Wall graphics', 'Wall mural', 'Privacy film',
   'Vending wrap', 'Vehicle wrap', 'Lightbox', 'Panels & acrylics',
   'Bar graphics', 'Banners', 'Tradie signage', 'Hanging fabric banners',
   'Window vinyl graphics', 'Custom vinyl', 'Custom privacy frosting',
-  'Inhouse production', 'Panels and promotional'
+  'Inhouse production', 'Panels & promotional', 'Illuminated bar graphics',
+  'Illuminated storefront'
 ];
+
+// Lookup: category slug → display info (used in dropdowns, group headings).
+// Plus a sentinel for "uncategorised" so photos that aren't in any service
+// group still appear in the admin UI.
+const CATEGORY_OPTIONS = [
+  { slug: '__uncat__', num: '—',  title: 'Uncategorised',          body: 'Not shown on any service tile' },
+  ...SERVICE_CATEGORIES.map(c => ({ slug: c.slug, num: c.num, title: c.title, body: c.body }))
+];
+function categoryLabel(slug) {
+  const c = CATEGORY_OPTIONS.find(o => o.slug === (slug || '__uncat__'));
+  return c ? `${c.num} · ${c.title}` : 'Unknown';
+}
 
 function PhotosTab() {
   const [photos, setPhotos] = useState([]);
@@ -330,13 +344,32 @@ function PhotosTab() {
   const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [defaultCategory, setDefaultCategory] = useState(SERVICE_CATEGORIES[0].slug);
   const [defaultLabel, setDefaultLabel] = useState('Storefront signage');
   const fileInputRef = useRef(null);
 
-  // Categories present in the live photo list, unioned with the seed list,
-  // de-duplicated. Lets admin pick from existing labels OR types a new one.
-  const liveCategories = Array.from(new Set(photos.map(p => p.label).filter(Boolean)));
-  const allCategories = Array.from(new Set([...SEED_CATEGORIES, ...liveCategories])).sort();
+  // Free-text label suggestions: existing labels in use + a small seed list,
+  // de-duplicated. Used for the per-photo caption text (separate from the
+  // service category — the label is the lightbox caption).
+  const labelSuggestions = useMemo(() => {
+    const live = photos.map(p => p.label).filter(Boolean);
+    return Array.from(new Set([...SEED_LABEL_SUGGESTIONS, ...live])).sort();
+  }, [photos]);
+
+  // Group photos by their service category for the rendered UI. Each group
+  // is one collapsible section showing how that service tile will look.
+  const grouped = useMemo(() => {
+    const buckets = new Map();
+    CATEGORY_OPTIONS.forEach(c => buckets.set(c.slug, []));
+    photos.forEach(p => {
+      const key = p.category || '__uncat__';
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(p);
+    });
+    // Within each bucket, sort by order
+    buckets.forEach(arr => arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+    return buckets;
+  }, [photos]);
 
   const refresh = async () => {
     setLoading(true);
@@ -369,12 +402,16 @@ function PhotosTab() {
         clientPayload: JSON.stringify({ originalName: file.name }),
         onUploadProgress: (p) => setUploadProgress(Math.round(p.percentage || 0))
       });
-      // Register in gallery.json
+      // Register in gallery.json with the chosen service category and label
       const r = await fetch('/api/admin/photos', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: blob.url, label: defaultLabel })
+        body: JSON.stringify({
+          url: blob.url,
+          label: defaultLabel,
+          category: defaultCategory === '__uncat__' ? null : defaultCategory
+        })
       });
       if (!r.ok) throw new Error('Upload registered but metadata save failed');
       await refresh();
@@ -387,16 +424,22 @@ function PhotosTab() {
     }
   };
 
-  const updateLabel = async (id, label) => {
+  // Generic patch — sends whichever subset of { label, category, featured }
+  // the caller provides. Server validates + atomically clears featured on
+  // siblings when a new cover is set.
+  const patchPhoto = async (id, patch) => {
     setError(null);
     try {
       const r = await fetch('/api/admin/photos', {
         method: 'PATCH',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, label })
+        body: JSON.stringify({ id, ...patch })
       });
-      if (!r.ok) throw new Error('Update failed');
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.error || `Update failed (${r.status})`);
+      }
       const data = await r.json();
       setPhotos([...(data.photos || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
     } catch (err) {
@@ -425,35 +468,58 @@ function PhotosTab() {
   return (
     <div>
       {/* Upload bar */}
-      <div className="p-4 sm:p-5 mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center"
+      <div className="p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-4 items-end"
         style={{
           background: BRAND.navyRaise,
           border: `1px solid ${BRAND.navyLineStrong}`,
           borderTop: `2px solid ${BRAND.boltAmber}`
         }}>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           <div className="text-[10px] uppercase tracking-[0.22em] mb-1"
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-            Default label for new photos
+            Service group
           </div>
-          <select value={defaultLabel} onChange={e => setDefaultLabel(e.target.value)}
+          <select value={defaultCategory} onChange={e => setDefaultCategory(e.target.value)}
             disabled={uploading}
-            className="w-full px-3 py-2 text-sm outline-none"
+            className="w-full px-3 py-2 text-sm outline-none cursor-pointer"
             style={{
               fontFamily: "'Outfit', sans-serif",
               background: 'rgba(8,21,46,0.6)',
               border: `1px solid ${BRAND.navyLineStrong}`,
               color: BRAND.textPri
             }}>
-            {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
+            {CATEGORY_OPTIONS.map(c => (
+              <option key={c.slug} value={c.slug}>{c.num} · {c.title}</option>
+            ))}
           </select>
+        </div>
+
+        <div className="min-w-0">
+          <div className="text-[10px] uppercase tracking-[0.22em] mb-1"
+            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+            Caption (lightbox)
+          </div>
+          <input list="label-suggestions" value={defaultLabel}
+            onChange={e => setDefaultLabel(e.target.value)}
+            disabled={uploading}
+            placeholder="e.g. Storefront signage"
+            className="w-full px-3 py-2 text-sm outline-none"
+            style={{
+              fontFamily: "'Outfit', sans-serif",
+              background: 'rgba(8,21,46,0.6)',
+              border: `1px solid ${BRAND.navyLineStrong}`,
+              color: BRAND.textPri
+            }} />
+          <datalist id="label-suggestions">
+            {labelSuggestions.map(s => <option key={s} value={s} />)}
+          </datalist>
         </div>
 
         <input ref={fileInputRef} type="file" accept="image/*" onChange={onUpload}
           disabled={uploading} className="hidden" />
 
-        <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        <button onClick={() => fileInputRef.current?.click()} disabled={uploading || !defaultLabel.trim()}
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed h-fit"
           style={{
             background: BRAND.boltGrad,
             color: BRAND.navy,
@@ -475,7 +541,7 @@ function PhotosTab() {
         </div>
       )}
 
-      {/* Photo grid */}
+      {/* Loading / empty */}
       {loading ? (
         <div className="flex items-center justify-center py-16" style={{ color: BRAND.textDim }}>
           <Loader2 className="w-5 h-5 animate-spin" />
@@ -490,111 +556,211 @@ function PhotosTab() {
           <p className="text-sm">No photos yet — hit "Upload photo" above to add the first one.</p>
         </div>
       ) : (
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.22em] mb-3"
-            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-            {photos.length} photos · sorted by order
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {photos.map(p => (
-              <PhotoRow key={p.id} photo={p} categories={allCategories}
-                onLabel={updateLabel} onDelete={removePhoto} />
-            ))}
-          </div>
+        <div className="space-y-8">
+          {/* One section per service category. Empty buckets render the
+              header so admin can see where photos are missing — there's a
+              "no photos yet" notice instead of the grid. */}
+          {CATEGORY_OPTIONS.map(cat => {
+            const bucket = grouped.get(cat.slug) || [];
+            const isUncat = cat.slug === '__uncat__';
+            // Hide the uncategorised bucket when it's empty — only show
+            // it when there's actually something needing attention.
+            if (isUncat && bucket.length === 0) return null;
+            const featured = bucket.find(p => p.featured);
+            return (
+              <section key={cat.slug}>
+                <header className="flex items-baseline gap-3 mb-3 pb-2"
+                  style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
+                  <span className="text-[10px] uppercase tracking-[0.25em] font-bold"
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      color: BRAND.boltAmber,
+                      minWidth: 32
+                    }}>
+                    {cat.num}
+                  </span>
+                  <h3 className="text-base sm:text-lg" style={{
+                    fontFamily: 'Anton, sans-serif',
+                    letterSpacing: '0.02em',
+                    color: BRAND.textPri
+                  }}>
+                    {cat.title}
+                  </h3>
+                  <span className="text-[10px] uppercase tracking-[0.22em] ml-auto"
+                    style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+                    {bucket.length} {bucket.length === 1 ? 'photo' : 'photos'}
+                    {!isUncat && featured && (
+                      <span style={{ color: BRAND.boltAmber, marginLeft: 8 }}>· cover set</span>
+                    )}
+                    {!isUncat && !featured && bucket.length > 0 && (
+                      <span style={{ color: '#fca5a5', marginLeft: 8 }}>· no cover</span>
+                    )}
+                  </span>
+                </header>
+
+                {bucket.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-xs"
+                    style={{
+                      color: BRAND.textFaint,
+                      fontFamily: "'JetBrains Mono', monospace",
+                      letterSpacing: '0.18em',
+                      border: `1px dashed ${BRAND.navyLine}`,
+                      textTransform: 'uppercase'
+                    }}>
+                    No photos yet — homepage uses fallback images for this group
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {bucket.map(p => (
+                      <PhotoRow key={p.id} photo={p}
+                        labelSuggestions={labelSuggestions}
+                        canFeature={!isUncat}
+                        onPatch={patchPhoto}
+                        onDelete={removePhoto} />
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-function PhotoRow({ photo, categories, onLabel, onDelete }) {
+function PhotoRow({ photo, labelSuggestions, canFeature, onPatch, onDelete }) {
   const [editingLabel, setEditingLabel] = useState(false);
-  const [customLabel, setCustomLabel] = useState('');
+  const [labelDraft, setLabelDraft] = useState(photo.label || '');
 
-  const onSelect = (val) => {
-    if (val === '__custom__') {
-      setEditingLabel(true);
-      setCustomLabel(photo.label || '');
-      return;
-    }
-    onLabel(photo.id, val);
+  // Re-sync the input when the photo's label changes from outside
+  // (e.g. another tab patched it). Cheap and avoids stale drafts.
+  useEffect(() => { setLabelDraft(photo.label || ''); }, [photo.label]);
+
+  const saveLabel = () => {
+    const trimmed = labelDraft.trim();
+    if (trimmed && trimmed !== photo.label) onPatch(photo.id, { label: trimmed });
+    setEditingLabel(false);
   };
 
-  const saveCustom = () => {
-    const trimmed = customLabel.trim();
-    if (trimmed && trimmed !== photo.label) onLabel(photo.id, trimmed);
-    setEditingLabel(false);
+  const isFeatured = !!photo.featured;
+  const toggleFeatured = () => {
+    if (!canFeature) return;
+    onPatch(photo.id, { featured: !isFeatured });
+  };
+
+  const onCategoryChange = (val) => {
+    onPatch(photo.id, { category: val === '__uncat__' ? null : val });
   };
 
   return (
     <div className="flex gap-3 p-3"
       style={{
         background: 'rgba(8,21,46,0.55)',
-        border: `1px solid ${BRAND.navyLine}`,
-        borderLeft: `3px solid ${BRAND.boltAmber}`
+        border: `1px solid ${isFeatured ? BRAND.boltAmber : BRAND.navyLine}`,
+        borderLeft: `3px solid ${isFeatured ? BRAND.boltAmber : BRAND.navyLineStrong}`,
+        boxShadow: isFeatured ? `0 0 0 1px ${BRAND.boltAmber}40` : 'none'
       }}>
-      <div className="flex-shrink-0 overflow-hidden"
+      <div className="flex-shrink-0 overflow-hidden relative"
         style={{ width: 96, height: 72, background: BRAND.navyDeep }}>
         <img src={photo.url} alt={photo.label}
           className="w-full h-full" loading="lazy"
           style={{ objectFit: 'cover', display: 'block' }} />
+        {isFeatured && (
+          <div className="absolute top-1 left-1 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.2em] font-bold"
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              background: BRAND.boltAmber,
+              color: BRAND.navy
+            }}>
+            Cover
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 min-w-0 flex flex-col justify-between">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.22em] mb-1"
-            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-            Label {photo.seed && <span style={{ color: BRAND.boltAmber }}>· seed</span>}
-          </div>
+      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+        {/* Service group dropdown */}
+        <select value={photo.category || '__uncat__'} onChange={e => onCategoryChange(e.target.value)}
+          className="w-full px-2 py-1 text-xs outline-none cursor-pointer"
+          style={{
+            background: 'rgba(8,21,46,0.6)',
+            border: `1px solid ${BRAND.navyLineStrong}`,
+            color: BRAND.textPri,
+            fontFamily: "'Outfit', sans-serif"
+          }}>
+          {CATEGORY_OPTIONS.map(c => (
+            <option key={c.slug} value={c.slug}>{c.num} · {c.title}</option>
+          ))}
+        </select>
 
-          {editingLabel ? (
-            <div className="flex gap-1">
-              <input value={customLabel} onChange={e => setCustomLabel(e.target.value)}
-                autoFocus
-                onKeyDown={e => { if (e.key === 'Enter') saveCustom(); if (e.key === 'Escape') setEditingLabel(false); }}
-                className="flex-1 px-2 py-1.5 text-sm outline-none"
-                style={{
-                  background: 'rgba(8,21,46,0.6)',
-                  border: `1px solid ${BRAND.boltAmber}`,
-                  color: BRAND.textPri,
-                  fontFamily: "'Outfit', sans-serif"
-                }} />
-              <button onClick={saveCustom}
-                className="px-2 cursor-pointer"
-                style={{ background: BRAND.boltAmber, color: BRAND.navy, border: 'none' }}>
-                <Check className="w-4 h-4" strokeWidth={3} />
-              </button>
-            </div>
-          ) : (
-            <select value={categories.includes(photo.label) ? photo.label : '__custom__'}
-              onChange={e => onSelect(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm outline-none cursor-pointer"
+        {/* Label / caption */}
+        {editingLabel ? (
+          <div className="flex gap-1">
+            <input value={labelDraft} onChange={e => setLabelDraft(e.target.value)}
+              autoFocus list="label-suggestions"
+              onKeyDown={e => { if (e.key === 'Enter') saveLabel(); if (e.key === 'Escape') setEditingLabel(false); }}
+              onBlur={saveLabel}
+              className="flex-1 px-2 py-1 text-xs outline-none min-w-0"
               style={{
                 background: 'rgba(8,21,46,0.6)',
-                border: `1px solid ${BRAND.navyLineStrong}`,
+                border: `1px solid ${BRAND.boltAmber}`,
                 color: BRAND.textPri,
                 fontFamily: "'Outfit', sans-serif"
-              }}>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-              {!categories.includes(photo.label) && (
-                <option value={photo.label}>{photo.label} (custom)</option>
-              )}
-              <option value="__custom__">Other / custom…</option>
-            </select>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-[9px] uppercase tracking-[0.2em]"
-            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
-            #{(photo.order ?? 0) + 1}
-          </span>
-          <button onClick={() => onDelete(photo.id)}
-            title="Delete photo"
-            className="inline-flex items-center justify-center w-7 h-7 cursor-pointer hover:bg-red-500/20"
-            style={{ border: `1px solid ${BRAND.navyLineStrong}`, color: BRAND.textMuted }}>
-            <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+              }} />
+            <button onMouseDown={(e) => { e.preventDefault(); saveLabel(); }}
+              className="px-2 cursor-pointer"
+              style={{ background: BRAND.boltAmber, color: BRAND.navy, border: 'none' }}>
+              <Check className="w-3.5 h-3.5" strokeWidth={3} />
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setEditingLabel(true)}
+            className="text-xs px-2 py-1 cursor-text text-left truncate"
+            style={{
+              fontFamily: "'Outfit', sans-serif",
+              background: 'rgba(8,21,46,0.4)',
+              border: `1px solid ${BRAND.navyLine}`,
+              color: BRAND.textPri
+            }}
+            title="Click to edit caption">
+            {photo.label || <span style={{ color: BRAND.textFaint }}>(no caption)</span>}
           </button>
+        )}
+
+        {/* Action row: set-cover toggle + delete */}
+        <div className="flex items-center justify-between gap-2 mt-auto">
+          <button onClick={toggleFeatured}
+            disabled={!canFeature}
+            title={canFeature
+              ? (isFeatured ? 'Unset as cover' : 'Set as the cover photo for this service')
+              : 'Assign a service group first'}
+            className="inline-flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-[0.18em] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              background: isFeatured ? `${BRAND.boltAmber}20` : 'rgba(8,21,46,0.4)',
+              border: `1px solid ${isFeatured ? BRAND.boltAmber : BRAND.navyLineStrong}`,
+              color: isFeatured ? BRAND.boltAmber : BRAND.textMuted,
+              fontWeight: 700
+            }}>
+            <Star className="w-3 h-3"
+              strokeWidth={2}
+              fill={isFeatured ? BRAND.boltAmber : 'none'} />
+            {isFeatured ? 'Cover' : 'Set cover'}
+          </button>
+          <div className="flex items-center gap-1.5">
+            {photo.seed && (
+              <span className="text-[9px] uppercase tracking-[0.18em]"
+                style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                seed
+              </span>
+            )}
+            <button onClick={() => onDelete(photo.id)}
+              title="Delete photo"
+              className="inline-flex items-center justify-center w-7 h-7 cursor-pointer hover:bg-red-500/20"
+              style={{ border: `1px solid ${BRAND.navyLineStrong}`, color: BRAND.textMuted }}>
+              <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
