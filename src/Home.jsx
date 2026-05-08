@@ -145,35 +145,6 @@ const HOME_CSS = `
   ::selection { background: var(--amber); color: #08152e; }
   .strike-page a { color: inherit; }
 
-  /* Custom cursor */
-  .cursor-ring, .cursor-dot {
-    position: fixed; top: 0; left: 0;
-    pointer-events: none; z-index: 9999;
-    opacity: 0;
-    transition: opacity .25s ease, width .25s ease, height .25s ease, margin .25s ease, background-color .2s ease;
-    will-change: transform;
-    mix-blend-mode: screen;
-  }
-  .cursor-ring {
-    width: 36px; height: 36px;
-    margin: -18px 0 0 -18px;
-    border-radius: 50%;
-    border: 1.5px solid var(--amber);
-    box-shadow: 0 0 12px rgba(245,154,16,0.35), inset 0 0 6px rgba(245,154,16,0.18);
-  }
-  .cursor-dot {
-    width: 6px; height: 6px;
-    margin: -3px 0 0 -3px;
-    border-radius: 50%;
-    background: var(--amber);
-    box-shadow: 0 0 10px rgba(245,154,16,0.9);
-  }
-  .cursor-ring.on, .cursor-dot.on { opacity: 1; }
-  .cursor-ring.boost { width: 60px; height: 60px; margin: -30px 0 0 -30px; border-color: var(--yellow); }
-  .cursor-dot.boost { width: 10px; height: 10px; margin: -5px 0 0 -5px; background: var(--yellow); }
-  [data-theme="light"] .cursor-ring, [data-theme="light"] .cursor-dot { mix-blend-mode: normal; }
-  @media (hover: none), (pointer: coarse) { .cursor-ring, .cursor-dot { display: none; } }
-
   /* Grain overlay */
   .grain {
     position: fixed; inset: 0; pointer-events: none; z-index: 1;
@@ -666,8 +637,6 @@ const HOME_CSS = `
 export default function Home() {
   const [theme, setTheme] = useState('dark');
   const [lightbox, setLightbox] = useState(null); // { items: [...], idx: number } | null
-  const ringRef = useRef(null);
-  const dotRef = useRef(null);
   const heroRef = useRef(null);
   const heroBoltRef = useRef(null);
   const heroGridRef = useRef(null);
@@ -703,60 +672,6 @@ export default function Home() {
     document.documentElement.setAttribute('data-theme', theme);
     try { localStorage.setItem('strike-theme', theme); } catch {}
   }, [theme]);
-
-  // ── Custom cursor: ring 1:1, dot with spring physics ──
-  useEffect(() => {
-    if (window.matchMedia('(hover: none), (pointer: coarse)').matches) return;
-    const ring = ringRef.current;
-    const dot = dotRef.current;
-    if (!ring || !dot) return;
-
-    let tx = 0, ty = 0, dx = 0, dy = 0, vx = 0, vy = 0;
-    const STIFFNESS = 0.05;
-    const DAMPING = 0.86;
-    let raf = null;
-    let onScreen = false;
-
-    const tick = () => {
-      const ax = (tx - dx) * STIFFNESS;
-      const ay = (ty - dy) * STIFFNESS;
-      vx = (vx + ax) * DAMPING;
-      vy = (vy + ay) * DAMPING;
-      dx += vx; dy += vy;
-      ring.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
-      dot.style.transform  = `translate3d(${dx}px, ${dy}px, 0)`;
-      raf = requestAnimationFrame(tick);
-    };
-
-    const onMove = (e) => {
-      tx = e.clientX; ty = e.clientY;
-      if (!onScreen) {
-        onScreen = true;
-        ring.classList.add('on'); dot.classList.add('on');
-        if (dx === 0 && dy === 0) { dx = tx; dy = ty; }
-      }
-      if (!raf) raf = requestAnimationFrame(tick);
-    };
-    const onLeave = () => {
-      onScreen = false;
-      ring.classList.remove('on'); dot.classList.remove('on');
-    };
-    const onOver = (e) => {
-      const hit = e.target.closest('a, button, .pf, .show-card, .service, .ct, .pillar, .cta');
-      ring.classList.toggle('boost', !!hit);
-      dot.classList.toggle('boost', !!hit);
-    };
-
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseleave', onLeave);
-    document.addEventListener('mouseover', onOver);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseleave', onLeave);
-      document.removeEventListener('mouseover', onOver);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
 
   // ── Hero parallax: drift grid + ghost bolt with cursor ──
   useEffect(() => {
@@ -868,8 +783,6 @@ export default function Home() {
   return (
     <div className="strike-page">
       <div className="grain" aria-hidden="true" />
-      <div ref={ringRef} className="cursor-ring" />
-      <div ref={dotRef} className="cursor-dot" />
 
       {/* Header */}
       <header ref={headerRef} className="header">
