@@ -360,6 +360,17 @@ function PhotosTab() {
     return Array.from(new Set([...SEED_LABEL_SUGGESTIONS, ...live])).sort();
   }, [photos]);
 
+  // Live category options for the per-photo dropdowns + the upload bar.
+  // Pulls titles from the merged services state so admin-renamed groups
+  // (e.g. "Vehicle Wraps & Decals" → "Vending") show the new name on
+  // every dropdown immediately. Falls back to the static defaults
+  // before /api/admin/content has resolved.
+  const liveCategoryOptions = useMemo(() => {
+    const uncat = { slug: '__uncat__', num: '—', title: 'Uncategorised' };
+    if (!services || services.length === 0) return CATEGORY_OPTIONS;
+    return [uncat, ...services.map(s => ({ slug: s.slug, num: s.num, title: s.title }))];
+  }, [services]);
+
   // Group photos by their service category for the rendered UI. Each group
   // is one collapsible section showing how that service tile will look.
   const grouped = useMemo(() => {
@@ -526,7 +537,7 @@ function PhotosTab() {
               border: `1px solid ${BRAND.navyLineStrong}`,
               color: BRAND.textPri
             }}>
-            {CATEGORY_OPTIONS.map(c => (
+            {liveCategoryOptions.map(c => (
               <option key={c.slug} value={c.slug}>{c.num} · {c.title}</option>
             ))}
           </select>
@@ -651,6 +662,7 @@ function PhotosTab() {
                     {bucket.map(p => (
                       <PhotoRow key={p.id} photo={p}
                         labelSuggestions={labelSuggestions}
+                        categoryOptions={liveCategoryOptions}
                         canFeature={!isUncat}
                         onPatch={patchPhoto}
                         onDelete={removePhoto} />
@@ -1534,7 +1546,7 @@ function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
   );
 }
 
-function PhotoRow({ photo, labelSuggestions, canFeature, onPatch, onDelete }) {
+function PhotoRow({ photo, labelSuggestions, categoryOptions, canFeature, onPatch, onDelete }) {
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelDraft, setLabelDraft] = useState(photo.label || '');
 
@@ -1593,7 +1605,7 @@ function PhotoRow({ photo, labelSuggestions, canFeature, onPatch, onDelete }) {
             color: BRAND.textPri,
             fontFamily: "'Outfit', sans-serif"
           }}>
-          {CATEGORY_OPTIONS.map(c => (
+          {(categoryOptions || CATEGORY_OPTIONS).map(c => (
             <option key={c.slug} value={c.slug}>{c.num} · {c.title}</option>
           ))}
         </select>
