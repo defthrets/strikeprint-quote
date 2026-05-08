@@ -158,20 +158,20 @@ export default function Gallery() {
           What <span style={{ color: BRAND.boltAmber }}>We've</span> Made
         </h1>
         <p className="anim-fadeup mt-3 max-w-2xl mx-auto text-center text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-          Real installs from across Sydney, grouped by sign type. Tap any image
-          to see it larger — arrows or your keyboard cycle through that group.
+          Real installs from across Sydney, grouped by sign type. Tap any
+          category to flick through every photo in that group.
         </p>
 
-        {/* Groups — each section has its own heading + grid + lightbox scope */}
-        <div className="mt-10 sm:mt-14 space-y-12 sm:space-y-16">
-          {GROUPS.map(group => (
-            <GalleryGroup key={group.label} group={group} onOpen={openLightbox} />
+        {/* One card per category — click to open the group's lightbox */}
+        <div className="mt-8 sm:mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          {GROUPS.map((group, gIdx) => (
+            <CategoryCard key={group.label} group={group} idx={gIdx} onOpen={openLightbox} />
           ))}
         </div>
 
         <p className="mt-12 text-center text-[11px] uppercase tracking-[0.25em]"
           style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
-          More photos and videos added regularly · {TOTAL_COUNT} shown across {GROUPS.length} categories
+          More photos and videos added regularly · {TOTAL_COUNT} photos across {GROUPS.length} categories
         </p>
       </main>
 
@@ -191,35 +191,14 @@ export default function Gallery() {
   );
 }
 
-function GalleryGroup({ group, onOpen }) {
+// One tile per category. Uses the first photo of the group as the cover,
+// shows the label + count, opens the group's lightbox starting at index 0.
+function CategoryCard({ group, idx, onOpen }) {
+  const cover = group.items[0];
+  const count = group.items.length;
   return (
-    <section>
-      <div className="flex items-center justify-center gap-3 mb-5 anim-fadeup">
-        <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
-        <span className="text-[11px] sm:text-xs uppercase tracking-[0.3em] font-bold"
-          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-          {group.label}
-        </span>
-        <span className="text-[10px] uppercase tracking-[0.25em]"
-          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-          · {group.items.length}
-        </span>
-        <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-        {group.items.map((it, idx) => (
-          <GalleryCard key={idx} item={it} idx={idx}
-            onOpen={() => onOpen(group.items, group.label, idx)} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function GalleryCard({ item, idx, onOpen }) {
-  return (
-    <button type="button" onClick={onOpen}
+    <button type="button"
+      onClick={() => onOpen(group.items, group.label, 0)}
       className="gal-card relative overflow-hidden block w-full"
       style={{
         aspectRatio: '4 / 3',
@@ -227,11 +206,44 @@ function GalleryCard({ item, idx, onOpen }) {
         border: `1px solid ${BRAND.navyLineStrong}`,
         cursor: 'pointer'
       }}>
-      <img src={item.src} alt={item.label}
-        loading={idx < 4 ? 'eager' : 'lazy'}
+      <img src={cover.src} alt={group.label}
+        loading={idx < 8 ? 'eager' : 'lazy'}
         decoding="async"
         className="gal-img absolute inset-0 w-full h-full"
         style={{ objectFit: 'cover' }} />
+
+      {/* Bottom overlay: amber dash + category name + count badge */}
+      <div className="absolute inset-x-0 bottom-0 px-3 py-3 flex items-end justify-between gap-2"
+        style={{
+          background: 'linear-gradient(to top, rgba(8,21,46,0.97), rgba(8,21,46,0.7) 60%, transparent)'
+        }}>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="h-px w-3 flex-shrink-0" style={{ background: BRAND.boltAmber }} />
+            <span className="text-[9px] uppercase tracking-[0.22em] font-bold"
+              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+              Category
+            </span>
+          </div>
+          <div className="truncate" style={{
+            fontFamily: 'Bebas Neue, sans-serif',
+            fontSize: 'clamp(1rem, 1.6vw, 1.3rem)',
+            letterSpacing: '0.03em',
+            lineHeight: 1.1,
+            color: BRAND.textPri
+          }}>
+            {group.label}
+          </div>
+        </div>
+        <span className="flex-shrink-0 px-2 py-1 text-[10px] uppercase tracking-[0.18em] font-bold"
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            background: BRAND.boltGrad,
+            color: BRAND.navy
+          }}>
+          {count}
+        </span>
+      </div>
     </button>
   );
 }
