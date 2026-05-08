@@ -55,7 +55,14 @@ export async function readGallery() {
   try {
     const meta = await head(GALLERY_KEY);
     if (!meta?.url) return await seedGallery();
-    const r = await fetch(meta.url, { cache: 'no-store' });
+    // Cache-bust the blob URL — Vercel's public-blob CDN caches the
+    // path-stable URL, so a fresh PATCH right after a previous one
+    // would read stale gallery.json and clobber the previous change
+    // (last-write-wins). Appending a unique query forces an origin
+    // hit. Cheap because the blob itself is tiny.
+    const sep = meta.url.includes('?') ? '&' : '?';
+    const fresh = meta.url + sep + 'cb=' + Date.now();
+    const r = await fetch(fresh, { cache: 'no-store' });
     if (!r.ok) return await seedGallery();
     const json = await r.json();
     if (!json || !Array.isArray(json.photos)) return await seedGallery();
