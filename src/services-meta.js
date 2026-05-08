@@ -107,6 +107,54 @@ export const SERVICE_CATEGORIES = [
 // to reject anything else (typo, attempted injection, etc.).
 export const CATEGORY_SLUGS = SERVICE_CATEGORIES.map(c => c.slug);
 
+// ─────────────────────────────────────────────────────────────────
+// Page content defaults — admin can override any of these via
+// /api/admin/content; the homepage merges defaults + overrides at
+// render time so unedited fields keep showing the original copy.
+
+export const HERO_DEFAULTS = {
+  // The thin amber pill above the headline
+  eyebrow:       'Sydney · Arndell Park · Established 20 years · Design · Print · Install',
+  // Headline is split into three parts so the middle word can keep its
+  // glitch animation while the rest stays plain
+  headlinePre:   'STAND OUT WITH',
+  headlineGlitch:'STRIKING',
+  headlinePost:  'SIGNAGE',
+  // The paragraph under the headline
+  lede:          'Custom signs, banners, decals, lightboxes, vehicle wraps, custom window frosting, and more. Designed, manufactured and installed Australia wide.\nMade inhouse from Arndell Park, Sydney',
+  ctaPrimary:    'See our work →',
+  ctaSecondary:  'Get in touch'
+};
+
+export const CONTACT_DEFAULTS = {
+  phone:   '0422 626 286',
+  email:   'info@strikeprint.com.au',
+  // Multi-line — rendered with white-space: pre-line on the homepage so
+  // a literal \n becomes a line break (e.g. street + suburb on two lines)
+  address: '26/70 Holbeche Rd\nArndell Park NSW 2148',
+  hours:   'Mon–Fri · 8am–4pm',
+  // Map embed query — usually mirrors `address` but kept separate so admin
+  // can adjust the pin without changing the displayed text
+  mapsQuery: '26/70 Holbeche Rd, Arndell Park NSW 2148'
+};
+
+// Merges a sparse override object on top of the defaults. Empty strings
+// don't clobber — admins clearing a field "to default" should leave it
+// blank in the editor, server stores it as null/undefined which falls
+// through to the default below.
+function shallowMerge(defaults, overrides) {
+  if (!overrides) return defaults;
+  const out = { ...defaults };
+  for (const k of Object.keys(overrides)) {
+    const v = overrides[k];
+    if (v !== null && v !== undefined && v !== '') out[k] = v;
+  }
+  return out;
+}
+
+export function buildHero(overrides)    { return shallowMerge(HERO_DEFAULTS, overrides); }
+export function buildContact(overrides) { return shallowMerge(CONTACT_DEFAULTS, overrides); }
+
 // Helper: takes the photo list from /api/photos and the SERVICE_CATEGORIES
 // definitions, returns the SERVICES array the homepage needs:
 //   [{ num, title, body, cover, gallery: [{src, label}] }, …]
@@ -119,8 +167,15 @@ export const CATEGORY_SLUGS = SERVICE_CATEGORIES.map(c => c.slug);
 //     flagged, or the fallback cover
 //   - Gallery = all category-tagged photos (admin-curated order), or the
 //     fallback gallery
-export function buildServices(photos = []) {
+// `serviceOverrides` is a sparse map of { slug: { title?, body? } } —
+// admin-edited values from gallery.json. Anything not overridden falls
+// back to the SERVICE_CATEGORIES default for that slug.
+export function buildServices(photos = [], serviceOverrides = {}) {
   return SERVICE_CATEGORIES.map(cat => {
+    const override = serviceOverrides[cat.slug] || {};
+    const title = (override.title && override.title.trim()) || cat.title;
+    const body  = (override.body  && override.body.trim())  || cat.body;
+
     const tagged = photos
       .filter(p => p.category === cat.slug)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -129,8 +184,7 @@ export function buildServices(photos = []) {
       return {
         num: cat.num,
         slug: cat.slug,
-        title: cat.title,
-        body: cat.body,
+        title, body,
         cover: cat.fallback.cover,
         gallery: cat.fallback.gallery
       };
@@ -140,8 +194,7 @@ export function buildServices(photos = []) {
     return {
       num: cat.num,
       slug: cat.slug,
-      title: cat.title,
-      body: cat.body,
+      title, body,
       cover: featured.src || featured.url,
       gallery: tagged.map(p => ({ src: p.src || p.url, label: p.label }))
     };

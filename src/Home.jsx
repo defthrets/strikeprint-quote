@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Sun, Moon, Phone, Mail, MapPin, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { buildServices } from './services-meta.js';
+import { buildServices, buildHero, buildContact } from './services-meta.js';
 
 // ════════════════════════════════════════════════════════════════
 //   STRIKE PRINT — full single-page redesign
@@ -613,19 +613,28 @@ const HOME_CSS = `
 export default function Home() {
   const [theme, setTheme] = useState('dark');
   const [lightbox, setLightbox] = useState(null); // { items: [...], idx: number } | null
-  // Photos from the admin-managed gallery. Empty array initially so the page
-  // renders fallback covers/galleries from services-meta.js until the fetch
-  // completes — keeps the homepage instant while admin data hydrates.
+  // Admin-managed content. All start empty so the page renders factory
+  // defaults (from services-meta.js) until /api/photos resolves — keeps
+  // the homepage instant while admin data hydrates.
   const [photos, setPhotos] = useState([]);
+  const [serviceOverrides, setServiceOverrides] = useState({});
+  const [heroOverrides, setHeroOverrides] = useState({});
+  const [contactOverrides, setContactOverrides] = useState({});
   const heroRef = useRef(null);
   const heroBoltRef = useRef(null);
   const heroGridRef = useRef(null);
   const headerRef = useRef(null);
 
-  // Derive the SERVICES array from fetched photos. Memoised so the lightbox
-  // gallery references stay stable across renders (otherwise a click would
-  // re-open with a brand-new array each time).
-  const SERVICES = useMemo(() => buildServices(photos), [photos]);
+  // Derive the SERVICES array from fetched photos + admin title/body
+  // overrides. Memoised so the lightbox gallery references stay stable
+  // across renders (otherwise a click would re-open with a brand-new
+  // array each time, breaking idx-tracking).
+  const SERVICES = useMemo(
+    () => buildServices(photos, serviceOverrides),
+    [photos, serviceOverrides]
+  );
+  const HERO    = useMemo(() => buildHero(heroOverrides),       [heroOverrides]);
+  const CONTACT = useMemo(() => buildContact(contactOverrides), [contactOverrides]);
 
   // ── Inject fonts + styles + theme on mount ──
   useEffect(() => {
@@ -658,18 +667,21 @@ export default function Home() {
     try { localStorage.setItem('strike-theme', theme); } catch {}
   }, [theme]);
 
-  // Fetch admin-managed photos from /api/photos. The endpoint is
+  // Fetch admin-managed content from /api/photos. The endpoint is
   // CDN-cached (60s s-maxage) so this is cheap and shared across visitors.
-  // If it fails, photos stays [] and SERVICES uses the compiled-in fallback
-  // — the page never blanks out on a network blip.
+  // Returns photos + service overrides + hero + contact in one shot.
+  // If it fails, every state stays empty and SERVICES/HERO/CONTACT use
+  // their compiled-in defaults — the page never blanks out on a blip.
   useEffect(() => {
     let cancelled = false;
     fetch('/api/photos', { credentials: 'omit' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!cancelled && data && Array.isArray(data.photos)) {
-          setPhotos(data.photos);
-        }
+        if (cancelled || !data) return;
+        if (Array.isArray(data.photos)) setPhotos(data.photos);
+        if (data.services && typeof data.services === 'object') setServiceOverrides(data.services);
+        if (data.hero    && typeof data.hero === 'object')      setHeroOverrides(data.hero);
+        if (data.contact && typeof data.contact === 'object')   setContactOverrides(data.contact);
       })
       .catch(() => { /* fallback to compiled defaults */ });
     return () => { cancelled = true; };
@@ -796,7 +808,7 @@ export default function Home() {
             <a href="#services" className="nav-link">Work</a>
             <a href="#about" className="nav-link">About</a>
             <a href="#contact" className="nav-link">Contact</a>
-            <a href="tel:0422626286" className="cta">Call now →</a>
+            <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`} className="cta">Call now →</a>
             <button className="theme-toggle" onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
               aria-label="Toggle theme" title="Toggle theme">
               {theme === 'light'
@@ -817,21 +829,18 @@ export default function Home() {
 
         <div className="eyebrow">
           <span className="line" />
-          <span className="label">Sydney · Arndell Park · Established 20 years · Design · Print · Install</span>
+          <span className="label">{HERO.eyebrow}</span>
           <span className="line" />
         </div>
         <h1>
-          STAND OUT WITH<br />
-          <span className="glitch">STRIKING</span> SIGNAGE
+          {HERO.headlinePre}{HERO.headlinePre && <br />}
+          {HERO.headlineGlitch && <span className="glitch">{HERO.headlineGlitch}</span>}
+          {HERO.headlinePost && (HERO.headlineGlitch ? ' ' : '')}{HERO.headlinePost}
         </h1>
-        <p className="lede">
-          Custom signs, banners, decals, lightboxes, vehicle wraps, custom window
-          frosting, and more. Designed, manufactured and installed Australia wide.
-          Made inhouse from Arndell Park, Sydney.
-        </p>
+        <p className="lede" style={{ whiteSpace: 'pre-line' }}>{HERO.lede}</p>
         <div className="hero-actions">
-          <a href="#services" className="btn-secondary">See our work →</a>
-          <a href="#contact" className="btn-secondary">Get in touch</a>
+          <a href="#services" className="btn-secondary">{HERO.ctaPrimary}</a>
+          <a href="#contact" className="btn-secondary">{HERO.ctaSecondary}</a>
         </div>
 
         <div className="marquee-section">
@@ -971,36 +980,36 @@ export default function Home() {
         </div>
 
         <div className="contact-grid">
-          <a className="ct" href="tel:0422626286">
+          <a className="ct" href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>
             <div className="label"><Phone width={14} height={14} strokeWidth={2} />Phone</div>
-            <div className="value">0422 626 286</div>
+            <div className="value">{CONTACT.phone}</div>
           </a>
-          <a className="ct" href="mailto:info@strikeprint.com.au">
+          <a className="ct" href={`mailto:${CONTACT.email}`}>
             <div className="label"><Mail width={14} height={14} strokeWidth={2} />Email</div>
-            <div className="value">info@strikeprint.com.au</div>
+            <div className="value">{CONTACT.email}</div>
           </a>
           <a className="ct" target="_blank" rel="noopener noreferrer"
-            href="https://maps.google.com/?q=26/70+Holbeche+Rd+Arndell+Park+NSW+2148">
+            href={`https://maps.google.com/?q=${encodeURIComponent(CONTACT.mapsQuery || CONTACT.address.replace(/\n/g, ', '))}`}>
             <div className="label"><MapPin width={14} height={14} strokeWidth={2} />Address</div>
-            <div className="value">26/70 Holbeche Rd<br />Arndell Park NSW 2148</div>
+            <div className="value" style={{ whiteSpace: 'pre-line' }}>{CONTACT.address}</div>
           </a>
           <div className="ct" style={{ cursor: 'default' }}>
             <div className="label"><Clock width={14} height={14} strokeWidth={2} />Hours</div>
-            <div className="value">Mon–Fri · 8am–4pm</div>
+            <div className="value">{CONTACT.hours}</div>
           </div>
         </div>
 
         <div className="map-wrap reveal">
           <iframe
-            src="https://maps.google.com/maps?q=26%2F70+Holbeche+Rd%2C+Arndell+Park+NSW+2148&z=15&output=embed"
-            title="Strike Print workshop — 26/70 Holbeche Rd, Arndell Park NSW 2148"
+            src={`https://maps.google.com/maps?q=${encodeURIComponent(CONTACT.mapsQuery || CONTACT.address.replace(/\n/g, ', '))}&z=15&output=embed`}
+            title={`Strike Print workshop — ${CONTACT.mapsQuery || CONTACT.address.replace(/\n/g, ', ')}`}
             loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
           <div className="map-overlay">
             <div className="addr">
               <MapPin width={16} height={16} strokeWidth={2.5} />
-              26/70 Holbeche Rd, Arndell Park NSW 2148
+              {(CONTACT.mapsQuery || CONTACT.address.replace(/\n/g, ', '))}
             </div>
-            <a href="https://www.google.com/maps/search/?api=1&query=26%2F70+Holbeche+Rd%2C+Arndell+Park+NSW+2148"
+            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CONTACT.mapsQuery || CONTACT.address.replace(/\n/g, ', '))}`}
               target="_blank" rel="noopener noreferrer">→ Get Directions</a>
           </div>
         </div>
@@ -1022,8 +1031,9 @@ export default function Home() {
             <h3>Get a real quote. Right now.</h3>
             <p>Give Paul a call today and discuss your next sign.</p>
           </div>
-          <a className="cta" style={{ fontSize: 18, padding: '18px 28px' }} href="tel:0422626286">
-            → Call 0422 626 286
+          <a className="cta" style={{ fontSize: 18, padding: '18px 28px' }}
+            href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>
+            → Call {CONTACT.phone}
           </a>
         </div>
       </section>
@@ -1032,8 +1042,8 @@ export default function Home() {
         <div>Strike Print · Arndell Park NSW · {year}</div>
         <div className="right">
           <a href="#contact">Contact</a>
-          <a href="tel:0422626286">0422 626 286</a>
-          <a href="mailto:info@strikeprint.com.au">info@strikeprint.com.au</a>
+          <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>{CONTACT.phone}</a>
+          <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
         </div>
       </footer>
 

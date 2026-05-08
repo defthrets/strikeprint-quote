@@ -59,10 +59,17 @@ export async function readGallery() {
     if (!r.ok) return await seedGallery();
     const json = await r.json();
     if (!json || !Array.isArray(json.photos)) return await seedGallery();
-    // Inline migration: any photos without a `category` field get one
-    // inferred from their label. The migration runs on read (cheap;
-    // pure JS) — the next write to gallery.json persists it for good.
-    return { ...json, photos: json.photos.map(migratePhoto) };
+    // Inline migrations on read (cheap; pure JS) — next write persists.
+    //   1) photos without `category` get one inferred from their label
+    //   2) `services`/`hero`/`contact` override maps default to {} when
+    //      absent (so callers don't need to null-guard)
+    return {
+      ...json,
+      photos:   json.photos.map(migratePhoto),
+      services: json.services || {},
+      hero:     json.hero     || {},
+      contact:  json.contact  || {}
+    };
   } catch (err) {
     // Blob doesn't exist yet — first read seeds it. @vercel/blob throws
     // BlobNotFoundError; check that, plus a couple of fallbacks for safety.
@@ -71,15 +78,19 @@ export async function readGallery() {
                     || /not[\s\-]?found|does not exist|404/i.test(err?.message || '');
     if (isNotFound) return await seedGallery();
     console.error('readGallery error', err);
-    return { version: 1, photos: [] };
+    return { version: 1, photos: [], services: {}, hero: {}, contact: {} };
   }
 }
 
 export async function writeGallery(gallery) {
   const payload = {
-    version: 1,
+    version: 2, // bumped when content overrides were added
     updatedAt: new Date().toISOString(),
-    photos: gallery.photos || []
+    photos:   gallery.photos   || [],
+    // Sparse override maps. Empty objects when admin hasn't touched them.
+    services: gallery.services || {},
+    hero:     gallery.hero     || {},
+    contact:  gallery.contact  || {}
   };
   await put(GALLERY_KEY, JSON.stringify(payload, null, 2), {
     access: 'public',

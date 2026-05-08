@@ -1,11 +1,13 @@
-// Public photo list — no auth, just reads gallery.json from Blob and
-// returns the photo array sorted by `order`. Used by the homepage marquee
-// and the /gallery page.
+// Public homepage data — no auth, single fetch returns everything the
+// homepage needs: photos (with category/featured), service title+body
+// overrides, hero copy, contact info. All defaults are merged in on the
+// server so the client just consumes ready-to-render values.
 //
 // Falls back gracefully: if Blob is unreachable or gallery.json doesn't
-// exist yet, returns an empty list and the UI falls back to its compiled-in
-// SHOWCASE_PHOTOS defaults so the site never blanks out.
+// exist yet, returns just photos: [] and the homepage uses its compiled-in
+// fallbacks (so the site never blanks out).
 import { readGallery } from './admin/_lib/store.js';
+import { buildHero, buildContact, SERVICE_CATEGORIES } from '../src/services-meta.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -15,7 +17,7 @@ export default async function handler(req, res) {
 
   try {
     const gallery = await readGallery();
-    const sorted = [...(gallery.photos || [])]
+    const photos = [...(gallery.photos || [])]
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map(p => ({
         id: p.id,
@@ -29,10 +31,28 @@ export default async function handler(req, res) {
         order: p.order ?? 0
       }));
 
+    // Service title/body overrides — public-friendly: only emit slugs that
+    // actually have edits, so the homepage falls back to defaults for the rest.
+    const services = {};
+    for (const cat of SERVICE_CATEGORIES) {
+      const o = (gallery.services || {})[cat.slug];
+      if (o && (o.title || o.body)) {
+        services[cat.slug] = {
+          ...(o.title ? { title: o.title } : {}),
+          ...(o.body  ? { body: o.body  } : {})
+        };
+      }
+    }
+
     // Cache at the edge for 60s — admin edits become visible after that
     // without forcing every public hit to read Blob fresh.
     res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
-    return res.status(200).json({ photos: sorted });
+    return res.status(200).json({
+      photos,
+      services,
+      hero:    buildHero(gallery.hero),
+      contact: buildContact(gallery.contact)
+    });
   } catch (err) {
     console.error('public/photos error', err);
     return res.status(200).json({ photos: [] });

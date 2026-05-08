@@ -50,7 +50,9 @@ async function addPhoto(req, res) {
     seed: false,
     createdAt: new Date().toISOString()
   };
-  const updated = await writeGallery({ photos: [...gallery.photos, newPhoto] });
+  // Spread the gallery so existing services/hero/contact overrides
+  // pass through — writeGallery rebuilds the whole payload.
+  const updated = await writeGallery({ ...gallery, photos: [...gallery.photos, newPhoto] });
   return res.status(201).json({ photo: newPhoto, gallery: updated });
 }
 
@@ -70,7 +72,7 @@ async function patchPhotos(req, res) {
     const tail = gallery.photos
       .filter(p => !includedIds.has(p.id))
       .map((p, i) => ({ ...p, order: reordered.length + i }));
-    const updated = await writeGallery({ photos: [...reordered, ...tail] });
+    const updated = await writeGallery({ ...gallery, photos: [...reordered, ...tail] });
     return res.status(200).json(updated);
   }
 
@@ -118,7 +120,7 @@ async function patchPhotos(req, res) {
     return p;
   });
 
-  const updated = await writeGallery({ photos: next });
+  const updated = await writeGallery({ ...gallery, photos: next });
   return res.status(200).json(updated);
 }
 
@@ -141,7 +143,7 @@ async function deletePhoto(req, res) {
   const next = gallery.photos
     .filter(p => p.id !== id)
     .map((p, i) => ({ ...p, order: i }));
-  const updated = await writeGallery({ photos: next });
+  const updated = await writeGallery({ ...gallery, photos: next });
   return res.status(200).json(updated);
 }
 

@@ -225,7 +225,7 @@ function LoginForm({ onSuccess }) {
 
 const TABS = [
   { id: 'photos',   label: 'Photos',          icon: ImageIcon, ready: true,  status: 'Live' },
-  { id: 'content',  label: 'Content',         icon: Type,      ready: false, status: 'Phase 3' },
+  { id: 'content',  label: 'Content',         icon: Type,      ready: true,  status: 'Live' },
   { id: 'theme',    label: 'Colours & fonts', icon: Palette,   ready: false, status: 'Phase 4' },
   { id: 'settings', label: 'Settings',        icon: Settings,  ready: false, status: 'Phase 4' }
 ];
@@ -288,7 +288,8 @@ function Dashboard() {
       </div>
 
       {/* Tab content */}
-      {active.id === 'photos' && <PhotosTab />}
+      {active.id === 'photos'  && <PhotosTab />}
+      {active.id === 'content' && <ContentTab />}
       {!active.ready && <PlaceholderTab tab={active} />}
     </div>
   );
@@ -340,6 +341,9 @@ function categoryLabel(slug) {
 
 function PhotosTab() {
   const [photos, setPhotos] = useState([]);
+  // Per-service title/body — admin overrides merged with defaults.
+  // Shape: [{ slug, num, title, body, defaults: {title, body} }]
+  const [services, setServices] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -375,11 +379,17 @@ function PhotosTab() {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch('/api/admin/photos', { credentials: 'same-origin' });
-      if (!r.ok) throw new Error(`Load failed (${r.status})`);
-      const data = await r.json();
-      const sorted = [...(data.photos || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      const [photosRes, contentRes] = await Promise.all([
+        fetch('/api/admin/photos',  { credentials: 'same-origin' }),
+        fetch('/api/admin/content', { credentials: 'same-origin' })
+      ]);
+      if (!photosRes.ok)  throw new Error(`Photos load failed (${photosRes.status})`);
+      if (!contentRes.ok) throw new Error(`Content load failed (${contentRes.status})`);
+      const photosData  = await photosRes.json();
+      const contentData = await contentRes.json();
+      const sorted = [...(photosData.photos || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       setPhotos(sorted);
+      setServices(contentData?.merged?.services || []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -388,6 +398,32 @@ function PhotosTab() {
   };
 
   useEffect(() => { refresh(); }, []);
+
+  // Save service title/body overrides. Empty string = reset to default.
+  const saveService = async (slug, fields) => {
+    setError(null);
+    try {
+      const r = await fetch('/api/admin/content', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section: 'services', updates: { [slug]: fields } })
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.error || `Save failed (${r.status})`);
+      }
+      // Refresh just the merged services view (don't re-pull photos —
+      // they're unchanged and refetching would flicker the grid).
+      const contentRes = await fetch('/api/admin/content', { credentials: 'same-origin' });
+      if (contentRes.ok) {
+        const data = await contentRes.json();
+        setServices(data?.merged?.services || []);
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   const onUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -567,36 +603,35 @@ function PhotosTab() {
             // it when there's actually something needing attention.
             if (isUncat && bucket.length === 0) return null;
             const featured = bucket.find(p => p.featured);
+            // Live-merged title/body for this group (admin override or default)
+            const merged = (services || []).find(s => s.slug === cat.slug);
             return (
               <section key={cat.slug}>
-                <header className="flex items-baseline gap-3 mb-3 pb-2"
-                  style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
-                  <span className="text-[10px] uppercase tracking-[0.25em] font-bold"
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      color: BRAND.boltAmber,
-                      minWidth: 32
+                {isUncat ? (
+                  <header className="flex items-baseline gap-3 mb-3 pb-2"
+                    style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
+                    <span className="text-[10px] uppercase tracking-[0.25em] font-bold"
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        color: BRAND.boltAmber, minWidth: 32
+                      }}>
+                      {cat.num}
+                    </span>
+                    <h3 className="text-base sm:text-lg" style={{
+                      fontFamily: 'Anton, sans-serif', letterSpacing: '0.02em', color: BRAND.textPri
                     }}>
-                    {cat.num}
-                  </span>
-                  <h3 className="text-base sm:text-lg" style={{
-                    fontFamily: 'Anton, sans-serif',
-                    letterSpacing: '0.02em',
-                    color: BRAND.textPri
-                  }}>
-                    {cat.title}
-                  </h3>
-                  <span className="text-[10px] uppercase tracking-[0.22em] ml-auto"
-                    style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-                    {bucket.length} {bucket.length === 1 ? 'photo' : 'photos'}
-                    {!isUncat && featured && (
-                      <span style={{ color: BRAND.boltAmber, marginLeft: 8 }}>· cover set</span>
-                    )}
-                    {!isUncat && !featured && bucket.length > 0 && (
-                      <span style={{ color: '#fca5a5', marginLeft: 8 }}>· no cover</span>
-                    )}
-                  </span>
-                </header>
+                      {cat.title}
+                    </h3>
+                    <span className="text-[10px] uppercase tracking-[0.22em] ml-auto"
+                      style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+                      {bucket.length} {bucket.length === 1 ? 'photo' : 'photos'}
+                    </span>
+                  </header>
+                ) : (
+                  <ServiceGroupHeader cat={cat} merged={merged}
+                    photoCount={bucket.length} hasCover={!!featured}
+                    onSave={(fields) => saveService(cat.slug, fields)} />
+                )}
 
                 {bucket.length === 0 ? (
                   <div className="px-3 py-6 text-center text-xs"
@@ -626,6 +661,499 @@ function PhotosTab() {
         </div>
       )}
     </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Content tab — page text editing.
+//
+// Loads merged content from /api/admin/content (defaults + overrides),
+// renders one section per editable area (Hero, Contact for now; About /
+// Materials / CTAs come next phase). Saves go via PATCH section + updates.
+//
+// Empty-input → reset behaviour: leaving a field blank clears the
+// override on the server, which makes the homepage fall back to the
+// factory default. The "edited" hint disappears once the field matches
+// the default.
+
+const HERO_FIELDS = [
+  { key: 'eyebrow',        label: 'Eyebrow',                hint: 'Thin amber pill above the headline' },
+  { key: 'headlinePre',    label: 'Headline · part 1',      hint: 'Before the glitch word (e.g. "STAND OUT WITH")' },
+  { key: 'headlineGlitch', label: 'Headline · glitch word', hint: 'The word that gets the glitch animation' },
+  { key: 'headlinePost',   label: 'Headline · part 2',      hint: 'After the glitch word (e.g. "SIGNAGE")' },
+  { key: 'lede',           label: 'Lede paragraph',         hint: 'Sub-headline. Use blank lines for breaks.', multiline: true, rows: 3 },
+  { key: 'ctaPrimary',     label: 'Primary CTA label',      hint: 'Left button under the lede' },
+  { key: 'ctaSecondary',   label: 'Secondary CTA label',    hint: 'Right button under the lede' }
+];
+
+const CONTACT_FIELDS = [
+  { key: 'phone',     label: 'Phone',     hint: 'Displayed and used in tel: links' },
+  { key: 'email',     label: 'Email',     hint: 'Displayed and used in mailto: links' },
+  { key: 'address',   label: 'Address',   hint: 'Use a blank line to break onto two lines on the page', multiline: true, rows: 2 },
+  { key: 'hours',     label: 'Hours',     hint: 'e.g. Mon–Fri · 8am–4pm' },
+  { key: 'mapsQuery', label: 'Map query', hint: 'What the embedded Google Map searches for. Usually mirrors the address.' }
+];
+
+function ContentTab() {
+  const [data, setData]       = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+  const [savingKey, setSavingKey] = useState(null); // 'hero' | 'contact' | null
+
+  const refresh = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/admin/content', { credentials: 'same-origin' });
+      if (!r.ok) throw new Error(`Load failed (${r.status})`);
+      const d = await r.json();
+      setData(d);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { refresh(); }, []);
+
+  const saveSection = async (section, updates) => {
+    setSavingKey(section);
+    setError(null);
+    try {
+      const r = await fetch('/api/admin/content', {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section, updates })
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.error || `Save failed (${r.status})`);
+      }
+      await refresh();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16" style={{ color: BRAND.textDim }}>
+        <Loader2 className="w-5 h-5 animate-spin" />
+        <span className="ml-3 text-xs uppercase tracking-[0.25em]"
+          style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+          Loading content…
+        </span>
+      </div>
+    );
+  }
+  if (!data) return null;
+
+  return (
+    <div className="space-y-8">
+      {error && (
+        <div className="flex items-start gap-2 p-3 text-sm"
+          style={{ background: 'rgba(127,29,29,0.3)', border: '1px solid #7f1d1d', color: '#fca5a5' }}>
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <ContentSection
+        title="Hero" subtitle="Top of the homepage — eyebrow, headline, lede, CTAs"
+        fields={HERO_FIELDS}
+        merged={data.merged.hero}
+        defaults={data.defaults.hero}
+        overrides={data.overrides.hero}
+        saving={savingKey === 'hero'}
+        onSave={(updates) => saveSection('hero', updates)}
+      />
+
+      <ContentSection
+        title="Contact" subtitle="Phone, email, address, hours — used in the contact panel, footer, and CTA buttons"
+        fields={CONTACT_FIELDS}
+        merged={data.merged.contact}
+        defaults={data.defaults.contact}
+        overrides={data.overrides.contact}
+        saving={savingKey === 'contact'}
+        onSave={(updates) => saveSection('contact', updates)}
+      />
+
+      {/* Coming-next hint: about copy, pillars, materials, footer text are
+          on the roadmap. Made visible here so the admin knows what's next. */}
+      <div className="p-4 text-sm"
+        style={{
+          background: 'rgba(245,154,16,0.05)',
+          border: `1px dashed ${BRAND.boltAmber}40`,
+          color: BRAND.textMuted
+        }}>
+        <div className="text-[10px] uppercase tracking-[0.25em] mb-1.5"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+          Next up
+        </div>
+        About copy &amp; pillars · Materials list · Reviews + CTA blocks · Footer tagline
+      </div>
+    </div>
+  );
+}
+
+// One editable section (Hero or Contact). Holds local draft state for all
+// its fields and only fires onSave when "Save changes" is clicked. That
+// way admin can revise multiple fields before committing — and we don't
+// thrash gallery.json on every keystroke.
+function ContentSection({ title, subtitle, fields, merged, defaults, overrides, saving, onSave }) {
+  // Initialise drafts from the merged values (default + override). When
+  // `merged` updates after a save, sync drafts unless they're being edited.
+  const [drafts, setDrafts] = useState(() => mergedToDrafts(fields, merged));
+  useEffect(() => { setDrafts(mergedToDrafts(fields, merged)); }, [merged]); // eslint-disable-line
+
+  // Diff drafts vs merged → only send changed fields
+  const dirty = fields.some(f => (drafts[f.key] ?? '') !== (merged[f.key] ?? ''));
+
+  const handleSave = () => {
+    const updates = {};
+    for (const f of fields) {
+      const draft = drafts[f.key] ?? '';
+      const live  = merged[f.key] ?? '';
+      if (draft === live) continue;
+      // If draft equals the factory default, send empty string → server clears override
+      const def = defaults[f.key] ?? '';
+      updates[f.key] = (draft.trim() === def) ? '' : draft;
+    }
+    if (Object.keys(updates).length === 0) return;
+    onSave(updates);
+  };
+
+  const handleResetAll = () => {
+    if (!Object.keys(overrides || {}).length) return;
+    const updates = {};
+    for (const k of Object.keys(overrides)) updates[k] = '';
+    onSave(updates);
+  };
+
+  const overriddenCount = Object.keys(overrides || {}).length;
+
+  return (
+    <section style={{
+      background: BRAND.navyRaise,
+      border: `1px solid ${BRAND.navyLineStrong}`,
+      borderTop: `2px solid ${BRAND.boltAmber}`
+    }}>
+      <header className="px-5 py-4 flex items-baseline gap-3 flex-wrap"
+        style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
+        <h3 style={{ fontFamily: 'Anton, sans-serif', fontSize: '1.4rem', letterSpacing: '0.02em', color: BRAND.textPri }}>
+          {title}
+        </h3>
+        <p className="text-sm flex-1 min-w-[260px]" style={{ color: BRAND.textMuted }}>
+          {subtitle}
+        </p>
+        <span className="text-[10px] uppercase tracking-[0.22em]"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+          {overriddenCount === 0
+            ? 'Showing factory defaults'
+            : `${overriddenCount} field${overriddenCount === 1 ? '' : 's'} edited`}
+        </span>
+      </header>
+
+      <div className="p-5 space-y-4">
+        {fields.map(f => {
+          const v = drafts[f.key] ?? '';
+          const def = defaults[f.key] ?? '';
+          const isOverridden = (overrides || {})[f.key] !== undefined;
+          return (
+            <div key={f.key}>
+              <div className="flex items-baseline gap-2 mb-1.5 flex-wrap">
+                <label className="text-[10px] uppercase tracking-[0.22em] font-bold"
+                  style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                  {f.label}
+                </label>
+                {isOverridden && (
+                  <span className="text-[9px] uppercase tracking-[0.22em]"
+                    style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                    · edited
+                  </span>
+                )}
+                <span className="text-[10px] ml-auto" style={{ color: BRAND.textFaint, fontStyle: 'italic' }}>
+                  {f.hint}
+                </span>
+              </div>
+              {f.multiline ? (
+                <textarea value={v} rows={f.rows || 3}
+                  onChange={e => setDrafts(d => ({ ...d, [f.key]: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm outline-none resize-y"
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    background: 'rgba(8,21,46,0.6)',
+                    border: `1px solid ${BRAND.navyLineStrong}`,
+                    color: BRAND.textPri
+                  }} />
+              ) : (
+                <input value={v}
+                  onChange={e => setDrafts(d => ({ ...d, [f.key]: e.target.value }))}
+                  placeholder={def}
+                  className="w-full px-3 py-2 text-sm outline-none"
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    background: 'rgba(8,21,46,0.6)',
+                    border: `1px solid ${BRAND.navyLineStrong}`,
+                    color: BRAND.textPri
+                  }} />
+              )}
+              {def && v !== def && (
+                <button type="button"
+                  onClick={() => setDrafts(d => ({ ...d, [f.key]: def }))}
+                  className="text-[9px] uppercase tracking-[0.22em] mt-1 cursor-pointer"
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    color: BRAND.textFaint,
+                    background: 'transparent', border: 'none', padding: 0
+                  }}>
+                  Reset to default
+                </button>
+              )}
+            </div>
+          );
+        })}
+
+        <div className="flex items-center gap-3 pt-2" style={{ borderTop: `1px solid ${BRAND.navyLine}`, paddingTop: 16 }}>
+          <button onClick={handleSave} disabled={!dirty || saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: BRAND.boltGrad,
+              color: BRAND.navy,
+              fontFamily: 'Anton, sans-serif',
+              letterSpacing: '0.1em',
+              border: 'none'
+            }}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" strokeWidth={2.5} />}
+            <span className="text-sm">{saving ? 'Saving…' : 'Save changes'}</span>
+          </button>
+          {overriddenCount > 0 && (
+            <button onClick={handleResetAll} disabled={saving}
+              className="px-4 py-2 text-[10px] uppercase tracking-[0.22em] cursor-pointer disabled:opacity-40"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                background: 'transparent',
+                color: BRAND.textMuted,
+                border: `1px dashed ${BRAND.navyLineStrong}`
+              }}>
+              Reset all to defaults
+            </button>
+          )}
+          {!dirty && !saving && (
+            <span className="text-[10px] uppercase tracking-[0.22em]"
+              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
+              No changes
+            </span>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function mergedToDrafts(fields, merged) {
+  const out = {};
+  for (const f of fields) out[f.key] = merged?.[f.key] ?? '';
+  return out;
+}
+
+// Section header for one service group. Shows the group's number + name +
+// description, all editable inline. Click the title to rename. Click
+// "Edit description" to expand a textarea. "Reset" clears the override
+// and reverts to the factory default.
+function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [bodyOpen, setBodyOpen] = useState(false);
+  const [bodyDraft, setBodyDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Resolve current values from the live-merged services payload, falling
+  // back to the static category defaults while content is still loading.
+  const liveTitle = merged?.title || cat.title;
+  const liveBody  = merged?.body  || cat.body;
+  const defaultTitle = merged?.defaults?.title || cat.title;
+  const defaultBody  = merged?.defaults?.body  || cat.body;
+  const titleOverridden = liveTitle !== defaultTitle;
+  const bodyOverridden  = liveBody  !== defaultBody;
+
+  const beginEditTitle = () => { setTitleDraft(liveTitle); setEditingTitle(true); };
+  const beginEditBody  = () => { setBodyDraft(liveBody);   setBodyOpen(true);     };
+
+  const commitTitle = async () => {
+    setEditingTitle(false);
+    const trimmed = titleDraft.trim();
+    // No change → no API call. Empty resets to default (server clears the override).
+    if (trimmed === liveTitle) return;
+    setSaving(true);
+    await onSave({ title: trimmed === defaultTitle ? '' : trimmed });
+    setSaving(false);
+  };
+
+  const commitBody = async () => {
+    const trimmed = bodyDraft.trim();
+    setBodyOpen(false);
+    if (trimmed === liveBody) return;
+    setSaving(true);
+    await onSave({ body: trimmed === defaultBody ? '' : trimmed });
+    setSaving(false);
+  };
+
+  const resetTitle = async () => {
+    setEditingTitle(false);
+    setSaving(true);
+    await onSave({ title: '' });
+    setSaving(false);
+  };
+  const resetBody = async () => {
+    setBodyOpen(false);
+    setSaving(true);
+    await onSave({ body: '' });
+    setSaving(false);
+  };
+
+  return (
+    <header className="mb-3 pb-2" style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
+      <div className="flex items-baseline gap-3 flex-wrap">
+        <span className="text-[10px] uppercase tracking-[0.25em] font-bold"
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            color: BRAND.boltAmber, minWidth: 32
+          }}>
+          {cat.num}
+        </span>
+        {editingTitle ? (
+          <input value={titleDraft} onChange={e => setTitleDraft(e.target.value)}
+            autoFocus
+            onKeyDown={e => {
+              if (e.key === 'Enter')  commitTitle();
+              if (e.key === 'Escape') setEditingTitle(false);
+            }}
+            onBlur={commitTitle}
+            className="text-base sm:text-lg px-2 py-1 outline-none flex-1 min-w-0"
+            style={{
+              fontFamily: 'Anton, sans-serif', letterSpacing: '0.02em',
+              color: BRAND.textPri,
+              background: 'rgba(8,21,46,0.6)',
+              border: `1px solid ${BRAND.boltAmber}`
+            }} />
+        ) : (
+          <button onClick={beginEditTitle}
+            className="text-base sm:text-lg cursor-pointer text-left"
+            title="Click to rename this service group"
+            style={{
+              fontFamily: 'Anton, sans-serif', letterSpacing: '0.02em',
+              color: BRAND.textPri, background: 'transparent', border: 'none', padding: 0
+            }}>
+            {liveTitle}
+            {titleOverridden && (
+              <span className="ml-2 text-[9px] uppercase tracking-[0.22em] align-middle"
+                style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                · edited
+              </span>
+            )}
+          </button>
+        )}
+        <span className="text-[10px] uppercase tracking-[0.22em] ml-auto"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+          {photoCount} {photoCount === 1 ? 'photo' : 'photos'}
+          {hasCover && (
+            <span style={{ color: BRAND.boltAmber, marginLeft: 8 }}>· cover set</span>
+          )}
+          {!hasCover && photoCount > 0 && (
+            <span style={{ color: '#fca5a5', marginLeft: 8 }}>· no cover</span>
+          )}
+          {saving && (
+            <Loader2 className="inline-block ml-2 w-3 h-3 animate-spin" style={{ color: BRAND.boltAmber }} />
+          )}
+        </span>
+      </div>
+
+      {/* Description / body. Collapsed by default — click "Edit description"
+          to expand the textarea. Shown read-only otherwise. */}
+      <div className="mt-2 pl-[44px]">
+        {bodyOpen ? (
+          <div>
+            <textarea value={bodyDraft} onChange={e => setBodyDraft(e.target.value)}
+              autoFocus rows={4}
+              onKeyDown={e => {
+                if (e.key === 'Escape') setBodyOpen(false);
+                // Cmd/Ctrl+Enter saves
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') commitBody();
+              }}
+              className="w-full px-3 py-2 text-sm outline-none resize-y"
+              style={{
+                fontFamily: "'Outfit', sans-serif",
+                background: 'rgba(8,21,46,0.6)',
+                border: `1px solid ${BRAND.boltAmber}`,
+                color: BRAND.textPri,
+                minHeight: 80
+              }} />
+            <div className="flex items-center gap-2 mt-1.5">
+              <button onClick={commitBody}
+                className="inline-flex items-center gap-1 px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-bold cursor-pointer"
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  background: BRAND.boltAmber, color: BRAND.navy, border: 'none'
+                }}>
+                <Check className="w-3 h-3" strokeWidth={3} />
+                Save
+              </button>
+              <button onClick={() => setBodyOpen(false)}
+                className="px-3 py-1 text-[10px] uppercase tracking-[0.2em] cursor-pointer"
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  background: 'transparent', color: BRAND.textMuted,
+                  border: `1px solid ${BRAND.navyLineStrong}`
+                }}>
+                Cancel
+              </button>
+              {bodyOverridden && (
+                <button onClick={resetBody}
+                  className="px-3 py-1 text-[10px] uppercase tracking-[0.2em] cursor-pointer ml-auto"
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    background: 'transparent', color: BRAND.textMuted,
+                    border: `1px dashed ${BRAND.navyLineStrong}`
+                  }}>
+                  Reset to default
+                </button>
+              )}
+            </div>
+            <div className="text-[9px] uppercase tracking-[0.22em] mt-1.5"
+              style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
+              Tip: Cmd/Ctrl + Enter to save · Esc to cancel · Empty resets to default
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <p className="text-xs flex-1 min-w-[260px]" style={{
+              color: BRAND.textMuted, lineHeight: 1.5,
+              fontFamily: "'Outfit', sans-serif"
+            }}>
+              {liveBody}
+              {bodyOverridden && (
+                <span className="ml-1.5 text-[9px] uppercase tracking-[0.22em]"
+                  style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                  · edited
+                </span>
+              )}
+            </p>
+            <button onClick={beginEditBody}
+              className="text-[10px] uppercase tracking-[0.2em] cursor-pointer"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                color: BRAND.boltAmber, background: 'transparent', border: 'none', padding: 0
+              }}>
+              Edit description →
+            </button>
+          </div>
+        )}
+      </div>
+    </header>
   );
 }
 
