@@ -477,7 +477,7 @@ function AuditPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/admin/content', { credentials: 'same-origin' })
+    fetch('/api/admin/content', { credentials: 'same-origin', cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (cancelled || !data) return;
@@ -639,9 +639,12 @@ function PhotosTab() {
     setLoading(true);
     setError(null);
     try {
+      // cache: 'no-store' on every admin fetch — defeats browser cache
+      // so a PATCH-then-GET sequence after a save can't serve a stale
+      // GET response (which would make the save look like it didn't take).
       const [photosRes, contentRes] = await Promise.all([
-        fetch('/api/admin/photos',  { credentials: 'same-origin' }),
-        fetch('/api/admin/content', { credentials: 'same-origin' })
+        fetch('/api/admin/photos',  { credentials: 'same-origin', cache: 'no-store' }),
+        fetch('/api/admin/content', { credentials: 'same-origin', cache: 'no-store' })
       ]);
       if (!photosRes.ok)  throw new Error(`Photos load failed (${photosRes.status})`);
       if (!contentRes.ok) throw new Error(`Content load failed (${contentRes.status})`);
@@ -659,14 +662,36 @@ function PhotosTab() {
 
   useEffect(() => { refresh(); }, []);
 
+  // Helper for the saveService merge below — produces the same
+  // {slug, num, title, body, defaults} shape that /api/admin/content
+  // GET returns, falling back to the static SERVICE_CATEGORIES defaults
+  // when there's no override yet.
+  const toFallbackMerged = (cat) => ({
+    slug: cat.slug,
+    num: cat.num,
+    title: cat.title,
+    body: cat.body,
+    defaults: { title: cat.title, body: cat.body }
+  });
+
   // Save service title/body overrides. Empty string = reset to default.
-  // Returns true on success, false on failure (caller surfaces inline).
+  // Returns { ok, error? } so caller can surface failure inline.
+  //
+  // After PATCH success, derives the new merged services view from the
+  // freshly-written gallery in the PATCH response — no second GET round
+  // trip. Avoids two failure modes I hit earlier:
+  //   1) browser caching the GET response so the second fetch returns
+  //      stale data and the UI looks like it didn't save
+  //   2) the second fetch failing for some other reason (network blip,
+  //      auth tick) leaving us in "save succeeded but refresh failed"
+  //      where the user sees an error despite their data being saved.
   const saveService = async (slug, fields) => {
     setError(null);
     try {
       const r = await fetch('/api/admin/content', {
         method: 'PATCH',
         credentials: 'same-origin',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ section: 'services', updates: { [slug]: fields } })
       });
@@ -674,12 +699,24 @@ function PhotosTab() {
         const body = await r.json().catch(() => ({}));
         throw new Error(body.error || `Save failed (${r.status})`);
       }
-      // Refresh just the merged services view (don't re-pull photos —
-      // they're unchanged and refetching would flicker the grid).
-      const contentRes = await fetch('/api/admin/content', { credentials: 'same-origin' });
-      if (!contentRes.ok) throw new Error('Failed to refresh after save');
-      const data = await contentRes.json();
-      setServices(data?.merged?.services || []);
+      // The PATCH response is the freshly-written gallery payload. We
+      // already have all the per-slug overrides we need — recompute the
+      // merged services view client-side instead of going back to the
+      // server. Mirrors the merge logic in api/admin/content.js GET.
+      const data = await r.json();
+      const galleryServices = data?.services || {};
+      setServices((prev) => (prev || SERVICE_CATEGORIES.map(toFallbackMerged))
+        .map(s => {
+          const o = galleryServices[s.slug] || {};
+          const def = s.defaults || { title: s.title, body: s.body };
+          return {
+            slug: s.slug,
+            num:  s.num,
+            title: o.title || def.title,
+            body:  o.body  || def.body,
+            defaults: def
+          };
+        }));
       return { ok: true };
     } catch (err) {
       setError(err.message);
@@ -704,6 +741,7 @@ function PhotosTab() {
       const r = await fetch('/api/admin/photos', {
         method: 'POST',
         credentials: 'same-origin',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: blob.url,
@@ -745,6 +783,7 @@ function PhotosTab() {
         const r = await fetch('/api/admin/photos', {
           method: 'PATCH',
           credentials: 'same-origin',
+          cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id, ...patch })
         });
@@ -778,6 +817,7 @@ function PhotosTab() {
       const r = await fetch('/api/admin/photos', {
         method: 'DELETE',
         credentials: 'same-origin',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
       });
@@ -1058,7 +1098,10 @@ function ContentTab() {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch('/api/admin/content', { credentials: 'same-origin' });
+      // cache: 'no-store' so a PATCH-then-GET sequence doesn't hit a
+      // browser-cached stale response and make saves look like they
+      // didn't take.
+      const r = await fetch('/api/admin/content', { credentials: 'same-origin', cache: 'no-store' });
       if (!r.ok) throw new Error(`Load failed (${r.status})`);
       const d = await r.json();
       setData(d);
@@ -1077,6 +1120,7 @@ function ContentTab() {
       const r = await fetch('/api/admin/content', {
         method: 'PATCH',
         credentials: 'same-origin',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ section, updates })
       });
