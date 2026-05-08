@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Sun, Moon, Phone, Mail, MapPin, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   buildServices, buildHero, buildContact, buildAbout,
   buildServicesIntro, buildContactIntro, buildMaterials,
@@ -604,7 +604,6 @@ const HOME_CSS = `
 `;
 
 export default function Home() {
-  const [theme, setTheme] = useState('dark');
   const [lightbox, setLightbox] = useState(null); // { items: [...], idx: number } | null
   // Admin-managed content. `content` holds the *server-merged* values
   // (defaults overlaid with admin overrides). Empty until /api/photos
@@ -634,7 +633,7 @@ export default function Home() {
   const BIG_CTA         = useMemo(() => content?.big_cta        || buildBigCta(),         [content]);
   const FOOTER          = useMemo(() => content?.footer         || buildFooter(),         [content]);
 
-  // ── Inject fonts + styles + theme on mount ──
+  // ── Inject fonts + styles on mount ──
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Inter+Tight:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap';
@@ -646,24 +645,18 @@ export default function Home() {
     style.textContent = HOME_CSS;
     document.head.appendChild(style);
 
-    // Initial theme: stored choice → system preference → dark
-    const stored = (typeof localStorage !== 'undefined' && localStorage.getItem('strike-theme')) || null;
-    const prefersLight = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches;
-    const initial = stored || (prefersLight ? 'light' : 'dark');
-    document.documentElement.setAttribute('data-theme', initial);
-    setTheme(initial);
+    // Force dark mode — light-theme support was removed. Defensive cleanup
+    // for returning visitors who had `light` saved from when the toggle
+    // existed: remove the data-theme attr (so :root dark vars kick in)
+    // and clear the stored preference so it never re-applies.
+    document.documentElement.removeAttribute('data-theme');
+    try { localStorage.removeItem('strike-theme'); } catch {}
 
     return () => {
       try { document.head.removeChild(link); } catch {}
       try { document.head.removeChild(style); } catch {}
     };
   }, []);
-
-  // Persist theme changes + apply to root
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    try { localStorage.setItem('strike-theme', theme); } catch {}
-  }, [theme]);
 
   // Fetch admin-managed content from /api/photos. The endpoint is
   // CDN-cached (10s s-maxage) so this is cheap and shared across visitors.
@@ -825,12 +818,6 @@ export default function Home() {
             <a href="#about" className="nav-link">About</a>
             <a href="#contact" className="nav-link">Contact</a>
             <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`} className="cta">Call now →</a>
-            <button className="theme-toggle" onClick={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
-              aria-label="Toggle theme" title="Toggle theme">
-              {theme === 'light'
-                ? <Sun width={16} height={16} strokeWidth={2} />
-                : <Moon width={16} height={16} strokeWidth={2} />}
-            </button>
           </nav>
         </div>
       </header>
