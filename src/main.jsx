@@ -8,6 +8,10 @@ import './index.css';
 // see the homepage don't pay for the editor bundle until they navigate.
 const SignageQuote = lazy(() => import('./SignageQuote.jsx'));
 const Admin        = lazy(() => import('./Admin.jsx'));
+// Plasmic Studio host page + dynamic Plasmic-managed pages. Lazy too so
+// the Plasmic SDK only loads when the editor or a /p/* page is hit.
+const PlasmicHost  = lazy(() => import('./PlasmicHost.jsx'));
+const PlasmicPage  = lazy(() => import('./PlasmicPage.jsx'));
 // Gallery + About used to be separate routes — their content now lives
 // on the redesigned homepage as /#work and /#about anchors. Old links
 // land on the catch-all → Home and the anchor scrolls to the section.
@@ -56,6 +60,21 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/admin" element={
           <Suspense fallback={<RouteLoading label="admin" />}>
             <Admin />
+          </Suspense>
+        } />
+        {/* Plasmic Studio editor preview — Studio's iframe loads this URL
+            and renders the design canvas inside it. Configure the host
+            URL in Plasmic Studio → Project Settings → App hosting. */}
+        <Route path="/plasmic-host" element={
+          <Suspense fallback={<RouteLoading label="editor" />}>
+            <PlasmicHost />
+          </Suspense>
+        } />
+        {/* Plasmic-managed pages — admin builds them in Studio, publishes,
+            and they appear at /p/<slug>. Unknown slugs render the home page. */}
+        <Route path="/p/*" element={
+          <Suspense fallback={<RouteLoading label="page" />}>
+            <PlasmicPage />
           </Suspense>
         } />
         {/* Catch-all redirects to home — Vercel's SPA rewrite hands every
