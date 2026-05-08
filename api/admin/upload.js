@@ -6,10 +6,23 @@
 // browser uploads the binary directly to Blob — bypassing the 4.5MB
 // serverless function body limit (phone photos easily exceed that).
 //
+// Security:
+//   - requireAdmin() also performs the CSRF Origin/Referer check (built
+//     into the helper for any mutating method).
+//   - allowedContentTypes restricts to image MIME types — admins can't
+//     be tricked into using the Blob bucket as a generic file host.
+//   - maximumSizeInBytes caps each upload at MAX_UPLOAD_BYTES.
+//
 // After the upload finishes the browser POSTs the resulting URL to
 // /api/admin/photos with the chosen label to record it in gallery.json.
 import { handleUpload } from '@vercel/blob/client';
 import { requireAdmin } from './_lib/auth.js';
+
+// 20 MB cap. Generous enough for high-res phone shots / pro DSLR JPEGs
+// (~10–15 MB typical) but blocks anyone trying to push hundreds of
+// megabytes through our Blob bucket. Bump if the workshop starts
+// uploading raw scans; tighten if upload bills get noisy.
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -19,7 +32,8 @@ export default async function handler(req, res) {
 
   // The blob client makes one POST here to request a token, and a second
   // POST after the upload completes (the onUploadCompleted callback) — both
-  // need to be authenticated by our admin cookie.
+  // need to be authenticated by our admin cookie. requireAdmin also
+  // enforces the same-origin check for these mutating POSTs.
   if (!(await requireAdmin(req, res))) return;
 
   try {
@@ -32,7 +46,10 @@ export default async function handler(req, res) {
         return {
           // Restrict to image types so an admin can't be tricked into hosting
           // arbitrary content from the workshop laptop.
-          allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
+          allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/svg+xml'],
+          // Hard cap on individual upload size — Vercel Blob enforces this
+          // on the upload directly (returns 413 if exceeded).
+          maximumSizeInBytes: MAX_UPLOAD_BYTES,
           // Random suffix prevents same-named uploads from clobbering each other.
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({ pathname })
