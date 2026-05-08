@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Phone, Mail, MapPin, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, X, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   buildServices, buildHero, buildContact, buildAbout,
   buildServicesIntro, buildContactIntro, buildMaterials,
@@ -528,6 +529,19 @@ const HOME_CSS = `
   .footer a { color: var(--faint); text-decoration: none; transition: color .2s; }
   .footer a:hover { color: var(--amber); }
   .footer .right { display: flex; gap: 24px; align-items: center; }
+  /* Tiny admin shortcut — bolt icon next to the tagline. Faint by
+     default so it doesn't draw eyes; amber on hover matches the
+     header logo's amber drop-shadow. */
+  .admin-bolt {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px;
+    margin-left: 10px;
+    vertical-align: middle;
+    color: var(--faint);
+    opacity: 0.4;
+    transition: opacity .2s, color .2s, transform .2s;
+  }
+  .admin-bolt:hover { opacity: 1; color: var(--amber); transform: scale(1.1); }
 
   /* Reveal */
   .reveal { opacity: 0; transform: translateY(20px); transition: opacity .8s cubic-bezier(.2,.7,.3,1), transform .8s cubic-bezier(.2,.7,.3,1); }
@@ -1027,7 +1041,14 @@ export default function Home() {
       </section>
 
       <footer className="footer">
-        <div>{FOOTER.tagline} · {year}</div>
+        <div>
+          {FOOTER.tagline} · {year}
+          {/* Subtle admin shortcut — Link does client-side routing so the
+              lazy /admin chunk loads in-place without a full page reload. */}
+          <Link to="/admin" className="admin-bolt" aria-label="Admin" title="Admin">
+            <Zap width={11} height={11} strokeWidth={2.5} fill="currentColor" />
+          </Link>
+        </div>
         <div className="right">
           <a href="#contact">Contact</a>
           <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>{CONTACT.phone}</a>
