@@ -475,7 +475,9 @@ function PhotosTab() {
 
   // Generic patch — sends whichever subset of { label, category, featured }
   // the caller provides. Server validates + atomically clears featured on
-  // siblings when a new cover is set.
+  // siblings when a new cover is set. Returns { ok, error } so PhotoRow
+  // can show per-row feedback (the page-level error banner is fine for
+  // upload failures, but per-row mutations should surface inline).
   const patchPhoto = async (id, patch) => {
     setError(null);
     try {
@@ -491,8 +493,12 @@ function PhotosTab() {
       }
       const data = await r.json();
       setPhotos([...(data.photos || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+      return { ok: true };
     } catch (err) {
+      // Fall through to the page-level banner too in case the row UI is
+      // off-screen, but the row's own error display is the primary signal.
       setError(err.message);
+      return { ok: false, error: err.message };
     }
   };
 
@@ -1549,41 +1555,106 @@ function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
 function PhotoRow({ photo, labelSuggestions, categoryOptions, canFeature, onPatch, onDelete }) {
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelDraft, setLabelDraft] = useState(photo.label || '');
+  // Per-row save state. `pendingCategory` and `pendingFeatured` are
+  // optimistic — we set them the moment the user clicks/picks, so the UI
+  // shows the new value instantly instead of snap-reverting to the stale
+  // prop while the API call is in flight. The useEffects below clear them
+  // once the photo prop catches up.
+  const [saving, setSaving]                   = useState(false);
+  const [savedFlash, setSavedFlash]           = useState(false);
+  const [rowError, setRowError]               = useState(null);
+  const [pendingCategory, setPendingCategory] = useState(null);
+  const [pendingFeatured, setPendingFeatured] = useState(null);
 
   // Re-sync the input when the photo's label changes from outside
   // (e.g. another tab patched it). Cheap and avoids stale drafts.
   useEffect(() => { setLabelDraft(photo.label || ''); }, [photo.label]);
 
-  const saveLabel = () => {
-    const trimmed = labelDraft.trim();
-    if (trimmed && trimmed !== photo.label) onPatch(photo.id, { label: trimmed });
-    setEditingLabel(false);
+  // Clear optimistic overrides once the prop catches up to them — that's
+  // when we know the server-confirmed state has propagated.
+  useEffect(() => {
+    if (pendingCategory !== null && (photo.category || '__uncat__') === pendingCategory) {
+      setPendingCategory(null);
+    }
+  }, [photo.category, pendingCategory]);
+  useEffect(() => {
+    if (pendingFeatured !== null && !!photo.featured === pendingFeatured) {
+      setPendingFeatured(null);
+    }
+  }, [photo.featured, pendingFeatured]);
+
+  // Briefly highlight that the row was just saved
+  const flashSaved = () => {
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 1600);
   };
 
-  const isFeatured = !!photo.featured;
+  const runPatch = async (patch, optimistic) => {
+    setRowError(null);
+    setSaving(true);
+    optimistic?.();
+    const res = await onPatch(photo.id, patch);
+    setSaving(false);
+    if (res && res.ok === false) {
+      setRowError(res.error || 'Save failed');
+      // Revert optimistic state — props haven't changed, so clearing the
+      // pending values lets the displayed value snap back to the actual.
+      setPendingCategory(null);
+      setPendingFeatured(null);
+      return false;
+    }
+    flashSaved();
+    return true;
+  };
+
+  const saveLabel = () => {
+    const trimmed = labelDraft.trim();
+    setEditingLabel(false);
+    if (!trimmed || trimmed === photo.label) return;
+    runPatch({ label: trimmed });
+  };
+
+  // Effective values for rendering — optimistic override wins while a save
+  // is in flight, otherwise we read straight off the prop.
+  const effCategory = pendingCategory !== null ? pendingCategory : (photo.category || '__uncat__');
+  const effFeatured = pendingFeatured !== null ? pendingFeatured : !!photo.featured;
+
   const toggleFeatured = () => {
     if (!canFeature) return;
-    onPatch(photo.id, { featured: !isFeatured });
+    const next = !effFeatured;
+    runPatch(
+      { featured: next },
+      () => setPendingFeatured(next)
+    );
   };
 
   const onCategoryChange = (val) => {
-    onPatch(photo.id, { category: val === '__uncat__' ? null : val });
+    runPatch(
+      { category: val === '__uncat__' ? null : val },
+      () => {
+        setPendingCategory(val);
+        // Server auto-clears featured on category change, so mirror that
+        // optimistically — keeps the cover badge from flickering on.
+        if (val !== (photo.category || '__uncat__')) setPendingFeatured(false);
+      }
+    );
   };
 
   return (
     <div className="flex gap-3 p-3"
       style={{
         background: 'rgba(8,21,46,0.55)',
-        border: `1px solid ${isFeatured ? BRAND.boltAmber : BRAND.navyLine}`,
-        borderLeft: `3px solid ${isFeatured ? BRAND.boltAmber : BRAND.navyLineStrong}`,
-        boxShadow: isFeatured ? `0 0 0 1px ${BRAND.boltAmber}40` : 'none'
+        border: `1px solid ${effFeatured ? BRAND.boltAmber : (savedFlash ? '#86efac80' : BRAND.navyLine)}`,
+        borderLeft: `3px solid ${effFeatured ? BRAND.boltAmber : BRAND.navyLineStrong}`,
+        boxShadow: effFeatured ? `0 0 0 1px ${BRAND.boltAmber}40` : 'none',
+        transition: 'border-color .3s'
       }}>
       <div className="flex-shrink-0 overflow-hidden relative"
         style={{ width: 96, height: 72, background: BRAND.navyDeep }}>
         <img src={photo.url} alt={photo.label}
           className="w-full h-full" loading="lazy"
-          style={{ objectFit: 'cover', display: 'block' }} />
-        {isFeatured && (
+          style={{ objectFit: 'cover', display: 'block', opacity: saving ? 0.6 : 1, transition: 'opacity .2s' }} />
+        {effFeatured && (
           <div className="absolute top-1 left-1 px-1.5 py-0.5 text-[8px] uppercase tracking-[0.2em] font-bold"
             style={{
               fontFamily: "'JetBrains Mono', monospace",
@@ -1593,12 +1664,19 @@ function PhotoRow({ photo, labelSuggestions, categoryOptions, canFeature, onPatc
             Cover
           </div>
         )}
+        {saving && (
+          <div className="absolute inset-0 flex items-center justify-center"
+            style={{ background: 'rgba(8,21,46,0.4)' }}>
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: BRAND.boltAmber }} />
+          </div>
+        )}
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-        {/* Service group dropdown */}
-        <select value={photo.category || '__uncat__'} onChange={e => onCategoryChange(e.target.value)}
-          className="w-full px-2 py-1 text-xs outline-none cursor-pointer"
+        {/* Service group dropdown — uses optimistic value while saving */}
+        <select value={effCategory} onChange={e => onCategoryChange(e.target.value)}
+          disabled={saving}
+          className="w-full px-2 py-1 text-xs outline-none cursor-pointer disabled:opacity-60"
           style={{
             background: 'rgba(8,21,46,0.6)',
             border: `1px solid ${BRAND.navyLineStrong}`,
@@ -1644,25 +1722,39 @@ function PhotoRow({ photo, labelSuggestions, categoryOptions, canFeature, onPatc
           </button>
         )}
 
+        {/* Inline error if a per-row save failed */}
+        {rowError && (
+          <div className="flex items-start gap-1.5 px-2 py-1 text-[10px]"
+            style={{
+              background: 'rgba(127,29,29,0.3)',
+              border: '1px solid #7f1d1d',
+              color: '#fca5a5',
+              fontFamily: "'JetBrains Mono', monospace"
+            }}>
+            <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+            <span className="break-all">{rowError}</span>
+          </div>
+        )}
+
         {/* Action row: set-cover toggle + delete */}
         <div className="flex items-center justify-between gap-2 mt-auto">
           <button onClick={toggleFeatured}
-            disabled={!canFeature}
+            disabled={!canFeature || saving}
             title={canFeature
-              ? (isFeatured ? 'Unset as cover' : 'Set as the cover photo for this service')
+              ? (effFeatured ? 'Unset as cover' : 'Set as the cover photo for this service')
               : 'Assign a service group first'}
             className="inline-flex items-center gap-1.5 px-2 py-1 text-[10px] uppercase tracking-[0.18em] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              background: isFeatured ? `${BRAND.boltAmber}20` : 'rgba(8,21,46,0.4)',
-              border: `1px solid ${isFeatured ? BRAND.boltAmber : BRAND.navyLineStrong}`,
-              color: isFeatured ? BRAND.boltAmber : BRAND.textMuted,
+              background: effFeatured ? `${BRAND.boltAmber}20` : 'rgba(8,21,46,0.4)',
+              border: `1px solid ${effFeatured ? BRAND.boltAmber : BRAND.navyLineStrong}`,
+              color: effFeatured ? BRAND.boltAmber : BRAND.textMuted,
               fontWeight: 700
             }}>
             <Star className="w-3 h-3"
               strokeWidth={2}
-              fill={isFeatured ? BRAND.boltAmber : 'none'} />
-            {isFeatured ? 'Cover' : 'Set cover'}
+              fill={effFeatured ? BRAND.boltAmber : 'none'} />
+            {effFeatured ? 'Cover' : 'Set cover'}
           </button>
           <div className="flex items-center gap-1.5">
             {photo.seed && (
