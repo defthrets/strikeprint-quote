@@ -11,6 +11,7 @@ const SignageQuote = lazy(() => import('./SignageQuote.jsx'));
 // directly with the main chunk, no separate lazy import.
 const Gallery = lazy(() => import('./Gallery.jsx'));
 const About   = lazy(() => import('./About.jsx'));
+const Admin   = lazy(() => import('./Admin.jsx'));
 
 // Brief loading state while a lazy chunk fetches. Matches the dark navy
 // background so it doesn't flash white during the route transition. The
@@ -61,6 +62,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/quote" element={
           <Suspense fallback={<RouteLoading label="quote tool" />}>
             <SignageQuote />
+          </Suspense>
+        } />
+        <Route path="/admin" element={
+          <Suspense fallback={<RouteLoading label="admin" />}>
+            <Admin />
           </Suspense>
         } />
         {/* Catch-all redirects to home — Vercel's SPA rewrite hands every

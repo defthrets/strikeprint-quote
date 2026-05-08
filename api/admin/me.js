@@ -1,0 +1,17 @@
+// GET /api/admin/me — returns 204 if the request carries a valid session
+// cookie, 401 otherwise. The admin React app polls this on mount to decide
+// whether to show the login form or the dashboard.
+import { readSessionToken, verifySessionToken } from './_lib/auth.js';
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+  const token = readSessionToken(req);
+  const payload = await verifySessionToken(token);
+  if (!payload || payload.role !== 'admin') {
+    return res.status(401).json({ ok: false });
+  }
+  return res.status(200).json({ ok: true });
+}
