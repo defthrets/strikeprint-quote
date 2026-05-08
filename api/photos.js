@@ -48,9 +48,11 @@ export default async function handler(req, res) {
       }
     }
 
-    // Cache at the edge for 60s — admin edits become visible after that
-    // without forcing every public hit to read Blob fresh.
-    res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
+    // Cache at the edge for 10s — admin edits become visible within
+    // 10s without forcing every public hit to read Blob fresh.
+    // (Was 60s; tightened so changes from /admin show up promptly on
+    // the live homepage. SWR keeps stale responses warm under load.)
+    res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=10, stale-while-revalidate=60');
     return res.status(200).json({
       photos,
       services,

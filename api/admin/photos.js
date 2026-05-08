@@ -103,14 +103,23 @@ async function patchPhotos(req, res) {
   const willBeFeatured = featured === true;
   const effectiveCategory = nextCategory; // already resolved above
 
+  // When a photo moves to a different category, clear its `featured`
+  // flag automatically. Otherwise it'd land in the new bucket still
+  // marked as cover — possibly a duplicate of whatever's already
+  // featured there. Admin can re-mark it as cover in the new group.
+  const categoryChanged = category !== undefined && nextCategory !== (target.category ?? null);
+
   const next = gallery.photos.map(p => {
     if (p.id === id) {
-      return {
-        ...p,
-        ...(label !== undefined    ? { label: String(label) } : {}),
-        ...(category !== undefined ? { category: nextCategory } : {}),
-        ...(featured !== undefined ? { featured: willBeFeatured } : {})
-      };
+      const updated = { ...p };
+      if (label !== undefined)    updated.label    = String(label);
+      if (category !== undefined) updated.category = nextCategory;
+      if (featured !== undefined) updated.featured = willBeFeatured;
+      // Auto-clear featured on category change unless the same request
+      // is also explicitly setting featured (admin can move + cover in
+      // one shot if they really want to).
+      if (categoryChanged && featured === undefined) updated.featured = false;
+      return updated;
     }
     // Auto-clear featured on siblings in the same category when this one
     // becomes the cover. No-op if we're un-featuring or not in that category.

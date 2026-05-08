@@ -400,6 +400,7 @@ function PhotosTab() {
   useEffect(() => { refresh(); }, []);
 
   // Save service title/body overrides. Empty string = reset to default.
+  // Returns true on success, false on failure (caller surfaces inline).
   const saveService = async (slug, fields) => {
     setError(null);
     try {
@@ -416,12 +417,13 @@ function PhotosTab() {
       // Refresh just the merged services view (don't re-pull photos —
       // they're unchanged and refetching would flicker the grid).
       const contentRes = await fetch('/api/admin/content', { credentials: 'same-origin' });
-      if (contentRes.ok) {
-        const data = await contentRes.json();
-        setServices(data?.merged?.services || []);
-      }
+      if (!contentRes.ok) throw new Error('Failed to refresh after save');
+      const data = await contentRes.json();
+      setServices(data?.merged?.services || []);
+      return { ok: true };
     } catch (err) {
       setError(err.message);
+      return { ok: false, error: err.message };
     }
   };
 
@@ -1270,6 +1272,8 @@ function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
   const [bodyOpen, setBodyOpen] = useState(false);
   const [bodyDraft, setBodyDraft] = useState('');
   const [saving, setSaving] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [error, setError] = useState(null);
 
   // Resolve current values from the live-merged services payload, falling
   // back to the static category defaults while content is still loading.
@@ -1280,44 +1284,50 @@ function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
   const titleOverridden = liveTitle !== defaultTitle;
   const bodyOverridden  = liveBody  !== defaultBody;
 
-  const beginEditTitle = () => { setTitleDraft(liveTitle); setEditingTitle(true); };
-  const beginEditBody  = () => { setBodyDraft(liveBody);   setBodyOpen(true);     };
+  const beginEditTitle = () => { setError(null); setTitleDraft(liveTitle); setEditingTitle(true); };
+  const cancelEditTitle = () => { setError(null); setEditingTitle(false); };
+  const beginEditBody  = () => { setError(null); setBodyDraft(liveBody);  setBodyOpen(true);  };
+  const cancelEditBody = () => { setError(null); setBodyOpen(false); };
+
+  // Centralised save: returns the field value to send (empty string when
+  // the draft equals the default = reset that override on the server).
+  const doSave = async (field, draft, def) => {
+    setError(null);
+    setSaving(true);
+    const trimmed = draft.trim();
+    const valueToSend = trimmed === def ? '' : trimmed;
+    const result = await onSave({ [field]: valueToSend });
+    setSaving(false);
+    if (!result || result.ok === false) {
+      setError(result?.error || 'Save failed');
+      return false;
+    }
+    // Brief "Saved" flash so admin gets visible confirmation
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 1800);
+    return true;
+  };
 
   const commitTitle = async () => {
-    setEditingTitle(false);
     const trimmed = titleDraft.trim();
-    // No change → no API call. Empty resets to default (server clears the override).
-    if (trimmed === liveTitle) return;
-    setSaving(true);
-    await onSave({ title: trimmed === defaultTitle ? '' : trimmed });
-    setSaving(false);
+    if (trimmed === liveTitle) { setEditingTitle(false); return; }
+    if (await doSave('title', titleDraft, defaultTitle)) setEditingTitle(false);
   };
-
   const commitBody = async () => {
     const trimmed = bodyDraft.trim();
-    setBodyOpen(false);
-    if (trimmed === liveBody) return;
-    setSaving(true);
-    await onSave({ body: trimmed === defaultBody ? '' : trimmed });
-    setSaving(false);
+    if (trimmed === liveBody) { setBodyOpen(false); return; }
+    if (await doSave('body', bodyDraft, defaultBody)) setBodyOpen(false);
   };
-
   const resetTitle = async () => {
-    setEditingTitle(false);
-    setSaving(true);
-    await onSave({ title: '' });
-    setSaving(false);
+    if (await doSave('title', '', defaultTitle)) setEditingTitle(false);
   };
   const resetBody = async () => {
-    setBodyOpen(false);
-    setSaving(true);
-    await onSave({ body: '' });
-    setSaving(false);
+    if (await doSave('body', '', defaultBody)) setBodyOpen(false);
   };
 
   return (
     <header className="mb-3 pb-2" style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>
-      <div className="flex items-baseline gap-3 flex-wrap">
+      <div className="flex items-baseline gap-2 flex-wrap">
         <span className="text-[10px] uppercase tracking-[0.25em] font-bold"
           style={{
             fontFamily: "'JetBrains Mono', monospace",
@@ -1326,36 +1336,84 @@ function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
           {cat.num}
         </span>
         {editingTitle ? (
-          <input value={titleDraft} onChange={e => setTitleDraft(e.target.value)}
-            autoFocus
-            onKeyDown={e => {
-              if (e.key === 'Enter')  commitTitle();
-              if (e.key === 'Escape') setEditingTitle(false);
-            }}
-            onBlur={commitTitle}
-            className="text-base sm:text-lg px-2 py-1 outline-none flex-1 min-w-0"
-            style={{
-              fontFamily: 'Anton, sans-serif', letterSpacing: '0.02em',
-              color: BRAND.textPri,
-              background: 'rgba(8,21,46,0.6)',
-              border: `1px solid ${BRAND.boltAmber}`
-            }} />
-        ) : (
-          <button onClick={beginEditTitle}
-            className="text-base sm:text-lg cursor-pointer text-left"
-            title="Click to rename this service group"
-            style={{
-              fontFamily: 'Anton, sans-serif', letterSpacing: '0.02em',
-              color: BRAND.textPri, background: 'transparent', border: 'none', padding: 0
-            }}>
-            {liveTitle}
+          <>
+            <input value={titleDraft} onChange={e => setTitleDraft(e.target.value)}
+              autoFocus
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); commitTitle(); }
+                if (e.key === 'Escape') cancelEditTitle();
+              }}
+              disabled={saving}
+              className="text-base sm:text-lg px-2 py-1 outline-none flex-1 min-w-0"
+              style={{
+                fontFamily: 'Anton, sans-serif', letterSpacing: '0.02em',
+                color: BRAND.textPri,
+                background: 'rgba(8,21,46,0.6)',
+                border: `1px solid ${BRAND.boltAmber}`
+              }} />
+            <button onClick={commitTitle} disabled={saving}
+              title="Save (Enter)"
+              className="inline-flex items-center gap-1 px-3 py-1.5 cursor-pointer disabled:opacity-50"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700,
+                background: BRAND.boltAmber, color: BRAND.navy, border: 'none'
+              }}>
+              {saving
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <><Check className="w-3.5 h-3.5" strokeWidth={3} /> Save</>}
+            </button>
+            <button onClick={cancelEditTitle} disabled={saving}
+              title="Cancel (Esc)"
+              className="inline-flex items-center px-2 py-1.5 cursor-pointer disabled:opacity-50"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase',
+                background: 'transparent', color: BRAND.textMuted,
+                border: `1px solid ${BRAND.navyLineStrong}`
+              }}>
+              Cancel
+            </button>
             {titleOverridden && (
-              <span className="ml-2 text-[9px] uppercase tracking-[0.22em] align-middle"
-                style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
-                · edited
-              </span>
+              <button onClick={resetTitle} disabled={saving}
+                title="Clear override → revert to default"
+                className="inline-flex items-center px-2 py-1.5 cursor-pointer disabled:opacity-50"
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase',
+                  background: 'transparent', color: BRAND.textFaint,
+                  border: `1px dashed ${BRAND.navyLineStrong}`
+                }}>
+                Reset
+              </button>
             )}
-          </button>
+          </>
+        ) : (
+          <>
+            <h3 className="text-base sm:text-lg" style={{
+              fontFamily: 'Anton, sans-serif', letterSpacing: '0.02em',
+              color: BRAND.textPri, margin: 0
+            }}>
+              {liveTitle}
+              {titleOverridden && (
+                <span className="ml-2 text-[9px] uppercase tracking-[0.22em] align-middle"
+                  style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+                  · edited
+                </span>
+              )}
+            </h3>
+            <button onClick={beginEditTitle}
+              title="Rename this service group"
+              className="inline-flex items-center gap-1 px-2 py-1 cursor-pointer"
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700,
+                background: 'transparent', color: BRAND.boltAmber,
+                border: `1px solid ${BRAND.boltAmber}40`
+              }}>
+              Rename →
+            </button>
+          </>
         )}
         <span className="text-[10px] uppercase tracking-[0.22em] ml-auto"
           style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
@@ -1366,11 +1424,28 @@ function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
           {!hasCover && photoCount > 0 && (
             <span style={{ color: '#fca5a5', marginLeft: 8 }}>· no cover</span>
           )}
+          {savedFlash && !saving && (
+            <span style={{ color: '#86efac', marginLeft: 8 }}>· saved ✓</span>
+          )}
           {saving && (
             <Loader2 className="inline-block ml-2 w-3 h-3 animate-spin" style={{ color: BRAND.boltAmber }} />
           )}
         </span>
       </div>
+
+      {/* Inline error — surfaces server-side validation problems so admin
+          knows why a save didn't take, instead of silently reverting */}
+      {error && (
+        <div className="mt-2 ml-[44px] flex items-start gap-2 px-2 py-1.5 text-xs"
+          style={{
+            background: 'rgba(127,29,29,0.3)',
+            border: '1px solid #7f1d1d',
+            color: '#fca5a5'
+          }}>
+          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Description / body. Collapsed by default — click "Edit description"
           to expand the textarea. Shown read-only otherwise. */}
@@ -1379,8 +1454,9 @@ function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
           <div>
             <textarea value={bodyDraft} onChange={e => setBodyDraft(e.target.value)}
               autoFocus rows={4}
+              disabled={saving}
               onKeyDown={e => {
-                if (e.key === 'Escape') setBodyOpen(false);
+                if (e.key === 'Escape') cancelEditBody();
                 // Cmd/Ctrl+Enter saves
                 if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') commitBody();
               }}
@@ -1393,17 +1469,18 @@ function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
                 minHeight: 80
               }} />
             <div className="flex items-center gap-2 mt-1.5">
-              <button onClick={commitBody}
-                className="inline-flex items-center gap-1 px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-bold cursor-pointer"
+              <button onClick={commitBody} disabled={saving}
+                className="inline-flex items-center gap-1 px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-bold cursor-pointer disabled:opacity-50"
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
                   background: BRAND.boltAmber, color: BRAND.navy, border: 'none'
                 }}>
-                <Check className="w-3 h-3" strokeWidth={3} />
-                Save
+                {saving
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <><Check className="w-3 h-3" strokeWidth={3} /> Save</>}
               </button>
-              <button onClick={() => setBodyOpen(false)}
-                className="px-3 py-1 text-[10px] uppercase tracking-[0.2em] cursor-pointer"
+              <button onClick={cancelEditBody} disabled={saving}
+                className="px-3 py-1 text-[10px] uppercase tracking-[0.2em] cursor-pointer disabled:opacity-50"
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
                   background: 'transparent', color: BRAND.textMuted,
@@ -1412,8 +1489,8 @@ function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
                 Cancel
               </button>
               {bodyOverridden && (
-                <button onClick={resetBody}
-                  className="px-3 py-1 text-[10px] uppercase tracking-[0.2em] cursor-pointer ml-auto"
+                <button onClick={resetBody} disabled={saving}
+                  className="px-3 py-1 text-[10px] uppercase tracking-[0.2em] cursor-pointer disabled:opacity-50 ml-auto"
                   style={{
                     fontFamily: "'JetBrains Mono', monospace",
                     background: 'transparent', color: BRAND.textMuted,
@@ -1425,7 +1502,7 @@ function ServiceGroupHeader({ cat, merged, photoCount, hasCover, onSave }) {
             </div>
             <div className="text-[9px] uppercase tracking-[0.22em] mt-1.5"
               style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
-              Tip: Cmd/Ctrl + Enter to save · Esc to cancel · Empty resets to default
+              Tip: Cmd/Ctrl + Enter to save · Esc to cancel
             </div>
           </div>
         ) : (
