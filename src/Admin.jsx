@@ -509,33 +509,53 @@ function PhotosTab() {
     }
   };
 
+  // Patch queue — every photo PATCH chains onto this so requests run
+  // strictly sequentially. Without serialization, two fast edits in a
+  // row both read gallery.json at the same time, modify their target,
+  // and the slower write clobbers the faster one's changes (last-
+  // write-wins because Vercel Blob has no field-level updates). This
+  // manifested as: move photo A → vehicle, quickly move photo B →
+  // banners, then A snaps back to its old group when B's response
+  // lands. Queue keeps the UI snappy (optimistic state still applies
+  // immediately) while the real writes go through one at a time.
+  const patchQueueRef = useRef(Promise.resolve());
+
   // Generic patch — sends whichever subset of { label, category, featured }
   // the caller provides. Server validates + atomically clears featured on
   // siblings when a new cover is set. Returns { ok, error } so PhotoRow
   // can show per-row feedback (the page-level error banner is fine for
   // upload failures, but per-row mutations should surface inline).
-  const patchPhoto = async (id, patch) => {
-    setError(null);
-    try {
-      const r = await fetch('/api/admin/photos', {
-        method: 'PATCH',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, ...patch })
-      });
-      if (!r.ok) {
-        const body = await r.json().catch(() => ({}));
-        throw new Error(body.error || `Update failed (${r.status})`);
+  const patchPhoto = (id, patch) => {
+    const run = async () => {
+      setError(null);
+      try {
+        const r = await fetch('/api/admin/photos', {
+          method: 'PATCH',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, ...patch })
+        });
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({}));
+          throw new Error(body.error || `Update failed (${r.status})`);
+        }
+        const data = await r.json();
+        setPhotos([...(data.photos || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+        return { ok: true };
+      } catch (err) {
+        // Fall through to the page-level banner too in case the row UI is
+        // off-screen, but the row's own error display is the primary signal.
+        setError(err.message);
+        return { ok: false, error: err.message };
       }
-      const data = await r.json();
-      setPhotos([...(data.photos || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
-      return { ok: true };
-    } catch (err) {
-      // Fall through to the page-level banner too in case the row UI is
-      // off-screen, but the row's own error display is the primary signal.
-      setError(err.message);
-      return { ok: false, error: err.message };
-    }
+    };
+    // Chain this run onto the queue; each call gets its own resolved
+    // result, but they execute one after another. .catch on the queue
+    // tail swallows errors so a failed patch doesn't break the chain
+    // for subsequent ones.
+    const result = patchQueueRef.current.then(run, run);
+    patchQueueRef.current = result.catch(() => {});
+    return result;
   };
 
   const removePhoto = async (id) => {
