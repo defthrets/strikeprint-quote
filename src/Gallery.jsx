@@ -27,30 +27,56 @@ const BRAND = {
 // { kind: 'video', src, poster, label }. The render branches on `kind`.
 const GALLERY_ITEMS = SHOWCASE_PHOTOS.map(p => ({ kind: 'image', ...p }));
 
+// Group items by label, preserving the order they first appear in the array.
+// Within each group, items keep their relative order from SHOWCASE_PHOTOS.
+const GROUPS = (() => {
+  const map = new Map();
+  for (const item of GALLERY_ITEMS) {
+    if (!map.has(item.label)) map.set(item.label, []);
+    map.get(item.label).push(item);
+  }
+  return Array.from(map.entries()).map(([label, items]) => ({ label, items }));
+})();
+
+const TOTAL_COUNT = GALLERY_ITEMS.length;
+
 export default function Gallery() {
-  const [lightboxIdx, setLightboxIdx] = useState(null);
-  const items = GALLERY_ITEMS;
+  // Lightbox now tracks WHICH GROUP it's traversing — prev/next stay within
+  // that group instead of jumping across the whole gallery.
+  // Shape: null | { items: [...], idx: number, label: string }
+  const [lightbox, setLightbox] = useState(null);
+
+  const openLightbox = useCallback((groupItems, label, idx) => {
+    setLightbox({ items: groupItems, label, idx });
+  }, []);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+  const prev = useCallback(() => {
+    setLightbox(lb => lb ? { ...lb, idx: (lb.idx - 1 + lb.items.length) % lb.items.length } : lb);
+  }, []);
+  const next = useCallback(() => {
+    setLightbox(lb => lb ? { ...lb, idx: (lb.idx + 1) % lb.items.length } : lb);
+  }, []);
 
   // Keyboard nav for the lightbox
   useEffect(() => {
-    if (lightboxIdx === null) return;
+    if (!lightbox) return;
     const onKey = (e) => {
-      if (e.key === 'Escape')      setLightboxIdx(null);
-      else if (e.key === 'ArrowLeft')  setLightboxIdx(i => (i - 1 + items.length) % items.length);
-      else if (e.key === 'ArrowRight') setLightboxIdx(i => (i + 1) % items.length);
+      if (e.key === 'Escape')          closeLightbox();
+      else if (e.key === 'ArrowLeft')  prev();
+      else if (e.key === 'ArrowRight') next();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [lightboxIdx, items.length]);
+  }, [lightbox, closeLightbox, prev, next]);
 
   // Lock body scroll while lightbox is open
   useEffect(() => {
-    if (lightboxIdx !== null) {
-      const prev = document.body.style.overflow;
+    if (lightbox) {
+      const prevOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
+      return () => { document.body.style.overflow = prevOverflow; };
     }
-  }, [lightboxIdx]);
+  }, [lightbox]);
 
   // Load fonts + animation styles (mirrors Home so this page isn't bare on direct load)
   useEffect(() => {
@@ -94,11 +120,6 @@ export default function Gallery() {
     };
   }, []);
 
-  const openLightbox = useCallback((idx) => setLightboxIdx(idx), []);
-  const closeLightbox = useCallback(() => setLightboxIdx(null), []);
-  const prev = useCallback(() => setLightboxIdx(i => (i - 1 + items.length) % items.length), [items.length]);
-  const next = useCallback(() => setLightboxIdx(i => (i + 1) % items.length), [items.length]);
-
   return (
     <div style={{
       fontFamily: "'Outfit', sans-serif",
@@ -127,8 +148,8 @@ export default function Gallery() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        {/* Section header */}
-        <h1 className="anim-fadeup" style={{
+        {/* Page heading */}
+        <h1 className="anim-fadeup text-center" style={{
           fontFamily: 'Anton, sans-serif',
           fontSize: 'clamp(2rem, 7vw, 3.25rem)',
           letterSpacing: '0.02em',
@@ -137,29 +158,30 @@ export default function Gallery() {
           What <span style={{ color: BRAND.boltAmber }}>We've</span> Made
         </h1>
         <p className="anim-fadeup mt-3 max-w-2xl mx-auto text-center text-sm sm:text-base leading-relaxed" style={{ color: BRAND.textMuted }}>
-          Real installs from across Sydney. Tap any image to see it larger — use the
-          arrows or your keyboard to flick through.
+          Real installs from across Sydney, grouped by sign type. Tap any image
+          to see it larger — arrows or your keyboard cycle through that group.
         </p>
 
-        {/* Grid */}
-        <div className="mt-8 sm:mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-          {items.map((it, idx) => (
-            <GalleryCard key={idx} item={it} idx={idx} onOpen={openLightbox} />
+        {/* Groups — each section has its own heading + grid + lightbox scope */}
+        <div className="mt-10 sm:mt-14 space-y-12 sm:space-y-16">
+          {GROUPS.map(group => (
+            <GalleryGroup key={group.label} group={group} onOpen={openLightbox} />
           ))}
         </div>
 
-        <p className="mt-8 text-center text-[11px] uppercase tracking-[0.25em]"
+        <p className="mt-12 text-center text-[11px] uppercase tracking-[0.25em]"
           style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textFaint }}>
-          More photos and videos added regularly · {items.length} shown
+          More photos and videos added regularly · {TOTAL_COUNT} shown across {GROUPS.length} categories
         </p>
       </main>
 
-      {/* Lightbox modal */}
-      {lightboxIdx !== null && items[lightboxIdx] && (
+      {/* Lightbox modal — cycles within the active group only */}
+      {lightbox && lightbox.items[lightbox.idx] && (
         <Lightbox
-          item={items[lightboxIdx]}
-          idx={lightboxIdx}
-          total={items.length}
+          item={lightbox.items[lightbox.idx]}
+          idx={lightbox.idx}
+          total={lightbox.items.length}
+          groupLabel={lightbox.label}
           onClose={closeLightbox}
           onPrev={prev}
           onNext={next}
@@ -169,9 +191,35 @@ export default function Gallery() {
   );
 }
 
+function GalleryGroup({ group, onOpen }) {
+  return (
+    <section>
+      <div className="flex items-center justify-center gap-3 mb-5 anim-fadeup">
+        <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
+        <span className="text-[11px] sm:text-xs uppercase tracking-[0.3em] font-bold"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+          {group.label}
+        </span>
+        <span className="text-[10px] uppercase tracking-[0.25em]"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
+          · {group.items.length}
+        </span>
+        <span className="h-px w-10 sm:w-16" style={{ background: BRAND.boltGrad }} />
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+        {group.items.map((it, idx) => (
+          <GalleryCard key={idx} item={it} idx={idx}
+            onOpen={() => onOpen(group.items, group.label, idx)} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function GalleryCard({ item, idx, onOpen }) {
   return (
-    <button type="button" onClick={() => onOpen(idx)}
+    <button type="button" onClick={onOpen}
       className="gal-card relative overflow-hidden block w-full"
       style={{
         aspectRatio: '4 / 3',
@@ -180,23 +228,15 @@ function GalleryCard({ item, idx, onOpen }) {
         cursor: 'pointer'
       }}>
       <img src={item.src} alt={item.label}
-        loading={idx < 8 ? 'eager' : 'lazy'}
+        loading={idx < 4 ? 'eager' : 'lazy'}
         decoding="async"
         className="gal-img absolute inset-0 w-full h-full"
         style={{ objectFit: 'cover' }} />
-      <div className="absolute inset-x-0 bottom-0 px-3 py-2 flex items-center gap-2"
-        style={{ background: 'linear-gradient(to top, rgba(8,21,46,0.95), rgba(8,21,46,0.6) 60%, transparent)' }}>
-        <span className="h-px w-3" style={{ background: BRAND.boltAmber }} />
-        <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-bold"
-          style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textPri }}>
-          {item.label}
-        </span>
-      </div>
     </button>
   );
 }
 
-function Lightbox({ item, idx, total, onClose, onPrev, onNext }) {
+function Lightbox({ item, idx, total, groupLabel, onClose, onPrev, onNext }) {
   // Portal to body — the sticky header has backdrop-filter which creates a
   // containing block for fixed positioning, so without the portal the
   // 'fixed inset-0' overlay would be trapped inside the header bounds.
@@ -221,29 +261,33 @@ function Lightbox({ item, idx, total, onClose, onPrev, onNext }) {
         <X className="w-5 h-5" strokeWidth={2.5} />
       </button>
 
-      {/* Prev (left) */}
-      <button onClick={(e) => { e.stopPropagation(); onPrev(); }}
-        title="Previous (←)"
-        className="lift fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12"
-        style={{
-          background: 'rgba(8,21,46,0.85)',
-          border: `1px solid ${BRAND.navyLineStrong}`,
-          color: BRAND.textPri
-        }}>
-        <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
-      </button>
+      {/* Prev (left) — disabled if only one item in group */}
+      {total > 1 && (
+        <button onClick={(e) => { e.stopPropagation(); onPrev(); }}
+          title="Previous (←)"
+          className="lift fixed left-2 sm:left-5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12"
+          style={{
+            background: 'rgba(8,21,46,0.85)',
+            border: `1px solid ${BRAND.navyLineStrong}`,
+            color: BRAND.textPri
+          }}>
+          <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
+        </button>
+      )}
 
       {/* Next (right) */}
-      <button onClick={(e) => { e.stopPropagation(); onNext(); }}
-        title="Next (→)"
-        className="lift fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12"
-        style={{
-          background: 'rgba(8,21,46,0.85)',
-          border: `1px solid ${BRAND.navyLineStrong}`,
-          color: BRAND.textPri
-        }}>
-        <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
-      </button>
+      {total > 1 && (
+        <button onClick={(e) => { e.stopPropagation(); onNext(); }}
+          title="Next (→)"
+          className="lift fixed right-2 sm:right-5 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12"
+          style={{
+            background: 'rgba(8,21,46,0.85)',
+            border: `1px solid ${BRAND.navyLineStrong}`,
+            color: BRAND.textPri
+          }}>
+          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
+        </button>
+      )}
 
       {/* Image + meta */}
       <div onClick={(e) => e.stopPropagation()} className="relative max-w-6xl w-full anim-fadeup">
@@ -256,17 +300,17 @@ function Lightbox({ item, idx, total, onClose, onPrev, onNext }) {
             className="block w-full max-h-[78vh] mx-auto object-contain"
             style={{ background: BRAND.navyDeep, border: `1px solid ${BRAND.boltAmber}` }} />
         )}
-        <div className="mt-3 flex items-center justify-between gap-3">
+        <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="h-px w-4" style={{ background: BRAND.boltAmber }} />
             <span className="text-[10px] sm:text-xs uppercase tracking-[0.22em] font-bold"
               style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textPri }}>
-              {item.label}
+              {groupLabel}
             </span>
           </div>
           <span className="text-[10px] uppercase tracking-[0.22em]"
             style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.textDim }}>
-            {idx + 1} / {total}
+            {idx + 1} / {total} in group
           </span>
         </div>
       </div>
