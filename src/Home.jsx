@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Sun, Moon, Phone, Mail, MapPin, Clock, Square, Lightbulb, Car, Flag, Eye, Navigation, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sun, Moon, Phone, Mail, MapPin, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ════════════════════════════════════════════════════════════════
 //   STRIKE PRINT — full single-page redesign
@@ -29,34 +29,78 @@ const PHOTOS = [
   ['/portfolio/install-36.webp',   'Storefront signage']
 ];
 
-// Masonry grid layout: which photos use the special spans (tall/wide/big).
-// Index aligns with PHOTOS where applicable; the order here is the order
-// used in the grid (different from the marquee).
-const PORTFOLIO_GRID = [
-  { src: '/portfolio/hero.webp',         label: 'Inhouse production',     span: 'big' },
-  { src: '/portfolio/install-19.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-32.webp',   label: 'Vehicle wrap' },
-  { src: '/portfolio/install-08.webp',   label: 'Wall mural',             span: 'wide' },
-  { src: '/portfolio/install-04.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-13.webp',   label: 'Wall graphics' },
-  { src: '/portfolio/install-23.webp',   label: 'Bar graphics',           span: 'tall' },
-  { src: '/portfolio/install-17.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-26.webp',   label: 'Banners' },
-  { src: '/portfolio/install-27.webp',   label: 'Hanging fabric banners' },
-  { src: '/portfolio/install-34.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-38.webp',   label: 'Vehicle wrap' },
-  { src: '/portfolio/install-36.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-07.webp',   label: 'Storefront signage' },
-  { src: '/portfolio/install-01.webp',   label: 'Panels & promotional' }
-];
-
+// Each service has a cover image (the preview shown on the tile) and a
+// `gallery` of related photos. Click the tile → lightbox cycles through
+// just that category. Per the latest design pass: the standalone "Selected
+// installs" masonry section is gone; the click-through galleries on each
+// service tile have replaced it.
 const SERVICES = [
-  { num: '01', icon: Square,     title: 'Shopfront & Building Signs', body: 'ACM panels, fascias and storefront signage. Custom digital print on aluminium composite — engineered for kerb appeal that holds up under sun and weather.' },
-  { num: '02', icon: Lightbulb,  title: 'Illuminated Signs',         body: 'Lightboxes, channel letters and halo-lit cabinets. Internally LED-lit so your sign reads as clearly at midnight as it does at noon.' },
-  { num: '03', icon: Car,        title: 'Vehicle Wraps & Decals',    body: 'Door logos, panel decals, full wraps. Vans, trucks, fleet — turn the asset you already own into a mobile billboard.' },
-  { num: '04', icon: Flag,       title: 'Banners, Flags & A-Frames', body: 'Heavy-duty PVC banners, feather flags and footpath A-frames. Quick-turn marketing for events, sales and seasonal campaigns.' },
-  { num: '05', icon: Eye,        title: 'Windows & Wall Graphics',   body: 'Vinyl window graphics, frosted privacy film, large-format wall murals. Brand presence and privacy in equal measure.' },
-  { num: '06', icon: Navigation, title: 'Pylons & Wayfinding',       body: 'Free-standing roadside pylons and compact directional signs. Premium road-facing signage for centres, car parks and campus navigation.' }
+  {
+    num: '01',
+    title: 'Shopfront & Building Signs',
+    body: 'ACM panels, fascias and storefront signage. Custom digital print on aluminium composite — engineered for kerb appeal that holds up under sun and weather.',
+    cover: '/portfolio/install-19.webp',
+    gallery: [
+      { src: '/portfolio/install-19.webp', label: 'Storefront signage' },
+      { src: '/portfolio/install-17.webp', label: 'Storefront signage' },
+      { src: '/portfolio/install-34.webp', label: 'Storefront signage' },
+      { src: '/portfolio/install-36.webp', label: 'Storefront signage' },
+      { src: '/portfolio/install-07.webp', label: 'Storefront signage' },
+      { src: '/portfolio/install-01.webp', label: 'Panels & promotional' }
+    ]
+  },
+  {
+    num: '02',
+    title: 'Illuminated Signs',
+    body: 'Lightboxes, channel letters and halo-lit cabinets. Internally LED-lit so your sign reads as clearly at midnight as it does at noon.',
+    cover: '/portfolio/install-23.webp',
+    gallery: [
+      { src: '/portfolio/install-23.webp', label: 'Illuminated bar graphics' },
+      { src: '/portfolio/install-34.webp', label: 'Illuminated storefront' }
+    ]
+  },
+  {
+    num: '03',
+    title: 'Vehicle Wraps & Decals',
+    body: 'Door logos, panel decals, full wraps. Vans, trucks, fleet — turn the asset you already own into a mobile billboard.',
+    cover: '/portfolio/install-32.webp',
+    gallery: [
+      { src: '/portfolio/install-32.webp', label: 'Vehicle wrap' },
+      { src: '/portfolio/install-38.webp', label: 'Vehicle wrap' }
+    ]
+  },
+  {
+    num: '04',
+    title: 'Banners, Flags & A-Frames',
+    body: 'Heavy-duty PVC banners, feather flags and footpath A-frames. Quick-turn marketing for events, sales and seasonal campaigns.',
+    cover: '/portfolio/install-26.webp',
+    gallery: [
+      { src: '/portfolio/install-26.webp', label: 'Banners' },
+      { src: '/portfolio/install-27.webp', label: 'Hanging fabric banners' },
+      { src: '/portfolio/install-01.webp', label: 'Panels & promotional' }
+    ]
+  },
+  {
+    num: '05',
+    title: 'Windows & Wall Graphics',
+    body: 'Vinyl window graphics, frosted privacy film, large-format wall murals. Brand presence and privacy in equal measure.',
+    cover: '/portfolio/install-08.webp',
+    gallery: [
+      { src: '/portfolio/install-08.webp', label: 'Wall mural' },
+      { src: '/portfolio/install-04.webp', label: 'Wall graphics' },
+      { src: '/portfolio/install-13.webp', label: 'Wall graphics' }
+    ]
+  },
+  {
+    num: '06',
+    title: 'Pylons & Wayfinding',
+    body: 'Free-standing roadside pylons and compact directional signs. Premium road-facing signage for centres, car parks and campus navigation.',
+    cover: '/portfolio/hero.webp',
+    gallery: [
+      { src: '/portfolio/hero.webp',       label: 'Inhouse production' },
+      { src: '/portfolio/install-19.webp', label: 'Storefront signage' }
+    ]
+  }
 ];
 
 const PILLARS = [
@@ -171,15 +215,15 @@ const HOME_CSS = `
   }
 
   /* Card hover spotlight */
-  .pf, .service { transform-style: preserve-3d; }
-  .pf::before, .service::before {
+  .service { transform-style: preserve-3d; }
+  .service::before {
     content: ''; position: absolute; inset: 0;
     background: radial-gradient(circle 180px at var(--mx, 50%) var(--my, 50%), rgba(245,154,16,0.22), transparent 60%);
     opacity: 0; transition: opacity .3s;
     pointer-events: none; z-index: 1;
   }
-  .pf:hover::before, .service:hover::before { opacity: 1; }
-  .pf .tag, .service > * { position: relative; z-index: 2; }
+  .service:hover::before { opacity: 1; }
+  .service > * { position: relative; z-index: 2; }
 
   .anton { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-style: italic; letter-spacing: -0.01em; }
   .bebas { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; }
@@ -410,43 +454,47 @@ const HOME_CSS = `
     position: relative; overflow: hidden;
     transition: transform .3s, border-color .3s, box-shadow .3s;
   }
-  .service-corner { position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(225deg, rgba(245,154,16,0.18), transparent 60%); pointer-events: none; }
+  .service-corner { position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(225deg, rgba(245,154,16,0.18), transparent 60%); pointer-events: none; z-index: 1; }
+  .service { cursor: zoom-in; }
   .service:hover { transform: translateY(-4px); border-color: var(--amber); box-shadow: 0 16px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(245,154,16,0.4); }
+  .service:focus-visible { outline: 2px solid var(--amber); outline-offset: 4px; }
   .service .num { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--dim); margin-bottom: 14px; }
-  .service .icon-box {
-    width: 56px; height: 56px;
-    background: var(--navy-deep); border: 1px solid rgba(245,154,16,0.4);
-    color: var(--amber);
-    display: flex; align-items: center; justify-content: center;
-    margin-bottom: 18px;
+  /* Service cover: category preview image. Click cycles a per-service
+     lightbox of related photos (replaces the old SVG icon box). */
+  .service-cover {
+    position: relative; overflow: hidden;
+    aspect-ratio: 16 / 10;
+    margin: 0 -24px 18px; /* break out of the card padding */
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: var(--navy-deep);
   }
+  .service-cover img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    filter: saturate(0.95) brightness(0.92);
+    transition: transform .9s cubic-bezier(.2,.7,.3,1), filter .4s;
+  }
+  .service:hover .service-cover img { transform: scale(1.06); filter: saturate(1.05) brightness(1); }
+  .service-cover-shade {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 35%, rgba(8,21,46,0.75) 100%);
+    pointer-events: none;
+  }
+  [data-theme="light"] .service-cover-shade {
+    background: linear-gradient(180deg, transparent 35%, rgba(8,21,46,0.55) 100%);
+  }
+  .service-cover-count {
+    position: absolute; left: 14px; bottom: 12px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em;
+    text-transform: uppercase; font-weight: 700;
+    color: #f8fafc;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 2;
+  }
+  .service-cover-count .tick { width: 14px; height: 1px; background: var(--amber); }
   .service h3 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: clamp(24px, 3vw, 32px); letter-spacing: 0; line-height: 1.05; margin: 0 0 10px; text-transform: uppercase; }
   .service p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
-
-  /* Portfolio masonry */
-  .portfolio { margin-top: 48px; display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 200px; gap: 12px; }
-  .pf {
-    position: relative; overflow: hidden;
-    background: var(--navy-deep);
-    border: 1px solid var(--line-strong);
-    border-radius: 14px;
-    transition: transform .3s, box-shadow .3s, border-color .3s;
-    cursor: zoom-in;
-  }
-  .pf:hover { transform: scale(0.985); border-color: var(--amber); box-shadow: 0 16px 40px rgba(0,0,0,.4); }
-  .pf img { width: 100%; height: 100%; object-fit: cover; transition: transform 1s cubic-bezier(.2,.7,.3,1); display: block; }
-  .pf:hover img { transform: scale(1.06); }
-  .pf-shade { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, rgba(8,21,46,0.85) 100%); pointer-events: none; }
-  .pf .tag {
-    position: absolute; left: 16px; bottom: 16px;
-    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em;
-    text-transform: uppercase; font-weight: 700; color: var(--text);
-    z-index: 2; display: flex; align-items: center; gap: 8px;
-  }
-  .pf .tag .dot { width: 14px; height: 1px; background: var(--amber); }
-  .pf.tall { grid-row: span 2; }
-  .pf.wide { grid-column: span 2; }
-  .pf.big  { grid-column: span 2; grid-row: span 2; }
 
   /* About + materials */
   .about-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: center; margin-top: 48px; }
@@ -612,7 +660,6 @@ const HOME_CSS = `
   @media (max-width: 1100px) {
     .pillars { grid-template-columns: repeat(2, 1fr); }
     .services { grid-template-columns: repeat(2, 1fr); }
-    .portfolio { grid-template-columns: repeat(3, 1fr); }
     .about-grid { grid-template-columns: 1fr; gap: 32px; }
     .contact-grid { grid-template-columns: repeat(2, 1fr); }
   }
@@ -622,9 +669,6 @@ const HOME_CSS = `
     .section { padding: 56px 18px; }
     .hero { padding: 120px 18px 56px; }
     .services { grid-template-columns: 1fr; }
-    .portfolio { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 160px; }
-    .pf.big { grid-column: span 2; grid-row: span 2; }
-    .pf.wide { grid-column: span 2; }
     .pillars { grid-template-columns: 1fr; }
     .contact-grid { grid-template-columns: 1fr; }
     .big-cta { padding: 28px; }
@@ -696,9 +740,9 @@ export default function Home() {
     return () => hero.removeEventListener('mousemove', onMove);
   }, []);
 
-  // ── Tilt + shine on cards (.pf, .service) ──
+  // ── Tilt + shine on service cards ──
   useEffect(() => {
-    const cards = document.querySelectorAll('.pf, .service');
+    const cards = document.querySelectorAll('.service');
     const handlers = [];
     cards.forEach(card => {
       const onMove = (e) => {
@@ -791,8 +835,7 @@ export default function Home() {
             <img className="brand-mark" src="/logo.webp" alt="Strike Print" style={{ width: 128, height: 81 }} />
           </a>
           <nav className="nav-links">
-            <a href="#work" className="nav-link">Work</a>
-            <a href="#services" className="nav-link">Services</a>
+            <a href="#services" className="nav-link">Work</a>
             <a href="#about" className="nav-link">About</a>
             <a href="#contact" className="nav-link">Contact</a>
             <a href="tel:0422626286" className="cta">Call now →</a>
@@ -829,7 +872,7 @@ export default function Home() {
           Made inhouse from Arndell Park, Sydney.
         </p>
         <div className="hero-actions">
-          <a href="#work" className="btn-secondary">See our work →</a>
+          <a href="#services" className="btn-secondary">See our work →</a>
           <a href="#contact" className="btn-secondary">Get in touch</a>
         </div>
 
@@ -899,40 +942,30 @@ export default function Home() {
         </div>
 
         <div className="services">
-          {SERVICES.map(s => {
-            const Icon = s.icon;
-            return (
-              <div key={s.num} className="service reveal">
-                <div className="service-corner" aria-hidden />
-                <div className="num">Service · {s.num} / 06</div>
-                <div className="icon-box"><Icon width={22} height={22} strokeWidth={2} /></div>
-                <h3>{s.title}</h3>
-                <p>{s.body}</p>
+          {SERVICES.map(s => (
+            <div key={s.num}
+              className="service reveal"
+              onClick={() => openLightbox(s.gallery, 0)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  openLightbox(s.gallery, 0);
+                }
+              }}>
+              <div className="service-corner" aria-hidden />
+              <div className="num">Service · {s.num} / 06</div>
+              <div className="service-cover">
+                <img src={s.cover} alt={s.title} loading="lazy" decoding="async" />
+                <div className="service-cover-shade" aria-hidden />
+                <div className="service-cover-count">
+                  <span className="tick" />
+                  <span>{String(s.gallery.length).padStart(2, '0')} {s.gallery.length === 1 ? 'photo' : 'photos'}</span>
+                </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Portfolio */}
-      <section id="work" className="section">
-        <span className="sect-num">03</span>
-        <div className="sect-header">
-          <h2 className="sect-title">Selected installs</h2>
-          <p className="sect-intro">
-            A snapshot from the Arndell Park workshop — shopfronts, vehicle wraps, lightboxes,
-            privacy frosting and more across Sydney.
-          </p>
-        </div>
-
-        <div className="portfolio">
-          {PORTFOLIO_GRID.map((p, idx) => (
-            <div key={idx}
-              className={`pf reveal ${p.span || ''}`.trim()}
-              onClick={() => openLightbox(PORTFOLIO_GRID, idx)}>
-              <img src={p.src} alt={p.label} loading={idx < 4 ? 'eager' : 'lazy'} />
-              <div className="pf-shade" aria-hidden />
-              <div className="tag"><span className="dot" />{p.label}</div>
+              <h3>{s.title}</h3>
+              <p>{s.body}</p>
             </div>
           ))}
         </div>
@@ -967,7 +1000,7 @@ export default function Home() {
 
       {/* Contact */}
       <section id="contact" className="section">
-        <span className="sect-num">04</span>
+        <span className="sect-num">03</span>
         <div className="sect-header">
           <div className="sect-eyebrow">
             <span className="line" /><span className="label">Get in touch</span><span className="line" />
