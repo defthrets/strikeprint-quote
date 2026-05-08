@@ -252,10 +252,46 @@ function Dashboard() {
       }}>
         Content editor
       </h1>
-      <p className="text-sm sm:text-base mb-8" style={{ color: BRAND.textMuted }}>
-        Edit the website without touching code. Photos live now — content,
-        colours and settings come online over the next few deploys.
+      <p className="text-sm sm:text-base mb-6" style={{ color: BRAND.textMuted }}>
+        Edit the website without touching code. Every save is live within
+        about 10 seconds — no rebuild, no git push needed.
       </p>
+
+      {/* How publishing works — surfaces the "your edits are live" guarantee
+          so admin doesn't go looking for a deploy / publish button. The
+          live site reads from the same database (gallery.json in Vercel
+          Blob) the admin writes to; the only delay is a 10s CDN cache. */}
+      <div className="p-4 mb-8 flex items-start gap-3 flex-wrap"
+        style={{
+          background: 'rgba(8,21,46,0.55)',
+          border: `1px solid ${BRAND.navyLineStrong}`,
+          borderLeft: `3px solid ${BRAND.boltAmber}`
+        }}>
+        <div className="flex-1 min-w-[260px]">
+          <div className="text-[10px] uppercase tracking-[0.25em] font-bold mb-1.5"
+            style={{ fontFamily: "'JetBrains Mono', monospace", color: BRAND.boltAmber }}>
+            How publishing works
+          </div>
+          <p className="text-sm leading-relaxed" style={{ color: BRAND.textMuted }}>
+            Edits save instantly to the same database the public site reads
+            from. Changes show up at <code style={{ color: BRAND.textPri }}>strikeprint.com.au</code>{' '}
+            within about 10 seconds — refresh the page (or wait a few seconds)
+            to see them. There&apos;s no separate "publish" or "deploy" step.
+          </p>
+        </div>
+        <a href="/" target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 cursor-pointer"
+          style={{
+            background: BRAND.boltGrad,
+            color: BRAND.navy,
+            fontFamily: 'Anton, sans-serif',
+            letterSpacing: '0.08em',
+            border: 'none',
+            textDecoration: 'none'
+          }}>
+          <span className="text-sm">View live site →</span>
+        </a>
+      </div>
 
       {/* Tab nav */}
       <div className="flex flex-wrap gap-2 mb-8" style={{ borderBottom: `1px solid ${BRAND.navyLine}` }}>

@@ -666,26 +666,41 @@ export default function Home() {
   }, [theme]);
 
   // Fetch admin-managed content from /api/photos. The endpoint is
-  // CDN-cached (60s s-maxage) so this is cheap and shared across visitors.
+  // CDN-cached (10s s-maxage) so this is cheap and shared across visitors.
   // Returns photos + service overrides + hero + contact in one shot.
   // If it fails, every state stays empty and SERVICES/HERO/CONTACT use
   // their compiled-in defaults — the page never blanks out on a blip.
+  //
+  // Also re-fetches when the tab regains focus, so a visitor who left the
+  // homepage open while admin made changes sees the new content the next
+  // time they look at it (without a manual reload). Cheap thanks to the
+  // CDN cache — at most one origin hit per 10s window across all tabs.
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/photos', { credentials: 'omit' })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (cancelled || !data) return;
-        if (Array.isArray(data.photos)) setPhotos(data.photos);
-        if (data.services && typeof data.services === 'object') setServiceOverrides(data.services);
-        // Stash the whole merged content payload — useMemo derivations
-        // pluck individual sections off it. data is server-merged, so
-        // every section already has all fields populated (defaults +
-        // overrides), no client-side merging needed.
-        setContent(data);
-      })
-      .catch(() => { /* fallback to compiled defaults */ });
-    return () => { cancelled = true; };
+    const load = () => {
+      fetch('/api/photos', { credentials: 'omit' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (cancelled || !data) return;
+          if (Array.isArray(data.photos)) setPhotos(data.photos);
+          if (data.services && typeof data.services === 'object') setServiceOverrides(data.services);
+          // Stash the whole merged content payload — useMemo derivations
+          // pluck individual sections off it. data is server-merged, so
+          // every section already has all fields populated (defaults +
+          // overrides), no client-side merging needed.
+          setContent(data);
+        })
+        .catch(() => { /* fallback to compiled defaults */ });
+    };
+    load();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   // ── Hero parallax: drift grid + ghost bolt with cursor ──
