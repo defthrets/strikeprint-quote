@@ -1084,6 +1084,16 @@ const FOOTER_FIELDS = [
   { key: 'tagline', label: 'Tagline', hint: 'Footer left side; the year auto-appends after a · separator' }
 ];
 
+// Social profile URLs — paste the full https:// URL of your page.
+// Leave any field blank to hide that platform's icon from the footer
+// (homepage only renders an icon when the URL is non-empty).
+const SOCIAL_FIELDS = [
+  { key: 'instagram', label: 'Instagram URL', hint: 'e.g. https://www.instagram.com/strikeprint — leave blank to hide' },
+  { key: 'facebook',  label: 'Facebook URL',  hint: 'e.g. https://www.facebook.com/strikeprint — leave blank to hide' },
+  { key: 'linkedin',  label: 'LinkedIn URL',  hint: 'e.g. https://www.linkedin.com/company/strikeprint — leave blank to hide' },
+  { key: 'youtube',   label: 'YouTube URL',   hint: 'e.g. https://www.youtube.com/@strikeprint — leave blank to hide' }
+];
+
 // Definition of every editable list section. `count` is the fixed slot
 // count enforced by the server. `itemFields` is what each row exposes.
 const PILLARS_FIELDS = [
@@ -1293,6 +1303,14 @@ function ContentTab() {
         merged={data.merged.footer}     defaults={data.defaults.footer}
         overrides={data.overrides.footer}
         saving={savingKey === 'footer'} onSave={(u) => saveSection('footer', u)}
+      />
+
+      <ContentSection
+        title="Social links" subtitle="Instagram / Facebook / LinkedIn / YouTube — icons appear in the footer for any platform with a URL set"
+        fields={SOCIAL_FIELDS}
+        merged={data.merged.social}     defaults={data.defaults.social}
+        overrides={data.overrides.social}
+        saving={savingKey === 'social'} onSave={(u) => saveSection('social', u)}
       />
     </div>
   );

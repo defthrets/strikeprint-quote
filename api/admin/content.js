@@ -33,7 +33,8 @@ import {
   buildTheme,
   buildSettings,
   buildVisibility,
-  buildReviewsList
+  buildReviewsList,
+  buildSocial
 } from '../../src/services-meta.js';
 
 // Domain errors thrown by mutators — handler maps them to HTTP codes.
@@ -78,6 +79,7 @@ function buildContentResponse(gallery) {
       reviews:        gallery.reviews        || {},
       big_cta:        gallery.big_cta        || {},
       footer:         gallery.footer         || {},
+      social:         gallery.social         || {},
       theme:          gallery.theme          || {},
       settings:       gallery.settings       || {},
       visibility:     gallery.visibility     || {},
@@ -105,6 +107,7 @@ function buildContentResponse(gallery) {
       reviews:        buildReviews(gallery.reviews),
       big_cta:        buildBigCta(gallery.big_cta),
       footer:         buildFooter(gallery.footer),
+      social:         buildSocial(gallery.social),
       theme:          buildTheme(gallery.theme),
       settings:       buildSettings(gallery.settings),
       visibility:     buildVisibility(gallery.visibility),

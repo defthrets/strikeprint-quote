@@ -103,6 +103,8 @@ export async function readGallery() {
       reviews:        json.reviews        || {},
       big_cta:        json.big_cta        || {},
       footer:         json.footer         || {},
+      // Social profile URLs (Instagram / Facebook / LinkedIn / YouTube)
+      social:         json.social         || {},
       // Brand colours + font choices (driven by Theme tab in admin)
       theme:          json.theme          || {},
       // Site-wide config (title, meta description, quote email)
@@ -156,6 +158,7 @@ export async function writeGallery(gallery) {
     reviews:        gallery.reviews        || {},
     big_cta:        gallery.big_cta        || {},
     footer:         gallery.footer         || {},
+    social:         gallery.social         || {},
     theme:          gallery.theme          || {},
     settings:       gallery.settings       || {},
     visibility:     gallery.visibility     || {},

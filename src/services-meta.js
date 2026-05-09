@@ -328,6 +328,23 @@ export const FOOTER_DEFAULTS = {
 };
 export function buildFooter(overrides) { return shallowMerge(FOOTER_DEFAULTS, overrides); }
 
+// ─── Social links ─────────────────────────────────────────────
+// Optional URLs for each platform. Empty string = the homepage
+// hides that icon entirely; if every field is empty, the social
+// row in the footer doesn't render at all (clean fallback for
+// fresh installs that haven't set up social yet).
+//
+// Admin paste the full profile URL (e.g. "https://instagram.com/strikeprint")
+// in the Content tab → Social links editor; we don't auto-prefix
+// since admins might use a vanity domain or short link.
+export const SOCIAL_DEFAULTS = {
+  instagram: '',
+  facebook:  '',
+  linkedin:  '',
+  youtube:   ''
+};
+export function buildSocial(overrides) { return shallowMerge(SOCIAL_DEFAULTS, overrides); }
+
 // ─── Theme (colours + fonts) ──────────────────────────────────
 // Three brand-accent colours drive the amber→orange→yellow gradient
 // used everywhere on the homepage (CTA buttons, gradient text, etc.).
@@ -414,6 +431,7 @@ export const FLAT_SECTIONS = {
   reviews:        REVIEWS_DEFAULTS,
   big_cta:        BIG_CTA_DEFAULTS,
   footer:         FOOTER_DEFAULTS,
+  social:         SOCIAL_DEFAULTS,
   theme:          THEME_DEFAULTS,
   settings:       SETTINGS_DEFAULTS,
   visibility:     VISIBILITY_DEFAULTS

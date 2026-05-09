@@ -11,7 +11,7 @@ import {
   buildHero, buildContact, buildAbout, buildServicesIntro, buildContactIntro,
   buildMaterials, buildMaterialsRows, buildPillars, buildReviews, buildBigCta,
   buildFooter, buildTheme, buildSettings, buildVisibility, buildReviewsList,
-  SERVICE_CATEGORIES
+  buildSocial, SERVICE_CATEGORIES
 } from '../src/services-meta.js';
 
 export default async function handler(req, res) {
@@ -71,6 +71,10 @@ export default async function handler(req, res) {
       big_cta:        buildBigCta(gallery.big_cta),
       footer:         buildFooter(gallery.footer),
       reviews_list:   buildReviewsList(gallery.reviews_list),
+      // Social profile URLs (Instagram / Facebook / LinkedIn / YouTube).
+      // Homepage footer renders icon links only for keys with a non-empty
+      // URL, so leaving any field blank in admin simply hides that icon.
+      social:         buildSocial(gallery.social),
       // Brand colours + font choices — homepage applies these via CSS
       // custom properties so a save in admin updates live within the
       // CDN window. Defaults match what the design originally shipped.

@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { Phone, Mail, MapPin, Clock, X, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, X, ChevronLeft, ChevronRight, Zap, Instagram, Facebook, Linkedin, Youtube } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   buildServices, buildHero, buildContact, buildAbout,
   buildServicesIntro, buildContactIntro, buildMaterials,
   buildMaterialsRows, buildPillars, buildReviews, buildReviewsList,
-  buildBigCta, buildFooter,
+  buildBigCta, buildFooter, buildSocial,
   buildTheme, buildSettings, buildVisibility
 } from './services-meta.js';
 
@@ -600,6 +600,15 @@ const HOME_CSS = `
   .footer a { color: var(--faint); text-decoration: none; transition: color .2s; }
   .footer a:hover { color: var(--amber); }
   .footer .right { display: flex; gap: 24px; align-items: center; }
+  /* Social icon row — only rendered when at least one URL is set in admin.
+     Sits in the footer's right cluster, between contact links. Outline
+     icons inherit the same gray (var(--faint)) as text, amber on hover. */
+  .footer .social { display: flex; gap: 14px; align-items: center; }
+  .footer .social a {
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--faint); transition: color .2s, transform .2s;
+  }
+  .footer .social a:hover { color: var(--amber); transform: translateY(-1px); }
   /* Tiny admin shortcut — bolt outline next to the tagline. Inherits
      the same gray tone as the surrounding footer text so it reads
      as part of the line, not as decoration. Amber on hover so it
@@ -717,6 +726,10 @@ export default function Home() {
   const REVIEWS_LIST    = useMemo(() => content?.reviews_list   || buildReviewsList(),    [content]);
   const BIG_CTA         = useMemo(() => content?.big_cta        || buildBigCta(),         [content]);
   const FOOTER          = useMemo(() => content?.footer         || buildFooter(),         [content]);
+  // Social profile URLs — empty string for any platform that hasn't been
+  // set in admin. Footer JSX only renders an icon when the URL is truthy
+  // so admins can hide individual platforms by clearing the field.
+  const SOCIAL          = useMemo(() => content?.social         || buildSocial(),         [content]);
   const THEME           = useMemo(() => content?.theme          || buildTheme(),          [content]);
   const SETTINGS        = useMemo(() => content?.settings       || buildSettings(),       [content]);
   // Per-section show/hide map. Defaults all-true so the homepage looks
@@ -1316,6 +1329,33 @@ export default function Home() {
           <a href="#contact">Contact</a>
           <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}>{CONTACT.phone}</a>
           <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+          {/* Social icons — render only those platforms with a non-empty
+              URL in admin. target=_blank + rel=noopener for safety; aria
+              labels keep it accessible since the icons are visual only. */}
+          {(SOCIAL.instagram || SOCIAL.facebook || SOCIAL.linkedin || SOCIAL.youtube) && (
+            <div className="social">
+              {SOCIAL.instagram && (
+                <a href={SOCIAL.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" title="Instagram">
+                  <Instagram width={14} height={14} strokeWidth={1.75} />
+                </a>
+              )}
+              {SOCIAL.facebook && (
+                <a href={SOCIAL.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" title="Facebook">
+                  <Facebook width={14} height={14} strokeWidth={1.75} />
+                </a>
+              )}
+              {SOCIAL.linkedin && (
+                <a href={SOCIAL.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" title="LinkedIn">
+                  <Linkedin width={14} height={14} strokeWidth={1.75} />
+                </a>
+              )}
+              {SOCIAL.youtube && (
+                <a href={SOCIAL.youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube" title="YouTube">
+                  <Youtube width={14} height={14} strokeWidth={1.75} />
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </footer>
       )}
