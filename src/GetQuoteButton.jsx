@@ -18,8 +18,8 @@ const BRAND = {
   boltGrad:       'linear-gradient(135deg, #f59a10, #f0601f, #fad905)'
 };
 
-const PHONE_TEL = '0422626286';
-const PHONE_DISPLAY = '0422 626 286';
+const PHONE_TEL = '04XXXXXXXX';
+const PHONE_DISPLAY = '04XX XXX XXX';
 const EMAIL = 'info@strikeprint.com.au';
 
 export default function GetQuoteButton({ className = '' }) {

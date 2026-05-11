@@ -127,7 +127,7 @@ export const HERO_DEFAULTS = {
 };
 
 export const CONTACT_DEFAULTS = {
-  phone:   '0422 626 286',
+  phone:   '04XX XXX XXX',
   email:   'info@strikeprint.com.au',
   // Multi-line — rendered with white-space: pre-line on the homepage so
   // a literal \n becomes a line break (e.g. street + suburb on two lines)
