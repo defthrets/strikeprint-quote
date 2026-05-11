@@ -102,3 +102,6 @@ Renders as a checkbox automatically. Ticked = added to the bill.
 ## License
 
 All rights reserved · © Strike Print
+
+---
+*Co-authored by Clawd <clawd@qloak.me>
