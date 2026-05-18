@@ -169,7 +169,7 @@ export async function writeGallery(gallery) {
     audit:          Array.isArray(gallery.audit) ? gallery.audit.slice(0, AUDIT_MAX) : []
   };
   await put(GALLERY_KEY, JSON.stringify(payload, null, 2), {
-    access: 'public',
+    access: 'private',
     contentType: 'application/json',
     addRandomSuffix: false,
     allowOverwrite: true
